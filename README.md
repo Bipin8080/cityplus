@@ -8,23 +8,14 @@ This project is developed as a TYBSc IT Final Year Project with a focus on pract
 
 🎯 Key Features
 Citizen Module
-
 User registration and login
-
 Report civic issues
-
 View submitted issue status
-
 Citizen dashboard interface
-
 Admin & Staff Module
-
 Admin and staff authentication
-
 View all reported issues
-
 Update issue status (Pending / In Progress / Resolved)
-
 Dedicated dashboards for admin and staff
 
 🏗️ Project Architecture (ACTUAL STRUCTURE)
@@ -83,34 +74,24 @@ Cityplus Testing/
 └── README.md
 
 🛠️ Technology Stack (NO EXAGGERATION)
+
 Backend
 
 Node.js
-
 Express.js
-
 MongoDB
-
 Mongoose
-
 JSON Web Tokens (JWT)
-
 RESTful APIs
 
 Frontend
 
 HTML5
-
 CSS3
-
 Vanilla JavaScript
-
 Tools
-
 Git & GitHub
-
 Visual Studio Code
-
 Postman (API testing)
 
 ⚙️ Installation & Setup
@@ -143,15 +124,10 @@ Frontend Setup
 No build tools are required.
 
 Open any of the following files in a browser:
-
 index.html
-
 login.html
-
 citizen-dashboard.html
-
 admin-dashboard.html
-
 staff-dashboard.html
 
 Frontend communicates with backend APIs using JavaScript.
@@ -174,15 +150,10 @@ PUT	/api/issues/:id	Update issue status
 🎓 Academic Objective
 
 This project demonstrates:
-
 Full-stack application development
-
 MVC-based backend architecture
-
 REST API design
-
 Authentication & authorization
-
 Practical problem-solving using web technologies
 
 👤 Author
