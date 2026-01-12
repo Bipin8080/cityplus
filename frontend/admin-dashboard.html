@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CityPlus – Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div>
+          <div class="brand-title">CityPlus</div>
+          <div class="brand-subtitle">Admin Dashboard</div>
+        </div>
+      </div>
+      <nav>
+        <a href="login.html" class="btn btn-outline" onclick="localStorage.clear()">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Admin Menu</div>
+      <ul class="sidebar-menu">
+        <li>
+          <a href="admin-dashboard.html" class="sidebar-link active">
+            <span>Overview</span>
+            <span>⋯</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar-link">
+            <span>Settings (future)</span>
+            <span>⋯</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-panel">
+      <header class="panel-header">
+        <div>
+          <div class="tag">Logged in as Admin</div>
+          <h1 class="section-title" style="margin-top:8px;">
+            CityPlus System Overview
+          </h1>
+          <p class="section-subtitle" style="margin-bottom:0;">
+            Monitor registered users and manage civic issue assignments across the platform.
+          </p>
+        </div>
+      </header>
+
+      <!-- System Statistics Section -->
+      <section class="admin-section">
+        <h2 class="admin-section-title">System Statistics</h2>
+        <div class="stat-grid">
+          <article class="stat-card">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value" id="uTotal">0</div>
+            <div class="stat-pill" id="uBreakdown">Citizens: 0 • Staff: 0 • Admins: 0</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Total Issues</div>
+            <div class="stat-value" id="iTotal">0</div>
+            <div class="stat-pill">All statuses combined</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Open Issues</div>
+            <div class="stat-value" id="iOpen">0</div>
+            <div class="stat-pill" style="color:#c62828;">Requires attention</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">In Progress / Resolved</div>
+            <div class="stat-value">
+              <span id="iProgress">0</span> / <span id="iResolved">0</span>
+            </div>
+            <div class="stat-pill">Active / Completed</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- User Management Section -->
+      <section class="admin-section">
+        <div class="admin-section-header">
+          <h2 class="admin-section-title">User Management</h2>
+          <span class="admin-section-subtitle">Registered users across all roles</span>
+        </div>
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="table admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email Address</th>
+                  <th>Role</th>
+                  <th>Registration Date</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersBody">
+                <!-- Filled by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Issue Assignment Section -->
+      <section class="admin-section">
+        <div class="admin-section-header">
+          <h2 class="admin-section-title">Issue Assignment</h2>
+          <span class="admin-section-subtitle">Assign civic issues to municipal staff members</span>
+        </div>
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="table admin-table">
+              <thead>
+                <tr>
+                  <th>Issue ID</th>
+                  <th>Category</th>
+                  <th>Location</th>
+                  <th>Reported By</th>
+                  <th>Assigned To</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminIssuesBody">
+                <!-- filled by admin-dashboard.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/admin-dashboard.js"></script>
+</body>
+</html>

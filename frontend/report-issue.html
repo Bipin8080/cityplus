@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CityPlus – Report New Issue</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div>
+          <div class="brand-title">CityPlus</div>
+          <div class="brand-subtitle">Report New Issue</div>
+        </div>
+      </div>
+      <nav>
+        <a href="citizen-dashboard.html" class="btn btn-outline">Back to Dashboard</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="form-wrapper">
+      <h1 class="form-title">Report a Civic Issue</h1>
+      <p class="form-subtitle">
+        Provide detailed information about the civic issue you wish to report.
+        All submitted complaints are tracked and managed through the CityPlus system.
+      </p>
+
+      <!-- IMPORTANT: onsubmit calls submitIssue(event) -->
+      <form onsubmit="submitIssue(event)">
+        <div class="form-group">
+          <label class="form-label" for="title">Issue Title</label>
+          <input id="title" class="form-input" placeholder="Provide a brief, descriptive title for the issue" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="category">Category</label>
+          <select id="category" class="form-select">
+            <option value="Pothole">Pothole</option>
+            <option value="Streetlight">Streetlight</option>
+            <option value="Garbage">Garbage</option>
+            <option value="Water Supply">Water Supply</option>
+            <option value="Sewage / Drainage">Sewage / Drainage</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ward">Ward / Area</label>
+          <input id="ward" class="form-input" placeholder="Enter ward number or area name" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="location">Location Details</label>
+          <input id="location" class="form-input" placeholder="Enter specific location details such as landmark, street name, or nearby building" />
+          <p class="form-helper">Provide precise location information to help municipal staff locate the issue.</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="priority">Priority</label>
+          <select id="priority" class="form-select">
+            <option>High – Safety risk</option>
+            <option selected>Medium – Needs attention</option>
+            <option>Low – Minor issue</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="description">Issue Description</label>
+          <textarea
+            id="description"
+            class="form-textarea"
+            placeholder="Provide a detailed description of the issue, including duration and impact on the community"
+          ></textarea>
+        </div>
+
+        <!-- We are NOT actually uploading file yet, keep it visual only -->
+        <div class="form-group">
+          <label class="form-label" for="photo">Attach Photo (optional)</label>
+          <input id="photo" type="file" class="form-input" />
+          <p class="form-helper">Upload a photograph of the issue to assist municipal staff in assessment and resolution.</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+          Submit Issue
+        </button>
+
+        <p class="form-helper" style="margin-top: 0.9rem;">
+          Upon submission, your complaint will be registered in the system and you will be redirected to your dashboard to track its status.
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/theme.js"></script>
+  <script src="js/issue.js"></script>
+</body>
+</html>

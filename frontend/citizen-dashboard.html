@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CityPlus – Citizen Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div>
+          <div class="brand-title">CityPlus</div>
+          <div class="brand-subtitle">Citizen Dashboard</div>
+        </div>
+      </div>
+      <nav>
+        <a href="login.html" class="btn btn-outline">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Citizen Menu</div>
+      <ul class="sidebar-menu">
+        <li>
+          <a href="citizen-dashboard.html" class="sidebar-link active">
+            <span>My Issues</span>
+            <span>⋯</span>
+          </a>
+        </li>
+        <li>
+          <a href="report-issue.html" class="sidebar-link">
+            <span>Report New Issue</span>
+            <span>+</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar-link">
+            <span>Profile & Ward Details</span>
+            <span>⋯</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Panel -->
+    <main class="main-panel">
+      <header class="panel-header">
+        <div>
+          <div class="tag">Logged in as Citizen</div>
+          <h1 class="section-title" style="margin-top: 0.4rem;">
+            My Reported Issues
+          </h1>
+          <p class="section-subtitle" style="margin-bottom: 0;">
+            View and track the status of all complaints you have submitted to the municipal authority.
+          </p>
+        </div>
+        <div>
+          <a href="report-issue.html" class="btn btn-primary">+ Report New Issue</a>
+        </div>
+      </header>
+<section class="filter-bar">
+  <div class="filter-group">
+    <input id="searchInput" class="form-input" placeholder="Search complaints by title or location" />
+  </div>
+  <div class="filter-group">
+    <select id="statusFilter" class="form-select">
+      <option value="">All Statuses</option>
+      <option value="Open">Open</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <select id="categoryFilter" class="form-select">
+      <option value="">All Categories</option>
+      <option value="Pothole">Pothole</option>
+      <option value="Streetlight">Streetlight</option>
+      <option value="Garbage">Garbage</option>
+      <option value="Water Supply">Water Supply</option>
+      <option value="Sewage / Drainage">Sewage / Drainage</option>
+      <option value="Other">Other</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <input id="wardFilter" class="form-input" placeholder="Filter by ward or area name" />
+  </div>
+</section>
+
+      <!-- Stats -->
+      <section class="stat-grid">
+        <div class="stat-card">
+  <div class="stat-label">Total Issues</div>
+  <div class="stat-value" id="statTotal">0</div>
+  <div class="stat-pill">Includes all status categories</div>
+</div>
+<div class="stat-card">
+  <div class="stat-label">Open</div>
+  <div class="stat-value" id="statOpen">0</div>
+  <div class="stat-pill" style="color:#b91c1c;">Awaiting municipal response</div>
+</div>
+<div class="stat-card">
+  <div class="stat-label">In Progress</div>
+  <div class="stat-value" id="statProgress">0</div>
+  <div class="stat-pill" style="color:#b45309;">Under active investigation</div>
+</div>
+<div class="stat-card">
+  <div class="stat-label">Resolved</div>
+  <div class="stat-value" id="statResolved">0</div>
+  <div class="stat-pill">Successfully resolved</div>
+      </section>
+
+      <!-- Issue Cards -->
+      <section>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="font-size:16px; font-weight:600; color:#2c3e50;">My Complaints</h2>
+          <span class="form-helper">Select a complaint card to view detailed information</span>
+        </div>
+
+        <div class="issue-cards-container" id="issuesBody">
+          <!-- Will be filled by JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+  <div id="issueModal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Issue Details</h3>
+      <button onclick="closeIssueModal()" class="btn btn-outline btn-small">Close</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Category:</strong> <span id="modalCategory"></span></p>
+      <p><strong>Ward:</strong> <span id="modalWard"></span></p>
+      <p><strong>Location:</strong> <span id="modalLocation"></span></p>
+      <p><strong>Priority:</strong> <span id="modalPriority"></span></p>
+      <p><strong>Status:</strong> <span id="modalStatus"></span></p>
+      <p><strong>Description:</strong></p>
+      <p id="modalDescription"></p>
+    </div>
+  </div>
+</div>
+  <script src="js/theme.js"></script>
+  <script src="js/citizen-dashboard.js"></script>
+</body>
+</html>

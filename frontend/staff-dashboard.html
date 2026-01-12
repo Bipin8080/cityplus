@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CityPlus – Staff Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div>
+          <div class="brand-title">CityPlus</div>
+          <div class="brand-subtitle">Staff Dashboard</div>
+        </div>
+      </div>
+      <nav>
+        <a href="login.html" class="btn btn-outline" onclick="localStorage.clear()">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Staff Menu</div>
+      <ul class="sidebar-menu">
+        <li>
+  <a href="#" class="sidebar-link" id="tab-all-issues">
+    <span>All Issues</span>
+    <span>⋯</span>
+  </a>
+</li>
+<li>
+  <a href="#" class="sidebar-link" id="tab-my-assigned">
+    <span>My Assigned Issues</span>
+    <span>⋯</span>
+  </a>
+</li>
+
+      </ul>
+    </aside>
+
+    <!-- Main panel -->
+    <main class="main-panel">
+      <header class="panel-header">
+        <div>
+          <div class="tag">Logged in as Staff</div>
+          <h1 class="section-title" style="margin-top: 0.4rem;">
+            City-wide Issues
+          </h1>
+          <p class="section-subtitle" style="margin-bottom: 0;">
+            Review and manage all civic issues reported by citizens. Update issue status as work progresses through the resolution workflow.
+          </p>
+        </div>
+      </header>
+
+      <section class="table-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+          <h2 style="font-size:0.95rem; font-weight:700;">All Complaints</h2>
+          <span class="form-helper">All reported civic issues across the municipality</span>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Priority</th>
+                <th>Citizen</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="staffIssuesBody">
+              <!-- Filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/staff-dashboard.js"></script>
+</body>
+</html>
