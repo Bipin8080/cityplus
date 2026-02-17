@@ -2,23 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CityPlus – Report New Issue</title>
+  <title>CityPlus | Civic Issue Reporting Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <header class="navbar">
     <div class="container navbar-inner">
-      <div class="brand">
-        <div class="brand-logo"></div>
-        <div>
-          <div class="brand-title">CityPlus</div>
-          <div class="brand-subtitle">Report New Issue</div>
-        </div>
-      </div>
-      <nav>
-        <a href="citizen-dashboard.html" class="btn btn-outline">Back to Dashboard</a>
+      <a href="index.html" class="brand">
+        <img src="images/logo.png" alt="CityPlus Logo" class="brand-logo">
+        <div class="brand-title">CityPlus</div>
+      </a>
+      <nav class="navbar-nav-menu">
       </nav>
+      <div class="navbar-auth">
+        <a href="index.html" class="btn btn-outline">Back to Home</a>
+      </div>
     </div>
   </header>
 
@@ -95,8 +94,25 @@
       </form>
     </div>
   </main>
-
+  <footer class="footer">
+    <span class="footer-logo"></span>
+    Cityplus – Civic Issue Reporting • Municipal Governance Support System
+  </footer>
   <script src="js/theme.js"></script>
+  <script>
+    // Pre-populate category from URL parameter
+    document.addEventListener("DOMContentLoaded", function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const selectedCategory = urlParams.get('category');
+
+      if (selectedCategory) {
+        const categorySelect = document.getElementById('category');
+        if (categorySelect) {
+          categorySelect.value = selectedCategory;
+        }
+      }
+    });
+  </script>
   <script src="js/issue.js"></script>
 </body>
 </html>

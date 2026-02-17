@@ -80,9 +80,20 @@ async function loadAdminData() {
         return `<option value="${s._id}" ${selected}>${s.name}</option>`;
       }).join("");
 
-      let statusClass = "open";
-      if (issue.status === "In Progress") statusClass = "progress";
-      if (issue.status === "Resolved") statusClass = "resolved";
+      const statusOptions = ["Open", "In Progress", "Resolved"]
+        .map(s => `<option value="${s}" ${issue.status === s ? "selected" : ""}>${s}</option>`)
+        .join("");
+      const imageCell = issue.image
+        ? `<a href="http://localhost:5000${issue.image}" target="_blank" title="View full image"><img src="http://localhost:5000${issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
+        : "-";
+
+      // Conditionally render action buttons based on assignment status
+      const actionButtons = issue.assignedTo
+        ? `
+            <button class="btn btn-success btn-small" disabled>Assigned</button>
+            <button class="btn btn-secondary btn-small reassign-btn" data-id="${issue._id}">Re-assign</button>
+          `
+        : `<button class="btn btn-primary btn-small assign-btn" data-id="${issue._id}">Assign</button>`;
 
       tr.innerHTML = `
         <td><code style="font-size:11px; color:#666;">#${issue._id.slice(-6)}</code></td>
@@ -96,19 +107,20 @@ async function loadAdminData() {
           </select>
           ${assignedName ? `<div style="font-size:11px; color:#666; margin-top:4px;">Current: ${assignedName}</div>` : ""}
         </td>
-        <td><span class="table-status-badge ${statusClass}">${issue.status}</span></td>
+        <td>${imageCell}</td>
         <td>
-          <button class="btn btn-primary btn-small assign-btn" data-id="${issue._id}">
-            Assign
-          </button>
+          <select class="form-select status-select" data-id="${issue._id}">
+            ${statusOptions}
+          </select>
         </td>
+        <td class="action-buttons">${actionButtons}</td>
       `;
       tbodyIssues.appendChild(tr);
     });
 
     // one click handler for whole table
     tbodyIssues.addEventListener("click", async (e) => {
-      if (!e.target.classList.contains("assign-btn")) return;
+      if (!e.target.classList.contains("assign-btn") && !e.target.classList.contains("reassign-btn")) return;
 
       const id = e.target.getAttribute("data-id");
       const select = tbodyIssues.querySelector(`.assign-select[data-id="${id}"]`);
@@ -122,9 +134,40 @@ async function loadAdminData() {
       await assignIssueToStaff(token, id, staffId);
     });
 
+    // Add a new event listener for status changes
+    tbodyIssues.addEventListener("change", async (e) => {
+      if (e.target.classList.contains("status-select")) {
+        const id = e.target.getAttribute("data-id");
+        const status = e.target.value;
+        await updateIssueStatus(token, id, status);
+      }
+    });
+
   } catch (err) {
     console.error(err);
     alert(err.message || "A system error occurred while loading dashboard data. Please refresh the page or contact support.");
+  }
+}
+
+async function updateIssueStatus(token, issueId, status) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/issues/${issueId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to update status.");
+    alert(`Issue status successfully updated to "${status}".`);
+  } catch (err) {
+    console.error(err);
+    alert("A system error occurred while updating the status. Please try again later.");
+  } finally {
+    // Reload data to reflect the change and revert dropdown on failure
+    loadAdminData();
   }
 }
 

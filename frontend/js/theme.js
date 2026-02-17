@@ -24,24 +24,24 @@
   
   // Add toggle button to all navbars
   document.addEventListener('DOMContentLoaded', function() {
-    const navbars = document.querySelectorAll('.navbar-inner nav');
-    navbars.forEach(nav => {
+    // Add the theme toggle button to navbar-auth (right side next to login button)
+    const authContainers = document.querySelectorAll('.navbar-auth');
+    authContainers.forEach(authContainer => {
       // Check if toggle already exists
-      if (!nav.querySelector('.theme-toggle')) {
+      if (!authContainer.querySelector('.theme-toggle')) {
         const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'theme-toggle';
-        toggleBtn.setAttribute('onclick', 'toggleTheme()');
+        toggleBtn.classList.add('theme-toggle');
+        toggleBtn.classList.add('theme-button');
         toggleBtn.setAttribute('aria-label', 'Toggle dark mode');
-        toggleBtn.innerHTML = '<span class="theme-toggle-icon"></span> <span class="theme-toggle-text">Theme</span>';
-        
-        // Insert before logout button or at the end
-        const logoutBtn = nav.querySelector('a[href*="login"]');
-        if (logoutBtn) {
-          nav.insertBefore(toggleBtn, logoutBtn);
-        } else {
-          nav.appendChild(toggleBtn);
-        }
+        // Only include the icon
+        toggleBtn.innerHTML = '<span class="theme-toggle-icon"></span>';
+        toggleBtn.addEventListener('click', toggleTheme);
+
+        // Append the theme button right after the login button inside navbar-auth
+        authContainer.appendChild(toggleBtn);
+        toggleBtn.style.marginLeft = '12px';
       }
     });
   });
+
 })();

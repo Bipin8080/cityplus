@@ -44,10 +44,15 @@ function applyFiltersAndRender() {
       if (issue.status === "In Progress") statusClass = "progress";
       if (issue.status === "Resolved") statusClass = "resolved";
 
+      const imageHtml = issue.image
+        ? `<img src="http://localhost:5000${issue.image}" alt="${issue.title}" class="issue-card-image">`
+        : "";
+
       const card = document.createElement("div");
       card.setAttribute("data-id", issue._id);
       card.classList.add("issue-card");
       card.innerHTML = `
+        ${imageHtml}
         <div class="issue-card-header">
           <span class="issue-card-id">Complaint #${issue._id.slice(-6)}</span>
         </div>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CityPlus – Staff Dashboard</title>
+  <title>CityPlus | Civic Issue Reporting Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -10,16 +10,15 @@
   <!-- Navbar -->
   <header class="navbar">
     <div class="container navbar-inner">
-      <div class="brand">
-        <div class="brand-logo"></div>
-        <div>
-          <div class="brand-title">CityPlus</div>
-          <div class="brand-subtitle">Staff Dashboard</div>
-        </div>
-      </div>
-      <nav>
-        <a href="login.html" class="btn btn-outline" onclick="localStorage.clear()">Logout</a>
+      <a href="index.html" class="brand">
+        <img src="images/logo.png" alt="CityPlus Logo" class="brand-logo">
+        <div class="brand-title">CityPlus</div>
+      </a>
+      <nav class="navbar-nav-menu">
       </nav>
+      <div class="navbar-auth">
+        <a href="login.html" class="btn btn-outline" onclick="localStorage.clear()">Logout</a>
+      </div>
     </div>
   </header>
 

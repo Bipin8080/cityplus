@@ -3,23 +3,14 @@ async function submitIssue(event) {
 
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
+  const isLoggedIn = token && role === "citizen";
 
-  if (!token || role !== "citizen") {
-    alert("Authentication required. Please log in with a citizen account to report an issue.");
-    window.location.href = "login.html";
-    return;
-  }
-
-  const title = document.querySelector("#title").value.trim();
-  const category = document.querySelector("#category").value.trim();
-  const ward = document.querySelector("#ward").value.trim();
-  const location = document.querySelector("#location").value.trim();
-  const priorityRaw = document.querySelector("#priority").value;
-  const description = document.querySelector("#description").value.trim();
-
-  let priority = "Medium";
-  if (priorityRaw.includes("High")) priority = "High";
-  if (priorityRaw.includes("Low")) priority = "Low";
+  const form = event.target;
+  const title = form.querySelector("#title").value.trim();
+  const category = form.querySelector("#category").value.trim();
+  const ward = form.querySelector("#ward").value.trim();
+  const location = form.querySelector("#location").value.trim();
+  const description = form.querySelector("#description").value.trim();
 
   if (!title || !category || !ward || !location || !description) {
     alert("Please complete all required fields before submitting your complaint.");
@@ -27,20 +18,18 @@ async function submitIssue(event) {
   }
 
   try {
+    // Use FormData to send both text and file data
+    const formData = new FormData(form);
+
+    const headers = {};
+    if (isLoggedIn) {
+      headers.Authorization = "Bearer " + token;
+    }
+
     const res = await fetch("http://localhost:5000/api/issues", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
-      body: JSON.stringify({
-        title,
-        category,
-        ward,
-        location,
-        priority,
-        description
-      })
+      headers: headers,
+      body: formData,
     });
 
     const data = await res.json();
@@ -51,9 +40,16 @@ async function submitIssue(event) {
     }
 
     alert("Your complaint has been successfully submitted. You will receive updates on its status.");
-    window.location.href = "citizen-dashboard.html";
+
+    // Redirect based on login status
+    if (isLoggedIn) {
+      window.location.href = "citizen-dashboard.html";
+    } else {
+      window.location.href = "index.html";
+    }
   } catch (err) {
     console.error(err);
     alert("A system error occurred while submitting your complaint. Please try again later.");
   }
 }
+
