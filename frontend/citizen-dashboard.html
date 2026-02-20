@@ -1,150 +1,417 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Cityplus - Civic Issue Reporting</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>CityPlus Citizen Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link href="css/styles.css" rel="stylesheet"/>
 </head>
 <body>
-  <header class="navbar">
-    <div class="container navbar-inner">
+
+<header class="navbar">
+  <div class="container navbar-inner">
+    <div class="navbar-left-items">
+      <button class="mobile-menu-toggle">
+        <span class="material-icons">menu</span>
+      </button>
       <a href="index.html" class="brand">
-        <img src="images/logo.png" alt="CityPlus Logo" class="brand-logo">
         <div class="brand-title">CityPlus</div>
       </a>
-      <nav class="navbar-nav-menu">
-      </nav>
-      <div class="navbar-auth">
-        <a href="login.html" class="btn btn-outline" onclick="localStorage.clear()">Logout</a>
-      </div>
     </div>
-  </header>
+    <div class="navbar-auth">
+      <a href="login.html" class="btn btn-outline" onclick="event.preventDefault(); showLogoutConfirmation();">Logout</a>
+    </div>
+  </div>
+</header>
 
-  <div class="dashboard-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-title">Citizen Menu</div>
-      <ul class="sidebar-menu">
-        <li>
-          <a href="citizen-dashboard.html" class="sidebar-link active">
-            <span>My Issues</span>
-            <span>⋯</span>
-          </a>
-        </li>
-        <li>
-          <a href="report-issue.html" class="sidebar-link">
-            <span>Report New Issue</span>
-            <span>+</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="sidebar-link">
-            <span>Profile & Ward Details</span>
-            <span>⋯</span>
-          </a>
-        </li>
-      </ul>
-    </aside>
+<div class="app-shell">
 
-    <!-- Main Panel -->
-    <main class="main-panel">
-      <header class="panel-header">
-        <div>
-          <div class="tag">Logged in as Citizen</div>
-          <h1 class="section-title" style="margin-top: 0.4rem;">
-            My Reported Issues
-          </h1>
-          <p class="section-subtitle" style="margin-bottom: 0;">
-            View and track the status of all complaints you have submitted to the municipal authority.
-          </p>
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar__logo">
+      <a href="index.html" class="sidebar__logo-inner">
+        <span class="sidebar__logo-text">CityPlus</span>
+      </a>
+    </div>
+
+    <!-- Nav -->
+    <nav class="sidebar__nav">
+      <a class="nav-link nav-link--active" href="citizen-dashboard.html">
+        <span class="material-icons">dashboard</span>
+        Dashboard
+      </a>
+      <a class="nav-link" href="report-issue.html">
+        <span class="material-icons">add_circle_outline</span>
+        Report New Issue
+      </a>
+      <a class="nav-link" href="#">
+        <span class="material-icons">map</span>
+        City Map
+      </a>
+
+      <div class="sidebar__section">
+        <p class="sidebar__section-label">Account</p>
+        <button class="nav-link" onclick="openProfileModal()" style="width: 100%; text-align: left; padding: 0.625rem 0.75rem;">
+          <span class="material-icons">person</span>
+          Profile
+        </button>
+      </div>
+    </nav>
+
+    <!-- User -->
+    <div class="sidebar__user">
+      <div class="sidebar__user-inner">
+        <div
+          class="sidebar__avatar"
+          id="userAvatar"
+        >
+          <span class="material-icons">account_circle</span>
         </div>
-        <div>
-          <a href="report-issue.html" class="btn btn-primary">+ Report New Issue</a>
+        <div class="sidebar__user-info">
+          <p class="sidebar__user-name" id="userName">Loading...</p>
+          <p class="sidebar__user-email" id="userEmail">Loading...</p>
         </div>
-      </header>
-<section class="filter-bar">
-  <div class="filter-group">
-    <input id="searchInput" class="form-input" placeholder="Search complaints by title or location" />
-  </div>
-  <div class="filter-group">
-    <select id="statusFilter" class="form-select">
-      <option value="">All Statuses</option>
-      <option value="Open">Open</option>
-      <option value="In Progress">In Progress</option>
-      <option value="Resolved">Resolved</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <select id="categoryFilter" class="form-select">
-      <option value="">All Categories</option>
-      <option value="Pothole">Pothole</option>
-      <option value="Streetlight">Streetlight</option>
-      <option value="Garbage">Garbage</option>
-      <option value="Water Supply">Water Supply</option>
-      <option value="Sewage / Drainage">Sewage / Drainage</option>
-      <option value="Other">Other</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <input id="wardFilter" class="form-input" placeholder="Filter by ward or area name" />
-  </div>
-</section>
+      </div>
+      <button class="nav-link" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem; padding: 0.5rem;" onclick="showLogoutConfirmation()">
+        <span class="material-icons">logout</span>
+        Logout
+      </button>
+    </div>
 
-      <!-- Stats -->
-      <section class="stat-grid">
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="main">
+
+    <div class="content-container">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-header__title" id="pageTitle">Welcome back, User</h1>
+          <p class="page-header__sub">Here is what's happening with your reported issues in your neighborhood.</p>
+        </div>
+        <a href="report-issue.html" class="btn-primary">
+          <span class="material-icons">add_location_alt</span>
+          Report New Issue
+        </a>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+
+        <!-- Total Reported -->
         <div class="stat-card">
-  <div class="stat-label">Total Issues</div>
-  <div class="stat-value" id="statTotal">0</div>
-  <div class="stat-pill">Includes all status categories</div>
-</div>
-<div class="stat-card">
-  <div class="stat-label">Open</div>
-  <div class="stat-value" id="statOpen">0</div>
-  <div class="stat-pill" style="color:#b91c1c;">Awaiting municipal response</div>
-</div>
-<div class="stat-card">
-  <div class="stat-label">In Progress</div>
-  <div class="stat-value" id="statProgress">0</div>
-  <div class="stat-pill" style="color:#b45309;">Under active investigation</div>
-</div>
-<div class="stat-card">
-  <div class="stat-label">Resolved</div>
-  <div class="stat-value" id="statResolved">0</div>
-  <div class="stat-pill">Successfully resolved</div>
-      </section>
-
-      <!-- Issue Cards -->
-      <section>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h2 style="font-size:16px; font-weight:600; color:#2c3e50;">My Complaints</h2>
-          <span class="form-helper">Select a complaint card to view detailed information</span>
+          <div class="stat-card__accent stat-card__accent--primary"></div>
+          <div class="stat-card__top">
+            <div>
+              <p class="stat-card__label">Total Reported</p>
+              <h3 class="stat-card__value" id="statTotal">0</h3>
+            </div>
+            <div class="stat-card__icon stat-card__icon--primary">
+              <span class="material-icons">folder_open</span>
+            </div>
+          </div>
+          <div class="stat-card__footer">
+            <span class="stat-card__footer-text">All submitted complaints</span>
+          </div>
         </div>
 
-        <div class="issue-cards-container" id="issuesBody">
-          <!-- Will be filled by JS -->
+        <!-- Pending Review -->
+        <div class="stat-card">
+          <div class="stat-card__accent stat-card__accent--yellow"></div>
+          <div class="stat-card__top">
+            <div>
+              <p class="stat-card__label">Pending Review</p>
+              <h3 class="stat-card__value" id="statOpen">0</h3>
+            </div>
+            <div class="stat-card__icon stat-card__icon--yellow">
+              <span class="material-icons">pending_actions</span>
+            </div>
+          </div>
+          <div class="stat-card__footer">
+            <span class="stat-card__footer-text">Awaiting action</span>
+          </div>
         </div>
-      </section>
-    </main>
-  </div>
-  <div id="issueModal" class="modal-backdrop" style="display:none;">
+
+        <!-- In Progress -->
+        <div class="stat-card">
+          <div class="stat-card__accent stat-card__accent--blue"></div>
+          <div class="stat-card__top">
+            <div>
+              <p class="stat-card__label">In Progress</p>
+              <h3 class="stat-card__value" id="statProgress">0</h3>
+            </div>
+            <div class="stat-card__icon stat-card__icon--blue">
+              <span class="material-icons">engineering</span>
+            </div>
+          </div>
+          <div class="stat-card__footer">
+            <span class="stat-card__footer-text">Under active work</span>
+          </div>
+        </div>
+
+        <!-- Resolved -->
+        <div class="stat-card">
+          <div class="stat-card__accent stat-card__accent--green"></div>
+          <div class="stat-card__top">
+            <div>
+              <p class="stat-card__label">Resolved</p>
+              <h3 class="stat-card__value" id="statResolved">0</h3>
+            </div>
+            <div class="stat-card__icon stat-card__icon--green">
+              <span class="material-icons">check_circle</span>
+            </div>
+          </div>
+          <div class="stat-card__footer">
+            <span class="stat-card__footer-badge stat-card__footer-badge--green">
+              <span class="material-icons" style="font-size:1rem;">thumb_up</span>
+            </span>
+            <span class="stat-card__footer-text">Successfully completed</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Issues Table -->
+      <div class="table-card">
+
+        <div class="table-card__header">
+          <div>
+            <h2 class="table-card__title">My Reported Issues</h2>
+            <p class="table-card__sub">Track the status of your recent submissions</p>
+          </div>
+          <div class="table-card__controls">
+            <div class="search-wrapper">
+              <span class="search-wrapper__icon">
+                <span class="material-icons">search</span>
+              </span>
+              <input class="search-input" id="searchInput" placeholder="Search issues..." type="text"/>
+            </div>
+            <button class="icon-btn" id="filterBtn">
+              <span class="material-icons">filter_list</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Panel (initially hidden) -->
+        <div class="filter-panel" id="filterPanel" style="display: none;">
+          <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select class="form-select" id="statusFilter">
+              <option value="">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Category</label>
+            <select class="form-select" id="categoryFilter">
+              <option value="">All Categories</option>
+              <option value="Pothole">Pothole</option>
+              <option value="Streetlight">Streetlight</option>
+              <option value="Garbage">Garbage</option>
+              <option value="Water Supply">Water Supply</option>
+              <option value="Sewage / Drainage">Sewage / Drainage</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Ward</label>
+            <input class="search-input" id="wardFilter" placeholder="Filter by ward..." type="text"/>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue Title</th>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="issuesTableBody">
+              <!-- Will be filled by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="table-footer">
+          <span class="table-footer__count" id="paginationInfo">Showing 0 entries</span>
+          <div class="table-footer__buttons">
+            <button class="btn-page" id="prevBtn" disabled>Previous</button>
+            <button class="btn-page" id="nextBtn">Next</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Secondary Grid -->
+      <div class="secondary-grid">
+
+        <!-- Activity Feed -->
+        <div class="activity-card">
+          <h3 class="activity-card__title">Latest Updates</h3>
+          <div class="activity-list" id="activityList">
+            <div class="activity-item">
+              <div class="activity-icon activity-icon--primary">
+                <span class="material-icons">info</span>
+              </div>
+              <div>
+                <p class="activity-item__title">Loading updates...</p>
+                <p class="activity-item__body">Your recent activity will appear here</p>
+                <p class="activity-item__time">Just now</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map Card -->
+        <div class="map-card">
+          <div class="map-card__image-wrapper">
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4ppG03YMb5MiHU4jCb6P6Z7T-x2KAYHrwseo1hwaOVSiGnVXopx3VDwnDV98KicXRVSB8wcoYz8pdzlSoeTR26qH7j-8uiG0dmBEhs6rL_CYkojhcyqAyQ88jT7g95hEPrcVci10HMTIpB7VIdopG8yn5FrPucvxhe1ecwhNLyhnEjWEdLoCZ576jmT5wi8fgk3MoQaEyas_YxcYEiOWLLRfaVLMr2IcimWgeEvORZ4mP6ZnskuE8IMGmn3K4nCkwCK44wuq4kGE"
+              alt="Abstract map view of city streets"
+            />
+            <div class="map-card__image-overlay"></div>
+            <h4 class="map-card__image-title">Track Your Issues</h4>
+          </div>
+          <div class="map-card__body">
+            <div>
+              <p class="map-card__desc">View the locations and status of your reported issues on the city map.</p>
+              <div class="map-legend">
+                <div class="map-legend__item">
+                  <span class="legend-dot legend-dot--primary"></span>
+                  <span class="map-legend__label">Open</span>
+                </div>
+                <div class="map-legend__item">
+                  <span class="legend-dot legend-dot--yellow"></span>
+                  <span class="map-legend__label">In Progress</span>
+                </div>
+                <div class="map-legend__item">
+                  <span class="legend-dot legend-dot--green"></span>
+                  <span class="map-legend__label">Resolved</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-outline">View Map</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /content-container -->
+  </main>
+
+</div><!-- /app-shell -->
+
+<!-- Issue Details Modal -->
+<div id="issueModal" class="modal-backdrop" style="display:none;">
   <div class="modal">
     <div class="modal-header">
       <h3 id="modalTitle">Issue Details</h3>
-      <button onclick="closeIssueModal()" class="btn btn-outline btn-small">Close</button>
+      <button onclick="closeIssueModal()" class="btn-outline">Close</button>
     </div>
     <div class="modal-body">
+      <div style="margin-bottom: 1rem;">
+        <img id="modalImage" src="" alt="Issue image" style="max-width: 100%; border-radius: 0.5rem; display: none;"/>
+      </div>
       <p><strong>Category:</strong> <span id="modalCategory"></span></p>
       <p><strong>Ward:</strong> <span id="modalWard"></span></p>
       <p><strong>Location:</strong> <span id="modalLocation"></span></p>
       <p><strong>Priority:</strong> <span id="modalPriority"></span></p>
       <p><strong>Status:</strong> <span id="modalStatus"></span></p>
+      <p><strong>Submitted:</strong> <span id="modalSubmitted"></span></p>
       <p><strong>Description:</strong></p>
       <p id="modalDescription"></p>
     </div>
   </div>
 </div>
-  <script src="js/theme.js"></script>
-  <script src="js/citizen-dashboard.js"></script>
+
+<!-- Profile Modal -->
+<div id="profileModal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>User Profile</h3>
+      <button onclick="closeProfileModal()" class="btn-outline">Close</button>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+        <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary-10); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 2rem;">
+          <span class="material-icons" style="font-size: 2rem;">account_circle</span>
+        </div>
+        <div>
+          <p style="margin: 0; font-weight: 600; font-size: 1.125rem; color: var(--text-primary);" id="profileName">Loading...</p>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);">Citizen Account</p>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+        <h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 1rem; letter-spacing: 0.05em;">Account Information</h4>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Full Name</p>
+          <p style="margin: 0; font-size: 0.9375rem; color: var(--text-primary);" id="profileFullName">-</p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Email Address</p>
+          <p style="margin: 0; font-size: 0.9375rem; color: var(--text-primary);" id="profileEmail">-</p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Account Type</p>
+          <p style="margin: 0; font-size: 0.9375rem; color: var(--text-primary);"><span class="role-badge citizen">Citizen</span></p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Account Status</p>
+          <p style="margin: 0; font-size: 0.9375rem; color: var(--text-primary);">
+            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 9999px; background: rgba(34,197,94,0.1); color: var(--green-600); font-size: 0.875rem; font-weight: 600;">
+              <span style="width: 0.375rem; height: 0.375rem; background: var(--green-600); border-radius: 50%; display: inline-block;"></span>
+              Active
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" style="text-align: center; padding: 1.25rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569;">
+  © 2026 CityPlus. All rights reserved.
+</footer>
+
+<!-- Scroll to Top Button -->
+<button class="scroll-to-top" id="scrollToTopBtn" title="Go to top">
+  <span class="material-icons-round">arrow_upward</span>
+</button>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutConfirmModal" class="confirm-modal-backdrop">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">
+      <span class="material-icons-round">Logout</span>
+    </div>
+    <h3 class="confirm-modal-title">Confirm Logout</h3>
+    <p class="confirm-modal-text">Are you sure you want to log out of your CityPlus account?</p>
+    <div class="confirm-modal-actions">
+      <button id="cancelLogoutBtn" class="btn btn-secondary">Cancel</button>
+      <button id="confirmLogoutBtn" class="btn btn-danger">Logout</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/theme.js"></script>
+<script src="js/citizen-dashboard.js"></script>
 </body>
 </html>

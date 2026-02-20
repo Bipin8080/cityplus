@@ -5,19 +5,21 @@
   <title>CityPlus | Civic Issue Reporting Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .navbar-inner {
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
   <!-- Navbar -->
   <header class="navbar">
     <div class="container navbar-inner">
       <a href="index.html" class="brand">
-        <img src="images/logo.png" alt="CityPlus Logo" class="brand-logo">
         <div class="brand-title">CityPlus</div>
       </a>
-      <nav class="navbar-nav-menu">
-      </nav>
       <div class="navbar-auth">
-        <a href="login.html" class="btn btn-outline" onclick="localStorage.clear()">Logout</a>
+        <a href="#" class="btn btn-outline" onclick="event.preventDefault(); showLogoutConfirmation();">Logout</a>
       </div>
     </div>
   </header>
@@ -28,18 +30,17 @@
       <div class="sidebar-title">Staff Menu</div>
       <ul class="sidebar-menu">
         <li>
-  <a href="#" class="sidebar-link" id="tab-all-issues">
-    <span>All Issues</span>
-    <span>⋯</span>
-  </a>
-</li>
-<li>
-  <a href="#" class="sidebar-link" id="tab-my-assigned">
-    <span>My Assigned Issues</span>
-    <span>⋯</span>
-  </a>
-</li>
-
+          <a href="#" class="sidebar-link active" id="tab-all-issues">
+            <span class="material-icons-round">assignment</span>
+            <span>All Issues</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar-link" id="tab-my-assigned">
+            <span class="material-icons-round">assignment_ind</span>
+            <span>My Assigned Issues</span>
+          </a>
+        </li>
       </ul>
     </aside>
 
@@ -72,7 +73,7 @@
                 <th>Location</th>
                 <th>Priority</th>
                 <th>Citizen</th>
-                <th>Date</th>
+                <th>Image</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -84,6 +85,120 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Staff Issue Modal -->
+  <div id="staffIssueModal" class="issue-modal-backdrop">
+    <div class="issue-modal">
+      <div class="issue-modal-header">
+        <h2 class="issue-modal-title" id="staffModalTitle">Issue Details</h2>
+        <button class="issue-modal-close" onclick="closeStaffIssueModal()">&times;</button>
+      </div>
+      <div class="issue-modal-content">
+        <!-- Image will be inserted here -->
+        <div id="staffModalImageContainer"></div>
+
+        <!-- Status and Category Badges -->
+        <div class="issue-modal-badges" id="staffModalBadges"></div>
+
+        <!-- Description Section -->
+        <div class="issue-modal-section">
+          <div class="issue-modal-section-title">
+            <span class="material-icons-round">description</span>
+            Description
+          </div>
+          <div class="issue-modal-description" id="staffModalDescription"></div>
+        </div>
+
+        <!-- Details Section -->
+        <div class="issue-modal-section">
+          <div class="issue-modal-section-title">
+            <span class="material-icons-round">info</span>
+            Details
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Complaint ID</span>
+            <span class="issue-modal-value" id="staffModalComplaintId">--</span>
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Location</span>
+            <span class="issue-modal-value" id="staffModalLocation">--</span>
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Ward</span>
+            <span class="issue-modal-value" id="staffModalWard">--</span>
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Priority</span>
+            <span class="issue-modal-value" id="staffModalPriority">--</span>
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Status</span>
+            <span class="issue-modal-value" id="staffModalDate">--</span>
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Submitted</span>
+            <span class="issue-modal-value" id="staffModalDate">--</span>
+          </div>
+        </div>
+
+        <!-- Reporter Section -->
+        <div class="issue-modal-section">
+          <div class="issue-modal-section-title">
+            <span class="material-icons-round">person</span>
+            Reporter
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Name</span>
+            <span class="issue-modal-value" id="staffModalCitizen">--</span>
+          </div>
+          <div class="issue-modal-row">
+            <span class="issue-modal-label">Email</span>
+            <span class="issue-modal-value" id="staffModalEmail">--</span>
+          </div>
+        </div>
+
+        <!-- Status Update Section -->
+        <div class="issue-modal-section">
+          <div class="issue-modal-section-title">
+            <span class="material-icons-round">sync</span>
+            Update Status
+          </div>
+          <select id="staffModalStatusSelect" class="form-select">
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+          <button onclick="updateStaffIssueStatus()" class="btn btn-primary" style="width: 100%; margin-top: 0.8rem;">
+            Update Status
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer" style="text-align: center; padding: 1.25rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569;">
+    © 2026 CityPlus. All rights reserved.
+  </footer>
+
+  <!-- Scroll to Top Button -->
+  <button class="scroll-to-top" id="scrollToTopBtn" title="Go to top">
+    <span class="material-icons-round">arrow_upward</span>
+  </button>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutConfirmModal" class="confirm-modal-backdrop">
+    <div class="confirm-modal">
+      <div class="confirm-modal-icon">
+        <span class="material-icons-round">logout</span>
+      </div>
+      <h3 class="confirm-modal-title">Confirm Logout</h3>
+      <p class="confirm-modal-text">Are you sure you want to log out of your CityPlus account?</p>
+      <div class="confirm-modal-actions">
+        <button id="cancelLogoutBtn" class="btn btn-secondary">Cancel</button>
+        <button id="confirmLogoutBtn" class="btn btn-danger">Logout</button>
+      </div>
+    </div>
   </div>
 
   <script src="js/theme.js"></script>
