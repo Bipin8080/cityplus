@@ -1,3 +1,33 @@
+// Error Modal Functions
+function showErrorModal(title, message) {
+  document.getElementById('errorModalTitle').textContent = title;
+  document.getElementById('errorModalMessage').textContent = message;
+  document.getElementById('errorModal').style.display = 'flex';
+}
+
+function closeErrorModal() {
+  document.getElementById('errorModal').style.display = 'none';
+}
+
+// Close modal when clicking outside of it
+document.addEventListener('DOMContentLoaded', () => {
+  const errorModal = document.getElementById('errorModal');
+  if (errorModal) {
+    errorModal.addEventListener('click', (e) => {
+      if (e.target === errorModal) {
+        closeErrorModal();
+      }
+    });
+  }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeErrorModal();
+    }
+  });
+});
+
 // Switch between login and registration forms
 function switchToLogin() {
   document.getElementById("loginForm").style.display = "block";
@@ -19,7 +49,7 @@ async function loginUser() {
   const password = document.querySelector("#password").value.trim();
 
   if (!email || !password) {
-    alert("Please provide your email address and password to continue.");
+    showErrorModal("Missing Information", "Please provide your email address and password to continue.");
     return;
   }
 
@@ -33,14 +63,19 @@ async function loginUser() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Authentication failed. Please verify your credentials and try again.");
+      // Check if it's a blocked or terminated account error
+      if (data.message && (data.message.includes("blocked") || data.message.includes("terminated"))) {
+        showErrorModal("Account Restricted", data.message);
+      } else {
+        showErrorModal("Login Failed", data.message || "Authentication failed. Please verify your credentials and try again.");
+      }
       return;
     }
 
-    // Save token + role + name
+    // Save token + role + email (name not available from login endpoint)
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.role);
-    localStorage.setItem("name", data.name || "");
+    localStorage.setItem("userEmail", email);
 
     // Redirect based on role
     if (data.role === "citizen") {
@@ -50,11 +85,11 @@ async function loginUser() {
     } else if (data.role === "admin") {
       window.location.href = "admin-dashboard.html";
     } else {
-      alert("Invalid user role detected. Please contact system administrator.");
+      showErrorModal("Invalid Role", "Invalid user role detected. Please contact system administrator.");
     }
   } catch (err) {
     console.error(err);
-    alert("A system error occurred. Please try again later or contact support if the issue persists.");
+    showErrorModal("System Error", "A system error occurred. Please try again later or contact support if the issue persists.");
   }
 }
 
@@ -68,18 +103,18 @@ async function registerUser() {
 
   // Validation
   if (!name || !role || !email || !password || !confirmPassword) {
-    alert("Please complete all required fields.");
+    showErrorModal("Incomplete Form", "Please complete all required fields.");
     return;
   }
 
   if (password !== confirmPassword) {
-    alert("Passwords do not match. Please re-enter your password.");
+    showErrorModal("Password Mismatch", "Passwords do not match. Please re-enter your password.");
     document.querySelector("#regConfirmPassword").focus();
     return;
   }
 
   if (password.length < 6) {
-    alert("Password must be at least 6 characters long.");
+    showErrorModal("Weak Password", "Password must be at least 6 characters long.");
     document.querySelector("#regPassword").focus();
     return;
   }
@@ -93,7 +128,7 @@ async function registerUser() {
   } else if (role === "admin") {
     endpoint = "/api/auth/register-admin";
   } else {
-    alert("Please select a valid account type.");
+    showErrorModal("Invalid Selection", "Please select a valid account type.");
     return;
   }
 
@@ -107,13 +142,13 @@ async function registerUser() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Registration failed. Please check your information and try again.");
+      showErrorModal("Registration Failed", data.message || "Registration failed. Please check your information and try again.");
       return;
     }
 
     // Registration successful - automatically log in
-    alert("Account created successfully! Logging you in...");
-    
+    showErrorModal("Success", "Account created successfully! Logging you in...");
+
     // Auto-login after registration
     const loginRes = await fetch("http://localhost:5000/api/auth/login", {
       method: "POST",
@@ -124,15 +159,16 @@ async function registerUser() {
     const loginData = await loginRes.json();
 
     if (!loginRes.ok) {
-      alert("Account created but login failed. Please log in manually.");
+      showErrorModal("Login Error", "Account created but login failed. Please log in manually.");
       switchToLogin();
       return;
     }
 
-    // Save token + role + name
+    // Save token + role + email + name from registration form
     localStorage.setItem("token", loginData.token);
     localStorage.setItem("role", loginData.role);
-    localStorage.setItem("name", loginData.name || "");
+    localStorage.setItem("userName", name);
+    localStorage.setItem("userEmail", email);
 
     // Redirect based on role
     if (loginData.role === "citizen") {
@@ -144,6 +180,6 @@ async function registerUser() {
     }
   } catch (err) {
     console.error(err);
-    alert("A system error occurred during registration. Please try again later.");
+    showErrorModal("System Error", "A system error occurred during registration. Please try again later.");
   }
 }

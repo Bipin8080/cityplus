@@ -4,9 +4,13 @@
   <meta charset="UTF-8" />
   <title>CityPlus - Login & Register</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100;300;400;500;700;900&display=swap" />
   <link rel="stylesheet" href="css/styles.css" />
   <style>
+    .navbar-inner {
+      align-items: center;
+    }
+
     .auth-container {
       min-height: calc(100vh - 180px);
       display: flex;
@@ -188,6 +192,24 @@
       box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
     }
 
+    .auth-switch-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .auth-switch-link a {
+      color: #1e40af;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .auth-switch-link a:hover {
+      text-decoration: underline;
+    }
+
     .auth-footer {
       text-align: center;
       margin-top: 24px;
@@ -239,17 +261,113 @@
         font-size: 13px;
       }
     }
+
+    /* Error Modal Styles */
+    .error-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+
+    .error-modal {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 450px;
+      width: 90%;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .error-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+      background: rgba(248, 250, 252, 0.5);
+    }
+
+    .error-modal-header .error-icon {
+      color: #dc2626;
+      font-size: 32px;
+    }
+
+    .error-modal-header h2 {
+      margin: 0;
+      color: #dc2626;
+      font-size: 20px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .error-modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+    }
+
+    .error-modal-close:hover {
+      color: #dc2626;
+    }
+
+    .error-modal-content {
+      padding: 24px;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .error-modal-content p {
+      margin: 0;
+    }
+
+    .error-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid rgba(226, 232, 240, 0.5);
+      background: rgba(241, 245, 249, 0.4);
+      text-align: right;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .error-modal-footer .btn {
+      min-width: 100px;
+    }
   </style>
 </head>
 <body>
   <header class="navbar">
     <div class="container navbar-inner">
       <a href="index.html" class="brand">
-        <img src="images/logo.png" alt="CityPlus Logo" class="brand-logo">
         <div class="brand-title">CityPlus</div>
       </a>
-      <nav class="navbar-nav-menu">
-      </nav>
       <div class="navbar-auth">
         <a href="index.html" class="btn btn-outline">Back to Home</a>
       </div>
@@ -276,7 +394,7 @@
           <div class="auth-header">
             <div class="auth-title">
               <span class="material-icons-round">verified_user</span>
-              Welcome Back
+              Welcome
             </div>
             <p class="auth-subtitle">Sign in to access your civic account and manage your issues</p>
           </div>
@@ -302,6 +420,10 @@
             <button type="submit" class="btn-full btn-primary-large">
               Sign In
             </button>
+
+            <div class="auth-switch-link">
+              Don't have an account? <a href="#" onclick="event.preventDefault(); switchToRegister();">Register to create one</a>
+            </div>
 
             <div class="auth-footer">
               After successful login, you'll be redirected to your role-specific dashboard
@@ -334,7 +456,6 @@
                 <option value="">Select your account type</option>
                 <option value="citizen">👤 Citizen - Report civic issues</option>
                 <option value="staff">👷 Municipal Staff - Manage complaints</option>
-                <option value="admin">👨‍💼 Administrator - Oversee operations</option>
               </select>
               <p class="form-helper">Choose the role that best fits your needs</p>
             </div>
@@ -359,6 +480,10 @@
               Create Account
             </button>
 
+            <div class="auth-switch-link">
+              Already have an account? <a href="#" onclick="event.preventDefault(); switchToLogin();">Sign In</a>
+            </div>
+
             <div class="auth-footer">
               You'll be automatically logged in and redirected to your dashboard
             </div>
@@ -368,9 +493,25 @@
     </div>
   </main>
 
-  <footer class="footer">
-    <span class="footer-logo"></span>
-    CityPlus – Civic Issue Reporting Platform
+  <!-- Error Modal -->
+  <div id="errorModal" class="error-modal-backdrop" style="display: none;">
+    <div class="error-modal">
+      <div class="error-modal-header">
+        <span class="material-icons-round error-icon">error_outline</span>
+        <h2 id="errorModalTitle">Error</h2>
+        <button class="error-modal-close" onclick="closeErrorModal()">&times;</button>
+      </div>
+      <div class="error-modal-content">
+        <p id="errorModalMessage">An error occurred. Please try again.</p>
+      </div>
+      <div class="error-modal-footer">
+        <button class="btn btn-primary" onclick="closeErrorModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer" style="text-align: center; padding: 1.25rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569;">
+    © 2026 CityPlus. All rights reserved.
   </footer>
 
   <script src="js/theme.js"></script>
@@ -392,4 +533,3 @@
   </script>
 </body>
 </html>
-

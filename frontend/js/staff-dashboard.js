@@ -37,6 +37,19 @@ function renderStaffIssues() {
   tbody.innerHTML = "";
 
   const source = currentStaffView === "all" ? staffAllIssues : staffAssignedIssues;
+  const isViewOnly = currentStaffView === "all";
+
+  // Update page title and subtitle
+  const pageTitle = document.querySelector("#pageTitle");
+  const pageSubtitle = document.querySelector("#pageSubtitle");
+
+  if (currentStaffView === "all") {
+    pageTitle.textContent = "City-wide Issues";
+    pageSubtitle.textContent = "View all civic issues reported by citizens.";
+  } else {
+    pageTitle.textContent = "My Assigned Issues";
+    pageSubtitle.textContent = "Manage and update your assigned issues.";
+  }
 
   source.forEach(issue => {
     const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
@@ -55,6 +68,16 @@ function renderStaffIssues() {
 
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", issue._id);
+
+    // For "All Issues" view: disable status select and show view-only message
+    const statusCell = isViewOnly
+      ? `<td><span class="status-pill status-${issue.status.toLowerCase().replace(' ', '-')}">${issue.status}</span></td>`
+      : `<td><select class="form-select status-select" data-id="${issue._id}">${statusOptions}</select></td>`;
+
+    const actionCell = isViewOnly
+      ? `<td><button class="btn btn-primary btn-small" onclick="openStaffIssueModalFromTable(this)" disabled style="opacity: 0.5; cursor: not-allowed;">View Only</button></td>`
+      : `<td><button class="btn btn-primary btn-small" onclick="openStaffIssueModalFromTable(this)">View</button></td>`;
+
     tr.innerHTML = `
       <td>${issue._id.slice(-6)}</td>
       <td>${issue.category}</td>
@@ -62,12 +85,8 @@ function renderStaffIssues() {
       <td>${issue.priority}</td>
       <td>${citizenName}</td>
       <td>${imageCell}</td>
-      <td>
-        <select class="form-select status-select" data-id="${issue._id}">
-          ${statusOptions}
-        </select>
-      </td>
-      <td><button class="btn btn-primary btn-small" onclick="openStaffIssueModalFromTable(this)">View</button></td>
+      ${statusCell}
+      ${actionCell}
     `;
     tr.dataset.issue = JSON.stringify(issue);
     tbody.appendChild(tr);
@@ -102,9 +121,16 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStaffIssues();
   });
 
-  // Event listener for status changes in table
+  // Event listener for status changes in table (only for assigned issues)
   staffIssuesBody.addEventListener("change", async (e) => {
     if (e.target.classList.contains("status-select")) {
+      // Prevent status updates when viewing "All Issues"
+      if (currentStaffView === "all") {
+        alert("You cannot update status for all issues. Use 'My Assigned Issues' tab.");
+        loadStaffData();
+        return;
+      }
+
       const issueId = e.target.dataset.id;
       const newStatus = e.target.value;
       const token = localStorage.getItem("token");
@@ -120,7 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Failed to update status.");
-        alert(`Issue status updated to "${newStatus}".`);
+
+        // Show notification instead of alert
+        showStatusNotification(issueId, newStatus);
         loadStaffData();
       } catch (err) {
         console.error("Error updating status:", err);
@@ -189,6 +217,20 @@ function openStaffIssueModal(issue) {
   statusSelect.value = issue.status;
   statusSelect.dataset.issueId = issue._id;
 
+  // Hide or show the status update section based on current view
+  const statusUpdateSection = document.querySelector(".issue-modal-section:has(.issue-modal-section-title:contains('Update Status'))")
+    || Array.from(document.querySelectorAll(".issue-modal-section")).find(
+      el => el.textContent.includes("Update Status")
+    );
+
+  if (statusUpdateSection) {
+    if (currentStaffView === "all") {
+      statusUpdateSection.style.display = "none";
+    } else {
+      statusUpdateSection.style.display = "block";
+    }
+  }
+
   // Show modal
   modal.classList.add("active");
 
@@ -229,7 +271,9 @@ async function updateStaffIssueStatus() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to update status.");
-    alert(`Issue status updated to "${newStatus}".`);
+
+    // Show notification instead of alert
+    showStatusNotification(issueId, newStatus);
     closeStaffIssueModal();
     loadStaffData();
   } catch (err) {
@@ -241,6 +285,41 @@ async function updateStaffIssueStatus() {
 // Expose for inline HTML
 window.closeStaffIssueModal = closeStaffIssueModal;
 window.updateStaffIssueStatus = updateStaffIssueStatus;
+window.closeStatusNotification = closeStatusNotification;
+
+// Status notification functions
+let notificationTimeout;
+
+function showStatusNotification(issueId, newStatus) {
+  const notification = document.getElementById("statusNotification");
+  const notificationMessage = document.getElementById("notificationMessage");
+
+  // Create a detailed message
+  const shortId = issueId.slice(-6);
+  notificationMessage.textContent = `Issue #${shortId} status updated to "${newStatus}".`;
+
+  // Add show class with animation
+  notification.classList.add("show");
+
+  // Clear existing timeout
+  if (notificationTimeout) {
+    clearTimeout(notificationTimeout);
+  }
+
+  // Auto-close after 4 seconds
+  notificationTimeout = setTimeout(() => {
+    closeStatusNotification();
+  }, 4000);
+}
+
+function closeStatusNotification() {
+  const notification = document.getElementById("statusNotification");
+  notification.classList.remove("show");
+
+  if (notificationTimeout) {
+    clearTimeout(notificationTimeout);
+  }
+}
 
 // Logout confirmation modal
 function showLogoutConfirmation() {

@@ -1,3 +1,10 @@
+// Global variables
+let currentSortField = 'createdAt';
+let sortDirection = 'asc';
+let currentSearchTerm = '';
+let currentRoleFilter = '';
+let currentStatusFilter = '';
+
 async function loadAdminData() {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -36,6 +43,8 @@ async function loadAdminData() {
 
     // Store staff data globally for modal
     window.adminStaffList = staffData.staff || [];
+    // Store users data globally for sorting
+    window.adminUsersList = usersData.users || [];
 
     // ----- Summary cards -----
     const u = summaryData.users;
@@ -50,22 +59,11 @@ async function loadAdminData() {
     document.querySelector("#iProgress").textContent = i.inProgress;
     document.querySelector("#iResolved").textContent = i.resolved;
 
-    // ----- Users table -----
-    const tbodyUsers = document.querySelector("#adminUsersBody");
-    tbodyUsers.innerHTML = "";
-    (usersData.users || []).forEach(user => {
-      const joined = new Date(user.createdAt).toLocaleDateString("en-IN", {
-        day: "2-digit", month: "short", year: "numeric"
-      });
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><strong>${user.name}</strong></td>
-        <td>${user.email}</td>
-        <td><span class="role-badge ${user.role}">${user.role}</span></td>
-        <td>${joined}</td>
-      `;
-      tbodyUsers.appendChild(tr);
-    });
+    // ----- Update Analytics Section -----
+    updateAnalytics(summaryData, usersData);
+
+    // ----- Display and sort users -----
+    displayUsers(window.adminUsersList);
 
     // ----- Assign Issues table -----
     const staffList = staffData.staff || [];
@@ -149,6 +147,114 @@ async function loadAdminData() {
   }
 }
 
+// Update Analytics Section
+function updateAnalytics(summaryData, usersData) {
+  const u = summaryData.users;
+  const i = summaryData.issues;
+
+  // Update issue status charts
+  const total = i.total || 1; // Prevent division by zero
+  const openPercent = (i.open / total) * 100;
+  const progressPercent = (i.inProgress / total) * 100;
+  const resolvedPercent = (i.resolved / total) * 100;
+
+  document.getElementById("chart-open").style.width = openPercent + "%";
+  document.getElementById("chart-progress").style.width = progressPercent + "%";
+  document.getElementById("chart-resolved").style.width = resolvedPercent + "%";
+
+  document.getElementById("chart-open-val").textContent = i.open;
+  document.getElementById("chart-progress-val").textContent = i.inProgress;
+  document.getElementById("chart-resolved-val").textContent = i.resolved;
+
+  // Update user distribution
+  document.getElementById("stat-citizens").textContent = u.citizens;
+  document.getElementById("stat-staff").textContent = u.staff;
+  document.getElementById("stat-admins").textContent = u.admins;
+
+  // Calculate and update user status stats
+  const users = usersData.users || [];
+  const activeCount = users.filter(u => u.status === 'active');
+  const blockedCount = users.filter(u => u.status === 'blocked').length;
+  const terminatedCount = users.filter(u => u.status === 'terminated').length;
+
+  document.getElementById("stat-active").textContent = activeCount.length;
+  document.getElementById("stat-blocked").textContent = blockedCount;
+  document.getElementById("stat-terminated").textContent = terminatedCount;
+}
+
+// Display and sort users
+function displayUsers(users) {
+  const tbodyUsers = document.querySelector("#adminUsersBody");
+  tbodyUsers.innerHTML = "";
+
+  // Sort users based on current sorting
+  const sortedUsers = sortUsers(users, currentSortField, sortDirection);
+
+  sortedUsers.forEach(user => {
+    const joined = new Date(user.createdAt).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+    const tr = document.createElement("tr");
+    const userStatus = user.status || 'active';
+
+    // Apply visual style for non-active users
+    if (userStatus !== 'active') {
+      tr.style.opacity = '0.6';
+      if (userStatus === 'terminated') {
+        tr.style.textDecoration = 'line-through';
+      }
+    }
+
+    tr.innerHTML = `
+      <td><strong>${user.name}</strong></td>
+      <td>${user.email}</td>
+      <td><span class="role-badge ${user.role}">${user.role}</span></td>
+      <td>${joined}</td>
+      <td>
+        <span class="status-pill status-${userStatus.toLowerCase()}">${userStatus}</span>
+      </td>
+      <td class="action-buttons">
+        ${user.role === 'admin' ? '<span style="font-size: 12px; color: #64748b;">(Admin)</span>' : `
+          <select class="form-select user-action-select" data-id="${user._id}" data-name="${user.name}" style="width: 150px;">
+            <option value="" disabled selected>Take Action...</option>
+            <option value="active" ${userStatus === 'active' ? 'disabled' : ''}>Set Active</option>
+            <option value="blocked" ${userStatus === 'blocked' ? 'disabled' : ''}>Block Account</option>
+            <option value="terminated" ${userStatus === 'terminated' ? 'disabled' : ''}>Terminate Account</option>
+          </select>
+        `}
+      </td>
+    `;
+    tbodyUsers.appendChild(tr);
+  });
+}
+
+// Sort users function
+function sortUsers(users, field, direction) {
+  const sorted = [...users];
+
+  sorted.sort((a, b) => {
+    let aVal = a[field];
+    let bVal = b[field];
+
+    // Handle different field types
+    if (field === 'createdAt') {
+      aVal = new Date(aVal);
+      bVal = new Date(bVal);
+    } else if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+
+    if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+    if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return sorted;
+}
+
 async function updateIssueStatus(token, issueId, status) {
   try {
     const res = await fetch(`http://localhost:5000/api/issues/${issueId}/status`, {
@@ -194,6 +300,41 @@ async function submitStaffAssignment(token, issueId, staffId) {
   } catch (err) {
     console.error(err);
     alert("A system error occurred while assigning the issue. Please try again later.");
+  }
+}
+
+async function updateUserStatusAdmin(userId, status) {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error(
+        `Received an unexpected response from the server. This can happen if your session has expired. Please try logging out and logging in again. (Status: ${res.status})`
+      );
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || `Failed to update user status.`);
+    }
+
+    alert(`User account has been successfully set to "${status}".`);
+    loadAdminData(); // Reload to show changes
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+    // Reload data to revert UI changes in case of failure
+    loadAdminData();
   }
 }
 
@@ -316,8 +457,6 @@ async function updateAdminIssueStatus() {
   closeAdminIssueModal();
 }
 
-document.addEventListener("DOMContentLoaded", loadAdminData);
-
 // Logout confirmation modal
 function showLogoutConfirmation() {
   const modal = document.getElementById('logoutConfirmModal');
@@ -334,8 +473,211 @@ function confirmLogout() {
   window.location.href = 'login.html';
 }
 
+// Search and Filter Functions
+function applySearchAndFilters() {
+  let filteredUsers = window.adminUsersList;
+
+  // Apply search filter
+  if (currentSearchTerm.trim()) {
+    const searchLower = currentSearchTerm.toLowerCase();
+    filteredUsers = filteredUsers.filter(user =>
+      user.name.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower)
+    );
+  }
+
+  // Apply role filter
+  if (currentRoleFilter) {
+    filteredUsers = filteredUsers.filter(user => user.role === currentRoleFilter);
+  }
+
+  // Apply status filter
+  if (currentStatusFilter) {
+    filteredUsers = filteredUsers.filter(user => user.status === currentStatusFilter);
+  }
+
+  // Display filtered users
+  displayUsers(filteredUsers);
+
+  // Update result info
+  updateSearchResultsInfo(filteredUsers);
+
+  // Re-attach event listeners
+  attachUserActionListeners();
+}
+
+function updateSearchResultsInfo(filteredUsers) {
+  const totalCount = window.adminUsersList.length;
+  const resultCount = filteredUsers.length;
+  const resultsInfo = document.getElementById('searchResultsInfo');
+  const noUsersMessage = document.getElementById('noUsersMessage');
+
+  if (currentSearchTerm || currentRoleFilter || currentStatusFilter) {
+    resultsInfo.style.display = 'flex';
+    document.getElementById('resultCount').textContent = resultCount;
+    document.getElementById('totalCount').textContent = totalCount;
+  } else {
+    resultsInfo.style.display = 'none';
+  }
+
+  if (resultCount === 0 && (currentSearchTerm || currentRoleFilter || currentStatusFilter)) {
+    noUsersMessage.style.display = 'block';
+  } else {
+    noUsersMessage.style.display = 'none';
+  }
+}
+
+function clearSearch() {
+  document.getElementById('userSearchInput').value = '';
+  currentSearchTerm = '';
+  document.getElementById('clearSearchBtn').style.display = 'none';
+  applySearchAndFilters();
+}
+
+function resetFilters() {
+  currentSearchTerm = '';
+  currentRoleFilter = '';
+  currentStatusFilter = '';
+
+  document.getElementById('userSearchInput').value = '';
+  document.getElementById('roleFilter').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('clearSearchBtn').style.display = 'none';
+  document.getElementById('searchResultsInfo').style.display = 'none';
+
+  displayUsers(window.adminUsersList);
+  attachUserActionListeners();
+}
+
+// Tab Navigation
+function setupTabNavigation() {
+  const tabButtons = document.querySelectorAll('.admin-nav-tab');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tabName = button.getAttribute('data-tab');
+
+      // Remove active class from all buttons and content
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.admin-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // Add active class to clicked button and corresponding content
+      button.classList.add('active');
+      const tabContent = document.getElementById(tabName + '-tab');
+      if (tabContent) {
+        tabContent.classList.add('active');
+      }
+    });
+  });
+}
+
+// Setup search and filter listeners
+function setupSearchAndFilters() {
+  const searchInput = document.getElementById('userSearchInput');
+  const roleFilter = document.getElementById('roleFilter');
+  const statusFilter = document.getElementById('statusFilter');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentSearchTerm = e.target.value;
+      clearSearchBtn.style.display = currentSearchTerm ? 'flex' : 'none';
+      applySearchAndFilters();
+    });
+  }
+
+  if (roleFilter) {
+    roleFilter.addEventListener('change', (e) => {
+      currentRoleFilter = e.target.value;
+      applySearchAndFilters();
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+      currentStatusFilter = e.target.value;
+      applySearchAndFilters();
+    });
+  }
+}
+
+// Setup sortable headers
+function setupSortableHeaders() {
+  const sortHeaders = document.querySelectorAll('.sortable');
+
+  sortHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const sortField = header.getAttribute('data-sort');
+
+      // Toggle sort direction if same field is clicked
+      if (currentSortField === sortField) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortField = sortField;
+        sortDirection = 'asc';
+      }
+
+      // Update visual indicators
+      sortHeaders.forEach(h => h.classList.remove('asc', 'desc'));
+      header.classList.add(sortDirection);
+
+      // Re-display users with new sort
+      displayUsers(window.adminUsersList);
+
+      // Re-attach event listeners
+      attachUserActionListeners();
+    });
+  });
+}
+
+// Attach user action listeners
+function attachUserActionListeners() {
+  const tbodyUsers = document.querySelector("#adminUsersBody");
+  if (tbodyUsers) {
+    tbodyUsers.addEventListener('change', async (e) => {
+      if (e.target.classList.contains('user-action-select')) {
+        const select = e.target;
+        const userId = select.dataset.id;
+        const userName = select.dataset.name;
+        const newStatus = select.value;
+
+        if (!newStatus) return;
+
+        const confirmation = confirm(`Are you sure you want to ${newStatus} the account for "${userName}"?`);
+        if (confirmation) {
+          await updateUserStatusAdmin(userId, newStatus);
+        }
+        select.value = ""; // Reset select after action
+      }
+    });
+  }
+}
+
 // Setup logout confirmation listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Load initial data
+  loadAdminData();
+
+  // Remove the main navigation menu on dashboard pages for a cleaner look
+  const menu = document.querySelector('.navbar-menu');
+  if (menu) {
+    menu.remove();
+  }
+
+  // Setup tab navigation
+  setupTabNavigation();
+
+  // Setup search and filters
+  setupSearchAndFilters();
+
+  // Setup sortable headers
+  setupSortableHeaders();
+
+  // Attach user action listeners
+  attachUserActionListeners();
+
   const cancelBtn = document.getElementById('cancelLogoutBtn');
   const confirmBtn = document.getElementById('confirmLogoutBtn');
   const modal = document.getElementById('logoutConfirmModal');
@@ -360,3 +702,6 @@ window.closeAdminIssueModal = closeAdminIssueModal;
 window.assignIssueToStaff = assignIssueToStaffModal;
 window.updateAdminIssueStatus = updateAdminIssueStatus;
 window.showLogoutConfirmation = showLogoutConfirmation;
+window.openAdminIssueModalFromTable = openAdminIssueModalFromTable;
+window.clearSearch = clearSearch;
+window.resetFilters = resetFilters;

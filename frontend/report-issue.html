@@ -2,104 +2,245 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CityPlus | Civic Issue Reporting Platform</title>
+  <title>CityPlus | Report a Civic Issue</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .navbar-inner {
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
-  <header class="navbar">
-    <div class="container navbar-inner">
-      <a href="index.html" class="brand">
-        <img src="images/logo.png" alt="CityPlus Logo" class="brand-logo">
-        <div class="brand-title">CityPlus</div>
-      </a>
-      <nav class="navbar-nav-menu">
-      </nav>
-      <div class="navbar-auth">
-        <a href="index.html" class="btn btn-outline">Back to Home</a>
+  <div class="report-issue-page">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="container navbar-inner">
+        <a href="index.html" class="brand">
+          <div class="brand-title">CityPlus</div>
+        </a>
+        <div class="navbar-auth">
+          <button class="btn btn-outline" onclick="window.history.back()">Back</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Form Container -->
+    <div class="report-issue-wrapper">
+      <div class="form-card">
+        <!-- Header -->
+        <div class="form-header">
+          <i class="fas fa-clipboard-list"></i>
+          <h1>Report a Civic Issue</h1>
+          <p>Help us improve our community by reporting issues you encounter.<br>All complaints are tracked through the CityPlus system.</p>
+        </div>
+
+        <!-- Form -->
+        <form onsubmit="submitIssue(event)" enctype="multipart/form-data" class="report-form">
+          <!-- Issue Title -->
+          <div class="form-group">
+            <label class="form-label" for="title">
+              <i class="fas fa-heading"></i>
+              Issue Title
+            </label>
+            <input
+              id="title"
+              name="title"
+              type="text"
+              class="form-input"
+              placeholder="e.g., Large pothole on Main Street"
+              required
+            />
+          </div>
+
+          <!-- Category and Ward (2 columns) -->
+          <div class="form-row-two-col">
+            <div class="form-group">
+              <label class="form-label" for="category">
+                <i class="fas fa-tag"></i>
+                Category
+              </label>
+              <select id="category" name="category" class="form-select" required>
+  <option value="">Select a category</option>
+  
+  <option value="Road & Potholes">Road & Potholes</option>
+  <option value="Street Lights">Street Lights</option>
+  <option value="Garbage & Waste">Garbage & Waste</option>
+  <option value="Water Supply / Leakage">Water Supply / Leakage</option>
+  <option value="Drainage / Sewage">Drainage / Sewage</option>
+  <option value="Electricity Issues">Electricity Issues</option>
+  <option value="Public Property Damage">Public Property Damage</option>
+  <option value="Encroachment / Illegal Activity">Encroachment / Illegal Activity</option>
+  
+  <option value="Other">Other</option>
+</select>
+
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="ward">
+                <i class="fas fa-map-pin"></i>
+                Ward / Area
+              </label>
+              <input
+                id="ward"
+                name="ward"
+                type="text"
+                class="form-input"
+                placeholder="e.g., Ward 5, Downtown"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Location Details -->
+          <div class="form-group">
+            <label class="form-label" for="location">
+              <i class="fas fa-location-dot"></i>
+              Location Details
+            </label>
+            <input
+              id="location"
+              name="location"
+              type="text"
+              class="form-input"
+              placeholder="Enter specific location details such as landmark, street name, or nearby building"
+              required
+            />
+            <p class="form-helper">
+              <i class="fas fa-info-circle"></i>
+              Provide precise location information to help municipal staff locate the issue.
+            </p>
+          </div>
+
+          <!-- Priority -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-flag"></i>
+              Priority Level
+            </label>
+            <div class="priority-options">
+              <div class="priority-option low">
+                <input type="radio" name="priority" id="priority-low" value="Low">
+                <label for="priority-low">
+                  <i class="fas fa-thermometer-half"></i>
+                  <span class="priority-name">Low</span>
+                  <span class="priority-desc">Minor issue</span>
+                </label>
+              </div>
+              <div class="priority-option medium">
+                <input type="radio" name="priority" id="priority-medium" value="Medium" checked>
+                <label for="priority-medium">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <span class="priority-name">Medium</span>
+                  <span class="priority-desc">Needs attention</span>
+                </label>
+              </div>
+              <div class="priority-option high">
+                <input type="radio" name="priority" id="priority-high" value="High">
+                <label for="priority-high">
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span class="priority-name">High</span>
+                  <span class="priority-desc">Urgent/Safety risk</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label" for="description">
+              <i class="fas fa-align-left"></i>
+              Issue Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              rows="5"
+              class="form-input"
+              placeholder="Provide a detailed description of the issue, including duration and impact on the community"
+              required
+            ></textarea>
+          </div>
+
+          <!-- Photo Upload -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-camera"></i>
+              Attach Photo
+              <span class="optional">(optional)</span>
+            </label>
+            <div class="file-upload" id="uploadArea">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>Drag & drop or click to upload</p>
+              <p style="font-size: 0.85em; color: #999;">Supports: JPG, PNG, GIF (Max 10MB)</p>
+              <div class="file-name" id="fileName">No file chosen</div>
+              <input type="file" id="image" name="image" accept="image/*">
+            </div>
+            <p class="form-helper">
+              <i class="fas fa-info-circle"></i>
+              Upload a photograph of the issue to assist municipal staff in assessment and resolution.
+            </p>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane"></i>
+              Submit Report
+            </button>
+          </div>
+
+          <p class="form-helper" style="text-align: center; margin-top: 1rem;">
+            Upon submission, your complaint will be registered in the system and you will be redirected to track its status.
+          </p>
+        </form>
       </div>
     </div>
-  </header>
 
-  <main class="container">
-    <div class="form-wrapper">
-      <h1 class="form-title">Report a Civic Issue</h1>
-      <p class="form-subtitle">
-        Provide detailed information about the civic issue you wish to report.
-        All submitted complaints are tracked and managed through the CityPlus system.
-      </p>
-
-      <!-- IMPORTANT: onsubmit calls submitIssue(event) -->
-      <form onsubmit="submitIssue(event)">
-        <div class="form-group">
-          <label class="form-label" for="title">Issue Title</label>
-          <input id="title" class="form-input" placeholder="Provide a brief, descriptive title for the issue" />
+    <!-- Login Required Modal -->
+    <div id="loginRequiredModal" class="issue-modal-backdrop" style="display:none;">
+      <div class="issue-modal" style="max-width: 480px;">
+        <div class="issue-modal-header">
+          <h2 class="issue-modal-title" style="display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-lock"></i>
+            Login Required to Report
+          </h2>
+          <button class="issue-modal-close" onclick="closeLoginModal()">&times;</button>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="category">Category</label>
-          <select id="category" class="form-select">
-            <option value="Pothole">Pothole</option>
-            <option value="Streetlight">Streetlight</option>
-            <option value="Garbage">Garbage</option>
-            <option value="Water Supply">Water Supply</option>
-            <option value="Sewage / Drainage">Sewage / Drainage</option>
-            <option value="Other">Other</option>
-          </select>
+        <div class="issue-modal-content">
+          <p style="font-size: 1rem; line-height: 1.6; color: #475569; margin-top: 0; margin-bottom: 1.5rem;">
+            To ensure accountability and allow you to track your report's status, please log in. This helps us prevent spam and provide you with updates.
+          </p>
+          <a href="login.html" class="btn btn-primary" style="width: 100%; text-align: center; padding: 14px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fas fa-sign-in-alt"></i>
+            Login to Report Issue
+          </a>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="ward">Ward / Area</label>
-          <input id="ward" class="form-input" placeholder="Enter ward number or area name" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="location">Location Details</label>
-          <input id="location" class="form-input" placeholder="Enter specific location details such as landmark, street name, or nearby building" />
-          <p class="form-helper">Provide precise location information to help municipal staff locate the issue.</p>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="priority">Priority</label>
-          <select id="priority" class="form-select">
-            <option>High – Safety risk</option>
-            <option selected>Medium – Needs attention</option>
-            <option>Low – Minor issue</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="description">Issue Description</label>
-          <textarea
-            id="description"
-            class="form-textarea"
-            placeholder="Provide a detailed description of the issue, including duration and impact on the community"
-          ></textarea>
-        </div>
-
-        <!-- We are NOT actually uploading file yet, keep it visual only -->
-        <div class="form-group">
-          <label class="form-label" for="photo">Attach Photo (optional)</label>
-          <input id="photo" type="file" class="form-input" />
-          <p class="form-helper">Upload a photograph of the issue to assist municipal staff in assessment and resolution.</p>
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
-          Submit Issue
-        </button>
-
-        <p class="form-helper" style="margin-top: 0.9rem;">
-          Upon submission, your complaint will be registered in the system and you will be redirected to your dashboard to track its status.
-        </p>
-      </form>
+      </div>
     </div>
-  </main>
-  <footer class="footer">
-    <span class="footer-logo"></span>
-    Cityplus – Civic Issue Reporting • Municipal Governance Support System
-  </footer>
+
+    <!-- Footer -->
+    <footer class="footer" style="text-align: center; padding: 1.25rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569;">
+      © 2026 CityPlus. All rights reserved.
+    </footer>
+  </div>
+
   <script src="js/theme.js"></script>
   <script>
+    // --- Modal Functions (Global Scope) ---
+    // These are placed in the global scope to be accessible from inline `onclick`
+    // attributes and other script files like `issue.js`.
+    function openLoginModal() {
+      document.getElementById('loginRequiredModal').style.display = 'flex';
+    }
+
+    function closeLoginModal() {
+      document.getElementById('loginRequiredModal').style.display = 'none';
+    }
+
     // Pre-populate category from URL parameter
     document.addEventListener("DOMContentLoaded", function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -110,6 +251,59 @@
         if (categorySelect) {
           categorySelect.value = selectedCategory;
         }
+      }
+
+      // File upload functionality
+      const fileInput = document.getElementById('image');
+      const fileNameSpan = document.getElementById('fileName');
+      const uploadDiv = document.getElementById('uploadArea');
+
+      if (fileInput && fileNameSpan && uploadDiv) {
+        // Update file name on change
+        fileInput.addEventListener('change', function() {
+          fileNameSpan.textContent = fileInput.files[0] ? fileInput.files[0].name : 'No file chosen';
+        });
+
+        // Click on upload area triggers file input
+        uploadDiv.addEventListener('click', function(e) {
+          if (e.target.tagName !== 'INPUT') {
+            fileInput.click();
+          }
+        });
+
+        // Drag and drop support
+        uploadDiv.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          uploadDiv.style.borderColor = '#4e73df';
+          uploadDiv.style.background = '#eef2ff';
+        });
+
+        uploadDiv.addEventListener('dragleave', function(e) {
+          e.preventDefault();
+          uploadDiv.style.borderColor = '#d1d3e2';
+          uploadDiv.style.background = '#f8f9fc';
+        });
+
+        uploadDiv.addEventListener('drop', function(e) {
+          e.preventDefault();
+          uploadDiv.style.borderColor = '#d1d3e2';
+          uploadDiv.style.background = '#f8f9fc';
+
+          if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileNameSpan.textContent = e.dataTransfer.files[0].name;
+          }
+        });
+      }
+
+      // Close modal when clicking outside
+      const loginModal = document.getElementById('loginRequiredModal');
+      if (loginModal) {
+          loginModal.addEventListener('click', (e) => {
+          if (e.target.id === 'loginRequiredModal') {
+              closeLoginModal();
+          }
+          });
       }
     });
   </script>

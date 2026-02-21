@@ -42,6 +42,29 @@
         toggleBtn.style.marginLeft = '12px';
       }
     });
+
+    // Scroll to top button functionality
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+
+    if (scrollToTopBtn) {
+      // Show or hide the button based on scroll position
+      window.addEventListener('scroll', () => {
+        // Show button if scrolled more than 300px
+        if (window.scrollY > 300) {
+          scrollToTopBtn.classList.add('show');
+        } else {
+          scrollToTopBtn.classList.remove('show');
+        }
+      });
+
+      // Scroll to top on click
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+    }
   });
 
 })();

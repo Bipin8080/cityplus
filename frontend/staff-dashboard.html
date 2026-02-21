@@ -5,6 +5,7 @@
   <title>CityPlus | Civic Issue Reporting Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100;300;400;500;700;900&display=swap" />
   <style>
     .navbar-inner {
       align-items: center;
@@ -18,74 +19,52 @@
       <a href="index.html" class="brand">
         <div class="brand-title">CityPlus</div>
       </a>
+      <nav class="navbar-menu">
+        <a href="#" class="navbar-link active" id="tab-all-issues">All Issues</a>
+        <a href="#" class="navbar-link" id="tab-my-assigned">My Assigned Issues</a>
+      </nav>
       <div class="navbar-auth">
         <a href="#" class="btn btn-outline" onclick="event.preventDefault(); showLogoutConfirmation();">Logout</a>
       </div>
     </div>
   </header>
 
-  <div class="dashboard-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-title">Staff Menu</div>
-      <ul class="sidebar-menu">
-        <li>
-          <a href="#" class="sidebar-link active" id="tab-all-issues">
-            <span class="material-icons-round">assignment</span>
-            <span>All Issues</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="sidebar-link" id="tab-my-assigned">
-            <span class="material-icons-round">assignment_ind</span>
-            <span>My Assigned Issues</span>
-          </a>
-        </li>
-      </ul>
-    </aside>
+  <!-- Main panel -->
+  <main class="main-panel">
+    <header class="panel-header">
+      <div>
+        <div class="tag">Logged in as Staff</div>
+        <h1 class="section-title" style="margin-top: 0.4rem;" id="pageTitle">
+          City-wide Issues
+        </h1>
+        <p class="section-subtitle" style="margin-bottom: 0;" id="pageSubtitle">
+          Review and manage all civic issues reported by citizens.
+        </p>
+      </div>
+    </header>
 
-    <!-- Main panel -->
-    <main class="main-panel">
-      <header class="panel-header">
-        <div>
-          <div class="tag">Logged in as Staff</div>
-          <h1 class="section-title" style="margin-top: 0.4rem;">
-            City-wide Issues
-          </h1>
-          <p class="section-subtitle" style="margin-bottom: 0;">
-            Review and manage all civic issues reported by citizens. Update issue status as work progresses through the resolution workflow.
-          </p>
-        </div>
-      </header>
-
-      <section class="table-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-          <h2 style="font-size:0.95rem; font-weight:700;">All Complaints</h2>
-          <span class="form-helper">All reported civic issues across the municipality</span>
-        </div>
-
-        <div class="table-wrapper">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Category</th>
-                <th>Location</th>
-                <th>Priority</th>
-                <th>Citizen</th>
-                <th>Image</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="staffIssuesBody">
-              <!-- Filled by JS -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-  </div>
+    <section class="table-card">
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>Priority</th>
+              <th>Citizen</th>
+              <th>Image</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="staffIssuesBody">
+            <!-- Filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
   <!-- Staff Issue Modal -->
   <div id="staffIssueModal" class="issue-modal-backdrop">
@@ -177,14 +156,23 @@
     </div>
   </div>
 
+  <!-- Status Update Notification -->
+  <div id="statusNotification" class="status-notification">
+    <div class="notification-content">
+      <div class="notification-icon">
+        <span class="material-icons-round">check_circle</span>
+      </div>
+      <div class="notification-body">
+        <h4 class="notification-title">Status Updated</h4>
+        <p class="notification-message" id="notificationMessage">Issue status has been updated successfully.</p>
+      </div>
+      <button class="notification-close" onclick="closeStatusNotification()">×</button>
+    </div>
+  </div>
+
   <footer class="footer" style="text-align: center; padding: 1.25rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569;">
     © 2026 CityPlus. All rights reserved.
   </footer>
-
-  <!-- Scroll to Top Button -->
-  <button class="scroll-to-top" id="scrollToTopBtn" title="Go to top">
-    <span class="material-icons-round">arrow_upward</span>
-  </button>
 
   <!-- Logout Confirmation Modal -->
   <div id="logoutConfirmModal" class="confirm-modal-backdrop">
