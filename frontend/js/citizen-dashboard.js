@@ -6,6 +6,12 @@ const pageSize = 4;
 let userName = 'Citizen';
 let userEmail = 'user@example.com';
 
+// All Issues state
+let allCommunityIssues = [];
+let filteredCommunityIssues = [];
+let allIssuesCurrentPage = 1;
+let currentTab = 'dashboard'; // Track current tab
+
 // Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', async () => {
   checkAuth();
@@ -14,6 +20,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   updateActivityFeed();
 });
+
+// Tab switching functions
+function switchToDashboardTab() {
+  currentTab = 'dashboard';
+  document.getElementById('dashboardView').style.display = 'block';
+  document.getElementById('allIssuesView').style.display = 'none';
+  updateSidebarActive('dashboard');
+}
+
+function switchToAllIssuesTab() {
+  currentTab = 'allIssues';
+  document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('allIssuesView').style.display = 'block';
+  updateSidebarActive('allIssues');
+  loadAllCommunityIssues();
+}
+
+function updateSidebarActive(tab) {
+  const navLinks = document.querySelectorAll('.sidebar__nav .nav-link');
+  navLinks.forEach(link => {
+    link.classList.remove('nav-link--active');
+  });
+  if (tab === 'dashboard') {
+    navLinks[0].classList.add('nav-link--active');
+  } else if (tab === 'allIssues') {
+    navLinks[1].classList.add('nav-link--active');
+  }
+}
 
 // Check if user is authenticated
 function checkAuth() {
@@ -75,6 +109,29 @@ async function loadCitizenIssues() {
   } catch (error) {
     console.error('Error loading issues:', error);
     showErrorMessage('Failed to load issues. Please try again.');
+  }
+}
+
+// Load all community issues from API
+async function loadAllCommunityIssues() {
+  const token = localStorage.getItem('token');
+
+  try {
+    const res = await fetch('http://localhost:5000/api/issues/all', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+
+    if (!res.ok) {
+      throw new Error(`API error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    allCommunityIssues = data.issues || [];
+    allIssuesCurrentPage = 1;
+    applyAllIssuesFiltersAndRender();
+  } catch (error) {
+    console.error('Error loading community issues:', error);
+    showErrorMessage('Failed to load community issues. Please try again.');
   }
 }
 
@@ -198,18 +255,127 @@ function renderTable() {
   updatePaginationControls();
 }
 
-// Update pagination controls
-function updatePaginationControls() {
-  const totalPages = Math.ceil(filteredIssues.length / pageSize);
-  const start = (currentPage - 1) * pageSize + 1;
-  const end = Math.min(currentPage * pageSize, filteredIssues.length);
-  const total = filteredIssues.length;
+// Apply filters and render all community issues
+function applyAllIssuesFiltersAndRender() {
+  const search = document.querySelector('#allIssuesSearchInput').value.toLowerCase();
+  const statusFilter = document.querySelector('#allIssuesStatusFilter').value;
+  const categoryFilter = document.querySelector('#allIssuesCategoryFilter').value;
+  const wardFilter = document.querySelector('#allIssuesWardFilter').value.toLowerCase();
 
-  document.querySelector('#paginationInfo').textContent =
+  // Filter issues
+  filteredCommunityIssues = allCommunityIssues.filter(issue => {
+    if (statusFilter && issue.status !== statusFilter) return false;
+    if (categoryFilter && issue.category !== categoryFilter) return false;
+    if (wardFilter && !issue.ward.toLowerCase().includes(wardFilter)) return false;
+
+    if (search) {
+      const haystack = (
+        issue.title +
+        ' ' +
+        issue.location +
+        ' ' +
+        issue.description +
+        ' ' +
+        (issue.citizen ? issue.citizen.name : '')
+      ).toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+
+    return true;
+  });
+
+  allIssuesCurrentPage = 1;
+  renderAllIssuesTable();
+}
+
+// Render all issues table
+function renderAllIssuesTable() {
+  const tbody = document.querySelector('#allIssuesTableBody');
+  tbody.innerHTML = '';
+
+  const start = (allIssuesCurrentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const paginatedIssues = filteredCommunityIssues.slice(start, end);
+
+  if (paginatedIssues.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--slate-500);">No issues found</td></tr>';
+    updateAllIssuesPaginationControls();
+    return;
+  }
+
+  paginatedIssues.forEach(issue => {
+    const created = new Date(issue.createdAt).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+
+    let statusClass = 'pending';
+    let statusLabel = 'Open';
+    if (issue.status === 'In Progress') {
+      statusClass = 'inprogress';
+      statusLabel = 'In Progress';
+    } else if (issue.status === 'Resolved') {
+      statusClass = 'resolved';
+      statusLabel = 'Resolved';
+    }
+
+    const reportedBy = issue.citizen ? issue.citizen.name : 'Anonymous';
+
+    const row = document.createElement('tr');
+    row.onclick = () => openIssueModal(issue);
+    row.innerHTML = `
+      <td>
+        <div class="issue-cell">
+          <div class="issue-thumb">
+            ${issue.image ? `<img src="http://localhost:5000${issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
+          </div>
+          <div>
+            <p class="issue-title">${issue.title}</p>
+            <p class="issue-id">ID: #${issue._id.slice(-6)}</p>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span style="font-size: 0.875rem; color: var(--text-secondary);">${reportedBy}</span>
+      </td>
+      <td class="date-cell">${created}</td>
+      <td>
+        <span class="badge badge--category">
+          <span class="material-icons">category</span>
+          ${issue.category}
+        </span>
+      </td>
+      <td>
+        <span class="badge badge--${statusClass}">
+          <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : 'blue'}"></span>
+          ${statusLabel}
+        </span>
+      </td>
+      <td class="action-cell">
+        <button class="action-btn" title="View details">
+          <span class="material-icons">more_vert</span>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  updateAllIssuesPaginationControls();
+}
+
+// Update all issues pagination controls
+function updateAllIssuesPaginationControls() {
+  const totalPages = Math.ceil(filteredCommunityIssues.length / pageSize);
+  const start = (allIssuesCurrentPage - 1) * pageSize + 1;
+  const end = Math.min(allIssuesCurrentPage * pageSize, filteredCommunityIssues.length);
+  const total = filteredCommunityIssues.length;
+
+  document.querySelector('#allIssuesPaginationInfo').textContent =
     total === 0 ? 'No issues' : `Showing ${start} to ${end} of ${total} entries`;
 
-  document.querySelector('#prevBtn').disabled = currentPage === 1;
-  document.querySelector('#nextBtn').disabled = currentPage >= totalPages;
+  document.querySelector('#allIssuesPrevBtn').disabled = allIssuesCurrentPage === 1;
+  document.querySelector('#allIssuesNextBtn').disabled = allIssuesCurrentPage >= totalPages;
 }
 
 // Open issue modal
@@ -357,6 +523,38 @@ function setupEventListeners() {
     }
   });
 
+  // All Issues Search input
+  document.querySelector('#allIssuesSearchInput').addEventListener('input', applyAllIssuesFiltersAndRender);
+
+  // All Issues Filter toggle
+  document.querySelector('#allIssuesFilterBtn').addEventListener('click', () => {
+    const panel = document.querySelector('#allIssuesFilterPanel');
+    panel.style.display = panel.style.display === 'none' ? 'grid' : 'none';
+  });
+
+  // All Issues Filter selects
+  document.querySelector('#allIssuesStatusFilter').addEventListener('change', applyAllIssuesFiltersAndRender);
+  document.querySelector('#allIssuesCategoryFilter').addEventListener('change', applyAllIssuesFiltersAndRender);
+  document.querySelector('#allIssuesWardFilter').addEventListener('input', applyAllIssuesFiltersAndRender);
+
+  // All Issues Pagination
+  document.querySelector('#allIssuesPrevBtn').addEventListener('click', () => {
+    if (allIssuesCurrentPage > 1) {
+      allIssuesCurrentPage--;
+      renderAllIssuesTable();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  document.querySelector('#allIssuesNextBtn').addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredCommunityIssues.length / pageSize);
+    if (allIssuesCurrentPage < totalPages) {
+      allIssuesCurrentPage++;
+      renderAllIssuesTable();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
   // Close modal when clicking outside
   document.querySelector('#issueModal').addEventListener('click', (e) => {
     if (e.target.id === 'issueModal') {
@@ -420,3 +618,7 @@ function showErrorMessage(message) {
   // Create a simple alert - you can enhance this with a toast notification
   alert(message);
 }
+
+// Expose functions globally for HTML onclick handlers
+window.switchToDashboardTab = switchToDashboardTab;
+window.switchToAllIssuesTab = switchToAllIssuesTab;

@@ -41,9 +41,13 @@
 
     <!-- Nav -->
     <nav class="sidebar__nav">
-      <a class="nav-link nav-link--active" href="citizen-dashboard.html">
+      <a class="nav-link nav-link--active" href="citizen-dashboard.html" onclick="switchToDashboardTab()">
         <span class="material-icons">dashboard</span>
         Dashboard
+      </a>
+      <a class="nav-link" href="#" onclick="event.preventDefault(); switchToAllIssuesTab();">
+        <span class="material-icons">assignment</span>
+        All Issues
       </a>
       <a class="nav-link" href="report-issue.html">
         <span class="material-icons">add_circle_outline</span>
@@ -88,7 +92,7 @@
   <!-- ===== Main ===== -->
   <main class="main">
 
-    <div class="content-container">
+    <div class="content-container" id="dashboardView">
 
       <!-- Page Header -->
       <div class="page-header">
@@ -311,7 +315,98 @@
       </div>
 
     </div><!-- /content-container -->
-  </main>
+
+    <!-- All Issues View -->
+    <div class="content-container" id="allIssuesView" style="display: none;">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-header__title">All Issues</h1>
+          <p class="page-header__sub">Browse and track all civic issues reported in your city</p>
+        </div>
+      </div>
+
+      <!-- Issues Table -->
+      <div class="table-card">
+
+        <div class="table-card__header">
+          <div>
+            <h2 class="table-card__title">Community Issue Reports</h2>
+            <p class="table-card__sub">View all submitted issues from residents in your area</p>
+          </div>
+          <div class="table-card__controls">
+            <div class="search-wrapper">
+              <span class="search-wrapper__icon">
+                <span class="material-icons">search</span>
+              </span>
+              <input class="search-input" id="allIssuesSearchInput" placeholder="Search issues..." type="text"/>
+            </div>
+            <button class="icon-btn" id="allIssuesFilterBtn">
+              <span class="material-icons">filter_list</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Panel (initially hidden) -->
+        <div class="filter-panel" id="allIssuesFilterPanel" style="display: none;">
+          <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select class="form-select" id="allIssuesStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Category</label>
+            <select class="form-select" id="allIssuesCategoryFilter">
+              <option value="">All Categories</option>
+              <option value="Pothole">Pothole</option>
+              <option value="Streetlight">Streetlight</option>
+              <option value="Garbage">Garbage</option>
+              <option value="Water Supply">Water Supply</option>
+              <option value="Sewage / Drainage">Sewage / Drainage</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Ward</label>
+            <input class="search-input" id="allIssuesWardFilter" placeholder="Filter by ward..." type="text"/>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue Title</th>
+                <th>Reported By</th>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="allIssuesTableBody">
+              <!-- Will be filled by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="table-footer">
+          <span class="table-footer__count" id="allIssuesPaginationInfo">Showing 0 entries</span>
+          <div class="table-footer__buttons">
+            <button class="btn-page" id="allIssuesPrevBtn" disabled>Previous</button>
+            <button class="btn-page" id="allIssuesNextBtn">Next</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /content-container -->
 
 </div><!-- /app-shell -->
 
