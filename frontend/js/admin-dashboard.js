@@ -18,16 +18,16 @@ async function loadAdminData() {
   try {
     // 1) Summary + users + staff + issues in parallel
     const [summaryRes, usersRes, staffRes, issuesRes] = await Promise.all([
-      fetch("http://localhost:5000/api/admin/summary", {
+      fetch("/api/admin/summary", {
         headers: { Authorization: "Bearer " + token }
       }),
-      fetch("http://localhost:5000/api/admin/users", {
+      fetch("/api/admin/users", {
         headers: { Authorization: "Bearer " + token }
       }),
-      fetch("http://localhost:5000/api/admin/staff", {
+      fetch("/api/admin/staff", {
         headers: { Authorization: "Bearer " + token }
       }),
-      fetch("http://localhost:5000/api/issues/all", {
+      fetch("/api/issues/all", {
         headers: { Authorization: "Bearer " + token }
       })
     ]);
@@ -87,7 +87,7 @@ async function loadAdminData() {
         .map(s => `<option value="${s}" ${issue.status === s ? "selected" : ""}>${s}</option>`)
         .join("");
       const imageCell = issue.image
-        ? `<a href="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
+        ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
         : "-";
 
       tr.innerHTML = `
@@ -264,7 +264,7 @@ function sortUsers(users, field, direction) {
 
 async function updateIssueStatus(token, issueId, status) {
   try {
-    const res = await fetch(`http://localhost:5000/api/issues/${issueId}/status`, {
+    const res = await fetch(`/api/issues/${issueId}/status`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -286,7 +286,7 @@ async function updateIssueStatus(token, issueId, status) {
 
 async function submitStaffAssignment(token, issueId, staffId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/issues/${issueId}/assign`, {
+    const res = await fetch(`/api/issues/${issueId}/assign`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -313,7 +313,7 @@ async function submitStaffAssignment(token, issueId, staffId) {
 async function updateUserStatusAdmin(userId, status) {
   const token = localStorage.getItem("token");
   try {
-    const res = await fetch(`http://localhost:5000/api/admin/users/${userId}/status`, {
+    const res = await fetch(`/api/admin/users/${userId}/status`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -368,7 +368,7 @@ function openAdminIssueModal(issue, staffList) {
   // Set image
   const imageContainer = document.getElementById("adminModalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
   } else {
     imageContainer.innerHTML = `
       <div class="issue-modal-no-image">

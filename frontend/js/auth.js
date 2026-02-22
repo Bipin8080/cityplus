@@ -54,7 +54,7 @@ async function loginUser() {
   }
 
   try {
-    const res = await fetch("http://localhost:5000/api/auth/login", {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
@@ -133,7 +133,7 @@ async function registerUser() {
   }
 
   try {
-    const res = await fetch(`http://localhost:5000${endpoint}`, {
+    const res = await fetch(`${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password })
@@ -148,9 +148,9 @@ async function registerUser() {
 
     // Registration successful - automatically log in
     alert("Account created successfully! Logging you in...");
-    
+
     // Auto-login after registration
-    const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+    const loginRes = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })

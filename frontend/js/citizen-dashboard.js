@@ -95,7 +95,7 @@ async function loadCitizenIssues() {
   const token = localStorage.getItem('token');
 
   try {
-    const res = await fetch('http://localhost:5000/api/issues/my', {
+    const res = await fetch('/api/issues/my', {
       headers: { Authorization: 'Bearer ' + token }
     });
 
@@ -118,7 +118,7 @@ async function loadAllCommunityIssues() {
   const token = localStorage.getItem('token');
 
   try {
-    const res = await fetch('http://localhost:5000/api/issues/all', {
+    const res = await fetch('/api/issues/all', {
       headers: { Authorization: 'Bearer ' + token }
     });
 
@@ -223,7 +223,7 @@ function renderTable() {
       <td>
         <div class="issue-cell">
           <div class="issue-thumb">
-            ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
+            ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
           </div>
           <div>
             <p class="issue-title">${issue.title}</p>
@@ -341,7 +341,7 @@ function renderAllIssuesTable() {
       <td>
         <div class="issue-cell">
           <div class="issue-thumb">
-            ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
+            ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
           </div>
           <div>
             <p class="issue-title">${issue.title}</p>
@@ -411,7 +411,7 @@ function openIssueModal(issue) {
 
   const imageEl = document.querySelector('#modalImage');
   if (issue.image) {
-    imageEl.src = issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image;
+    imageEl.src = issue.image.startsWith('http') ? issue.image : '' + issue.image;
     imageEl.style.display = 'block';
   } else {
     imageEl.style.display = 'none';

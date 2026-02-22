@@ -12,10 +12,10 @@ async function loadStaffData() {
   }
 
   const [allRes, assignedRes] = await Promise.all([
-    fetch("http://localhost:5000/api/issues/all", {
+    fetch("/api/issues/all", {
       headers: { Authorization: "Bearer " + token }
     }),
-    fetch("http://localhost:5000/api/issues/assigned/mine", {
+    fetch("/api/issues/assigned/mine", {
       headers: { Authorization: "Bearer " + token }
     })
   ]);
@@ -59,7 +59,7 @@ function renderStaffIssues() {
     const citizenName = issue.citizen ? issue.citizen.name : "-";
 
     const imageCell = issue.image
-      ? `<a href="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
+      ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
       : "-";
 
     const statusOptions = ["Open", "In Progress", "Resolved"]
@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const token = localStorage.getItem("token");
 
       try {
-        const res = await fetch(`http://localhost:5000/api/issues/${issueId}/status`, {
+        const res = await fetch(`/api/issues/${issueId}/status`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -216,7 +216,7 @@ function openStaffIssueModal(issue) {
   // Set image
   const imageContainer = document.getElementById("staffModalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
   } else {
     imageContainer.innerHTML = `
       <div class="issue-modal-no-image">
@@ -293,7 +293,7 @@ async function updateStaffIssueStatus() {
   const token = localStorage.getItem("token");
 
   try {
-    const res = await fetch(`http://localhost:5000/api/issues/${issueId}/status`, {
+    const res = await fetch(`/api/issues/${issueId}/status`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

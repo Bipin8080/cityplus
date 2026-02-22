@@ -38,7 +38,7 @@ async function submitIssue(event) {
       Authorization: "Bearer " + token,
     };
 
-    const res = await fetch("http://localhost:5000/api/issues", {
+    const res = await fetch("/api/issues", {
       method: "POST",
       headers: headers,
       body: formData,
