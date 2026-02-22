@@ -5641,3 +5641,119 @@ td.action-cell {
 .sidebar.collapsed .sidebar__user .nav-link {
   padding: 0.5rem 0;
 }
+
+/* =========================================================================
+   Mobile Responsiveness Overrides
+   Ensuring proper display on smaller screens (tablets & phones).
+   ========================================================================= */
+
+@media (max-width: 900px) {
+
+  /* Let elements stack earlier */
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  /* Typography & Spacing Overrides */
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-subtitle {
+    font-size: 15px;
+  }
+
+  /* Grids */
+  .category-grid,
+  .steps-grid,
+  .features-grid,
+  .footer-grid,
+  .dashboard-stats,
+  .charts-grid,
+  .issue-cards-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Dashboard layout */
+  .dashboard-wrapper {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+  }
+
+  /* Tables: allow horizontal scroll */
+  .table-responsive,
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    display: block;
+  }
+
+  /* Modals */
+  .modal,
+  .issue-modal,
+  .policy-modal {
+    width: 95%;
+    max-width: none;
+    margin: 10px;
+  }
+
+  /* Issue details modal grid */
+  .issue-modal-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Bottom footer */
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .bottom-right {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding-top: 60px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .badge {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .hero-meta {
+    flex-direction: column;
+    gap: 16px;
+  }
+}

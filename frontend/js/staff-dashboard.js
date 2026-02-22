@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadStaffData().catch(err => {
     console.error(err);
-    alert(err.message || "A system error occurred while loading data. Please refresh the page or contact support.");
+    showToast('error', err.message || "A system error occurred while loading data. Please refresh the page or contact support.");
   });
 
   // Handle All Issues click
@@ -159,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.classList.contains("status-select")) {
       // Prevent status updates when viewing "All Issues"
       if (currentStaffView === "all") {
-        alert("You cannot update status for all issues. Use 'My Assigned Issues' tab.");
+        showToast('warning', "You cannot update status for all issues. Use 'My Assigned Issues' tab.");
         loadStaffData();
         return;
       }
@@ -185,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadStaffData();
       } catch (err) {
         console.error("Error updating status:", err);
-        alert(err.message);
+        showToast('error', err.message);
         loadStaffData();
       }
     }
@@ -310,7 +310,7 @@ async function updateStaffIssueStatus() {
     loadStaffData();
   } catch (err) {
     console.error("Error updating status:", err);
-    alert(err.message);
+    showToast('error', err.message);
   }
 }
 

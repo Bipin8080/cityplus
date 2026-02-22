@@ -103,18 +103,18 @@ async function registerUser() {
 
   // Validation
   if (!name || !role || !email || !password || !confirmPassword) {
-    alert("Please complete all required fields.");
+    showToast('warning', "Please complete all required fields.");
     return;
   }
 
   if (password !== confirmPassword) {
-    alert("Passwords do not match. Please re-enter your password.");
+    showToast('warning', "Passwords do not match. Please re-enter your password.");
     document.querySelector("#regConfirmPassword").focus();
     return;
   }
 
   if (password.length < 6) {
-    alert("Password must be at least 6 characters long.");
+    showToast('warning', "Password must be at least 6 characters long.");
     document.querySelector("#regPassword").focus();
     return;
   }
@@ -128,7 +128,7 @@ async function registerUser() {
   } else if (role === "admin") {
     endpoint = "/api/auth/register-admin";
   } else {
-    alert("Please select a valid account type.");
+    showToast('error', "Please select a valid account type.");
     return;
   }
 
@@ -142,12 +142,12 @@ async function registerUser() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Registration failed. Please check your information and try again.");
+      showToast('error', data.message || "Registration failed. Please check your information and try again.");
       return;
     }
 
     // Registration successful - automatically log in
-    alert("Account created successfully! Logging you in...");
+    showToast('success', "Account created successfully! Logging you in...");
 
     // Auto-login after registration
     const loginRes = await fetch("/api/auth/login", {
@@ -159,7 +159,7 @@ async function registerUser() {
     const loginData = await loginRes.json();
 
     if (!loginRes.ok) {
-      alert("Account created but login failed. Please log in manually.");
+      showToast('error', "Account created but login failed. Please log in manually.");
       switchToLogin();
       return;
     }
@@ -180,6 +180,6 @@ async function registerUser() {
     }
   } catch (err) {
     console.error(err);
-    alert("A system error occurred during registration. Please try again later.");
+    showToast('error', "A system error occurred during registration. Please try again later.");
   }
 }

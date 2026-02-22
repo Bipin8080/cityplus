@@ -650,8 +650,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Show error message
 function showErrorMessage(message) {
-  // Create a simple alert - you can enhance this with a toast notification
-  alert(message);
+  // Use the global toast instead of alert
+  showToast('error', message);
 }
 
 // Expose functions globally for HTML onclick handlers

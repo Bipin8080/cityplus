@@ -123,6 +123,63 @@
       setTimeout(removeToast, 4000);
     };
 
+    // Global Confirm Modal Function
+    window.showConfirmModal = function (title, message, onConfirm) {
+      // Check if modal container exists, create if not
+      let modalContainer = document.getElementById('global-confirm-modal');
+      if (!modalContainer) {
+        modalContainer = document.createElement('div');
+        modalContainer.id = 'global-confirm-modal';
+        modalContainer.className = 'confirm-modal-backdrop';
+        modalContainer.innerHTML = `
+          <div class="confirm-modal">
+            <div class="confirm-modal-icon">
+              <span class="material-icons-round">warning</span>
+            </div>
+            <h3 class="confirm-modal-title" id="confirm-modal-title"></h3>
+            <p class="confirm-modal-text" id="confirm-modal-text"></p>
+            <div class="confirm-modal-actions">
+              <button class="btn btn-outline" id="confirm-modal-cancel">Cancel</button>
+              <button class="btn btn-primary" id="confirm-modal-accept">Confirm</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modalContainer);
+      }
+
+      // Set content
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-text').textContent = message;
+
+      // Show modal
+      modalContainer.classList.add('active');
+
+      // Click handlers
+      const btnCancel = document.getElementById('confirm-modal-cancel');
+      const btnAccept = document.getElementById('confirm-modal-accept');
+
+      // Cleanup function to remove event listeners and hide modal
+      const cleanup = () => {
+        modalContainer.classList.remove('active');
+        // We clone to remove previous event listeners efficiently
+        btnCancel.replaceWith(btnCancel.cloneNode(true));
+        btnAccept.replaceWith(btnAccept.cloneNode(true));
+      };
+
+      // Handle cancel
+      document.getElementById('confirm-modal-cancel').addEventListener('click', () => {
+        cleanup();
+      });
+
+      // Handle accept
+      document.getElementById('confirm-modal-accept').addEventListener('click', () => {
+        cleanup();
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+      });
+    };
+
   });
 
 })();

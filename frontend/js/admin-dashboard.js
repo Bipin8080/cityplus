@@ -129,7 +129,7 @@ async function loadAdminData() {
         const staffId = select.value;
 
         if (!staffId) {
-          alert("Please select a staff member from the dropdown menu before assigning this issue.");
+          showToast('warning', "Please select a staff member from the dropdown menu before assigning this issue.");
           return;
         }
 
@@ -150,7 +150,7 @@ async function loadAdminData() {
 
   } catch (err) {
     console.error(err);
-    alert(err.message || "A system error occurred while loading dashboard data. Please refresh the page or contact support.");
+    showToast('error', err.message || "A system error occurred while loading dashboard data. Please refresh the page or contact support.");
   }
 }
 
@@ -274,10 +274,10 @@ async function updateIssueStatus(token, issueId, status) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to update status.");
-    alert(`Issue status successfully updated to "${status}".`);
+    showToast('success', `Issue status successfully updated to "${status}".`);
   } catch (err) {
     console.error(err);
-    alert("A system error occurred while updating the status. Please try again later.");
+    showToast('error', "A system error occurred while updating the status. Please try again later.");
   } finally {
     // Reload data to reflect the change and revert dropdown on failure
     loadAdminData();
@@ -297,16 +297,16 @@ async function submitStaffAssignment(token, issueId, staffId) {
 
     const data = await res.json();
     if (!res.ok) {
-      alert(data.message || "Unable to assign issue. Please verify the selection and try again.");
+      showToast('error', data.message || "Unable to assign issue. Please verify the selection and try again.");
       return;
     }
 
-    alert("Issue has been successfully assigned to the selected staff member.");
+    showToast('success', "Issue has been successfully assigned to the selected staff member.");
     // refresh to reflect changes
     loadAdminData();
   } catch (err) {
     console.error(err);
-    alert("A system error occurred while assigning the issue. Please try again later.");
+    showToast('error', "A system error occurred while assigning the issue. Please try again later.");
   }
 }
 
@@ -335,11 +335,11 @@ async function updateUserStatusAdmin(userId, status) {
       throw new Error(data.message || `Failed to update user status.`);
     }
 
-    alert(`User account has been successfully set to "${status}".`);
+    showToast('success', `User account has been successfully set to "${status}".`);
     loadAdminData(); // Reload to show changes
   } catch (err) {
     console.error(err);
-    alert(err.message);
+    showToast('error', err.message);
     // Reload data to revert UI changes in case of failure
     loadAdminData();
   }
@@ -446,7 +446,7 @@ async function assignIssueToStaffModal() {
   const token = localStorage.getItem("token");
 
   if (!staffId) {
-    alert("Please select a staff member before assigning.");
+    showToast('warning', "Please select a staff member before assigning.");
     return;
   }
 
@@ -665,11 +665,14 @@ function attachUserActionListeners() {
 
         if (!newStatus) return;
 
-        const confirmation = confirm(`Are you sure you want to ${newStatus} the account for "${userName}"?`);
-        if (confirmation) {
-          await updateUserStatusAdmin(userId, newStatus);
-        }
-        select.value = ""; // Reset select after action
+        showConfirmModal(
+          "Confirm Action",
+          `Are you sure you want to ${newStatus} the account for "${userName}"?`,
+          async () => {
+            await updateUserStatusAdmin(userId, newStatus);
+            select.value = ""; // Reset select after action
+          }
+        );
       }
     });
   }

@@ -13,7 +13,7 @@ async function submitIssue(event) {
   const description = form.querySelector("#description").value.trim();
 
   if (!title || !category || !ward || !location || !description) {
-    alert("Please complete all required fields before submitting your complaint.");
+    showToast('warning', "Please complete all required fields before submitting your complaint.");
     return;
   }
 
@@ -23,8 +23,8 @@ async function submitIssue(event) {
       openLoginModal();
     } else {
       // Fallback in case the modal function isn't available
-      alert("Please log in as a citizen to report an issue. This helps prevent spam and allows you to track your report's status.");
-      window.location.href = "login.html";
+      showToast('warning', "Please log in as a citizen to report an issue. This helps prevent spam and allows you to track your report's status.");
+      setTimeout(() => { window.location.href = "login.html"; }, 2000);
     }
     return;
   }
@@ -47,17 +47,17 @@ async function submitIssue(event) {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message || "Unable to submit your report. Please check the details and try again.");
+      showToast('error', data.message || "Unable to submit your report. Please check the details and try again.");
       return;
     }
 
-    alert("Your report has been successfully submitted. You will now be redirected to your dashboard to track its status.");
+    showToast('success', "Your report has been successfully submitted. You will now be redirected to your dashboard to track its status.");
 
     // Since only logged-in citizens can submit, always redirect to their dashboard.
-    window.location.href = "citizen-dashboard.html";
+    setTimeout(() => { window.location.href = "citizen-dashboard.html"; }, 2000);
   } catch (err) {
     console.error(err);
-    alert("A system error occurred while submitting your report. Please try again later.");
+    showToast('error', "A system error occurred while submitting your report. Please try again later.");
   }
 }
 
