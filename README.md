@@ -1,196 +1,157 @@
-CityPlus – Smart Civic Issue Reporting Platform
+<div align="center">
+  <h1>🏙️ CityPlus</h1>
+  <p><strong>Smart Civic Issue Reporting Platform</strong></p>
+  <p>
+    <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
+    <img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express.js" />
+    <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+    <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
+    <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" />
+    <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
+  </p>
+</div>
 
-CityPlus is a full-stack web application developed to digitize the process of reporting and managing civic issues such as garbage problems, road damage, water supply issues, and other public infrastructure complaints.
+<br />
 
-The system allows citizens to submit issues online while administrators and staff can track, manage, and update issue statuses through a centralized dashboard.
+## 📖 About The Project
 
-This project is developed as a TYBSc IT Final Year Project with a focus on practical full-stack development using real-world technologies.
+**CityPlus** is a full-stack web application designed to digitize the process of reporting and managing civic issues. From garbage problems and road damage to water supply issues and public infrastructure complaints, CityPlus empowers citizens to make their voices heard. 
 
-🎯 Key Features
-Citizen Module
+The system provides a seamless online submission portal for citizens, while equipping administrators and staff with a centralized dashboard to track, manage, and update issue statuses efficiently.
 
-User registration and login
+> **Note:** This project was developed as a TYBSc IT Final Year Project, focusing on practical full-stack development using real-world technologies.
 
-Report civic issues
+---
 
-View submitted issue status
+## ✨ Key Features
 
-Citizen dashboard interface
+### 👤 Citizen Module
+- **Authentication**: Secure user registration and login.
+- **Reporting**: Easily report civic issues with relevant details.
+- **Tracking**: View real-time status updates of submitted issues.
+- **Dashboard**: A clean, intuitive citizen dashboard interface.
 
-Admin & Staff Module
+### 🛡️ Admin & Staff Module
+- **Secure Access**: Dedicated admin and staff authentication.
+- **Issue Management**: View and filter all reported issues.
+- **Status Updates**: Modify issue status seamlessly (`Pending` ➜ `In Progress` ➜ `Resolved`).
+- **Dedicated Dashboards**: Tailored views for both admin and staff roles.
 
-Admin and staff authentication
+---
 
-View all reported issues
+## 🏗️ Project Architecture
 
-Update issue status (Pending / In Progress / Resolved)
+The project follows a streamlined monorepo structure, cleanly separating the backend API and frontend interfaces.
 
-Dedicated dashboards for admin and staff
-
-🏗️ Project Architecture (ACTUAL STRUCTURE)
-
-The project follows a monorepo structure, with backend and frontend maintained in separate folders under one repository.
-
+```text
 Cityplus Testing/
-├── backend/
-│   ├── config/
-│   │   └── db.js                # Database connection
-│   │
-│   ├── controllers/
-│   │   ├── adminController.js
-│   │   ├── authController.js
-│   │   └── issueController.js
-│   │
-│   ├── middleware/
-│   │   ├── authMiddleware.js
-│   │   └── errorMiddleware.js
-│   │
-│   ├── models/
-│   │   ├── Issue.js
-│   │   └── User.js
-│   │
-│   ├── routes/
-│   │   ├── adminRoutes.js
-│   │   ├── authRoutes.js
-│   │   └── issueRoutes.js
-│   │
-│   ├── .env                     # Environment variables (ignored)
-│   ├── package.json
-│   ├── package-lock.json
-│   └── server.js                # Backend entry point
+├── backend/                  # Node.js & Express API
+│   ├── config/               # Database configuration
+│   ├── controllers/          # Business logic handlers
+│   ├── middleware/           # Auth and error middlewares
+│   ├── models/               # Mongoose schemas (User, Issue)
+│   ├── routes/               # Express route definitions
+│   └── server.js             # Application entry point
 │
-├── frontend/
-│   ├── css/
-│   │   └── styles.css
-│   │
-│   ├── js/
-│   │   ├── admin-dashboard.js
-│   │   ├── auth.js
-│   │   ├── citizen-dashboard.js
-│   │   ├── issue.js
-│   │   ├── staff-dashboard.js
-│   │   └── theme.js
-│   │
-│   ├── index.html
-│   ├── login.html
-│   ├── report-issue.html
-│   ├── citizen-dashboard.html
-│   ├── admin-dashboard.html
-│   └── staff-dashboard.html
-│
-├── .gitignore
-├── package.json                 # Root dependencies
-└── README.md
+└── frontend/                 # Vanilla web client UI
+    ├── css/                  # Stylesheets
+    ├── js/                   # Client-side logic & API calls
+    └── *.html                # Views (Dashboards, Login, etc.)
+```
 
-🛠️ Technology Stack (NO EXAGGERATION)
-Backend
+---
 
-Node.js
+## 🚀 Getting Started
 
-Express.js
+Follow these instructions to set up the project locally.
 
-MongoDB
+### Prerequisites
 
-Mongoose
+Ensure you have the following installed on your machine:
+- [Node.js](https://nodejs.org/) (v14 or higher)
+- [MongoDB](https://www.mongodb.com/) (Local instance or Cloud Atlas URI)
+- [Git](https://git-scm.com/)
 
-JSON Web Tokens (JWT)
+### 🛠️ Backend Setup
 
-RESTful APIs
+1. **Navigate to the backend directory:**
+   ```bash
+   cd backend
+   ```
 
-Frontend
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-HTML5
+3. **Configure environment variables:**
+   Create a `.env` file in the `backend` directory and add your configuration:
+   ```env
+   PORT=5000
+   MONGO_URI=your_mongodb_connection_string
+   JWT_SECRET=your_super_secret_key
+   ```
 
-CSS3
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   # or
+   npm start
+   ```
 
-Vanilla JavaScript
+### 🖥️ Frontend Setup
 
-Tools
+The frontend is built with vanilla web technologies, meaning **no build step is required**.
 
-Git & GitHub
+1. Simply open the HTML files directly in your preferred web browser:
+   - `frontend/index.html` (Landing Page)
+   - `frontend/login.html` (Authentication)
 
-Visual Studio Code
+*Tip: For the best experience, use a local server extension like **Live Server** in Visual Studio Code.*
 
-Postman (API testing)
+---
 
-⚙️ Installation & Setup
-Prerequisites
+## 🔌 API Reference
 
-Node.js installed
+The backend exposes a RESTful API for client consumption:
 
-MongoDB (local or cloud)
+| HTTP Method | Endpoint               | Description                 | Auth Required |
+| :---        | :---                   | :---                        | :---:         |
+| `POST`      | `/api/auth/register`   | Register a new user         | ❌            |
+| `POST`      | `/api/auth/login`      | Authenticate user & get JWT | ❌            |
+| `POST`      | `/api/issues`          | Report a new civic issue    | ✅            |
+| `GET`       | `/api/issues`          | Retrieve all issues         | ✅            |
+| `PUT`       | `/api/issues/:id`      | Update issue status         | ✅ (Admin/Staff)|
 
-Git installed
+---
 
-Backend Setup
-cd backend
-npm install
+## 🔐 Security & Best Practices
 
+- **Environment Isolation**: Sensitive credentials and API keys are stored in `.env` and kept safely out of version control via `.gitignore`.
+- **Stateless Authentication**: Protected API routes require JSON Web Tokens (JWT) passed securely via the authorization header.
+- **MVC Architecture**: Codebase is structured following the Model-View-Controller pattern for maximum maintainability.
 
-Create a .env file inside the backend folder:
+---
 
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
+## 🎓 Academic Objective
 
+This project successfully demonstrates:
+- Full-stack web application development from scratch.
+- Implementation of an MVC-based Node.js backend architecture.
+- RESTful API design, construction, and consumption.
+- Secure, token-based user authentication and authorization.
+- Practical problem-solving for real-world scenarios using modern web technologies.
 
-Run backend server:
+---
 
-npm start
+## 👨‍💻 Author
 
-Frontend Setup
-
-No build tools are required.
-
-Open any of the following files in a browser:
-
-index.html
-
-login.html
-
-citizen-dashboard.html
-
-admin-dashboard.html
-
-staff-dashboard.html
-
-Frontend communicates with backend APIs using JavaScript.
-
-🔐 Security Practices
-
-.env files are ignored using .gitignore
-
-Sensitive credentials are never pushed to GitHub
-
-JWT-based authentication is used for protected routes
-
-🔌 Backend API Overview
-Method	Endpoint	Description
-POST	/api/auth/register	Register new user
-POST	/api/auth/login	User login
-POST	/api/issues	Report civic issue
-GET	/api/issues	Get all issues
-PUT	/api/issues/:id	Update issue status
-🎓 Academic Objective
-
-This project demonstrates:
-
-Full-stack application development
-
-MVC-based backend architecture
-
-REST API design
-
-Authentication & authorization
-
-Practical problem-solving using web technologies
-
-👤 Author
-
-Bipin
-TYBSc IT – Final Year Student
+**Bipin**  
+*TYBSc IT – Final Year Student*  
 Project developed individually.
 
-📄 License
+---
 
-This project is developed for educational purposes only.
+<div align="center">
+  <p><i>Developed for educational purposes.</i></p>
+</div>

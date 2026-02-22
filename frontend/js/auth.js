@@ -103,18 +103,18 @@ async function registerUser() {
 
   // Validation
   if (!name || !role || !email || !password || !confirmPassword) {
-    showErrorModal("Incomplete Form", "Please complete all required fields.");
+    alert("Please complete all required fields.");
     return;
   }
 
   if (password !== confirmPassword) {
-    showErrorModal("Password Mismatch", "Passwords do not match. Please re-enter your password.");
+    alert("Passwords do not match. Please re-enter your password.");
     document.querySelector("#regConfirmPassword").focus();
     return;
   }
 
   if (password.length < 6) {
-    showErrorModal("Weak Password", "Password must be at least 6 characters long.");
+    alert("Password must be at least 6 characters long.");
     document.querySelector("#regPassword").focus();
     return;
   }
@@ -128,7 +128,7 @@ async function registerUser() {
   } else if (role === "admin") {
     endpoint = "/api/auth/register-admin";
   } else {
-    showErrorModal("Invalid Selection", "Please select a valid account type.");
+    alert("Please select a valid account type.");
     return;
   }
 
@@ -142,13 +142,13 @@ async function registerUser() {
     const data = await res.json();
 
     if (!res.ok) {
-      showErrorModal("Registration Failed", data.message || "Registration failed. Please check your information and try again.");
+      alert(data.message || "Registration failed. Please check your information and try again.");
       return;
     }
 
     // Registration successful - automatically log in
-    showErrorModal("Success", "Account created successfully! Logging you in...");
-
+    alert("Account created successfully! Logging you in...");
+    
     // Auto-login after registration
     const loginRes = await fetch("http://localhost:5000/api/auth/login", {
       method: "POST",
@@ -159,7 +159,7 @@ async function registerUser() {
     const loginData = await loginRes.json();
 
     if (!loginRes.ok) {
-      showErrorModal("Login Error", "Account created but login failed. Please log in manually.");
+      alert("Account created but login failed. Please log in manually.");
       switchToLogin();
       return;
     }
@@ -180,6 +180,6 @@ async function registerUser() {
     }
   } catch (err) {
     console.error(err);
-    showErrorModal("System Error", "A system error occurred during registration. Please try again later.");
+    alert("A system error occurred during registration. Please try again later.");
   }
 }

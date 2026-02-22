@@ -20,3 +20,10 @@ Thumbs.db
 
 # editor
 .vscode/
+
+backend/node_modules/
+backend/uploads/
+backend/.env
+.env
+nul
+tmpclaude*

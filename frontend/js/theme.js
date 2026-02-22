@@ -1,29 +1,29 @@
 // Theme toggle functionality
-(function() {
+(function () {
   // Get saved theme or default to light
   const savedTheme = localStorage.getItem('cityplus-theme') || 'light';
-  
+
   // Apply theme on page load
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('cityplus-theme', theme);
   }
-  
+
   // Initialize theme
   applyTheme(savedTheme);
-  
+
   // Theme toggle handler
   function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     applyTheme(newTheme);
   }
-  
+
   // Make toggleTheme available globally
   window.toggleTheme = toggleTheme;
-  
+
   // Add toggle button to all navbars
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     // Add the theme toggle button to navbar-auth (right side next to login button)
     const authContainers = document.querySelectorAll('.navbar-auth');
     authContainers.forEach(authContainer => {
@@ -65,6 +65,64 @@
         });
       });
     }
+
+    // Mobile menu toggle functionality
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navbarMenu = document.querySelector('.navbar-menu');
+    const navbarAuth = document.querySelector('.navbar-auth');
+
+    if (mobileMenuBtn) {
+      mobileMenuBtn.addEventListener('click', function () {
+        if (navbarMenu) navbarMenu.classList.toggle('show');
+        if (navbarAuth) navbarAuth.classList.toggle('show');
+
+        // Toggle icon between 'menu' and 'close'
+        if (mobileMenuBtn.textContent === 'menu') {
+          mobileMenuBtn.textContent = 'close';
+        } else {
+          mobileMenuBtn.textContent = 'menu';
+        }
+      });
+    }
+
+    // Global Toast Function
+    window.showToast = function (type, message) {
+      const container = document.getElementById('toast-container');
+      if (!container) return; // If container not present
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      let iconName = 'info';
+      if (type === 'success') iconName = 'check_circle';
+      if (type === 'error') iconName = 'error';
+      if (type === 'warning') iconName = 'warning';
+
+      toast.innerHTML = `
+        <span class="material-icons-round toast-icon">${iconName}</span>
+        <div class="toast-message">${message}</div>
+        <button class="toast-close"><span class="material-icons-round">close</span></button>
+      `;
+
+      container.appendChild(toast);
+
+      // Trigger animation
+      setTimeout(() => toast.classList.add('show'), 10);
+
+      // Setup close button
+      const closeBtn = toast.querySelector('.toast-close');
+
+      const removeToast = () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      };
+
+      closeBtn.addEventListener('click', removeToast);
+
+      // Auto close after 4 sec
+      setTimeout(removeToast, 4000);
+    };
+
   });
 
 })();

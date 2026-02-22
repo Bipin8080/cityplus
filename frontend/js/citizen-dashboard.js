@@ -108,6 +108,7 @@ async function loadCitizenIssues() {
     applyFiltersAndRender();
   } catch (error) {
     console.error('Error loading issues:', error);
+    console.error('Full error details:', error);
     showErrorMessage('Failed to load issues. Please try again.');
   }
 }
@@ -255,6 +256,20 @@ function renderTable() {
   updatePaginationControls();
 }
 
+// Update pagination controls
+function updatePaginationControls() {
+  const totalPages = Math.ceil(filteredIssues.length / pageSize);
+  const start = (currentPage - 1) * pageSize + 1;
+  const end = Math.min(currentPage * pageSize, filteredIssues.length);
+  const total = filteredIssues.length;
+
+  document.querySelector('#paginationInfo').textContent =
+    total === 0 ? 'No issues' : `Showing ${start} to ${end} of ${total} entries`;
+
+  document.querySelector('#prevBtn').disabled = currentPage === 1;
+  document.querySelector('#nextBtn').disabled = currentPage >= totalPages;
+}
+
 // Apply filters and render all community issues
 function applyAllIssuesFiltersAndRender() {
   const search = document.querySelector('#allIssuesSearchInput').value.toLowerCase();
@@ -274,9 +289,7 @@ function applyAllIssuesFiltersAndRender() {
         ' ' +
         issue.location +
         ' ' +
-        issue.description +
-        ' ' +
-        (issue.citizen ? issue.citizen.name : '')
+        issue.description
       ).toLowerCase();
       if (!haystack.includes(search)) return false;
     }
