@@ -1,5 +1,5 @@
 import express from "express";
-import dotenv from "dotenv";
+import "dotenv/config";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 
-dotenv.config();
+// dotenv.config();
 connectDB();
 
 const app = express();
@@ -27,7 +27,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/issues", issueRoutes);
-app.use("/api/admin", adminRoutes); 
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.send("CityPlus Backend Working");

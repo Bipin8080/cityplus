@@ -60,3 +60,4 @@ async function submitIssue(event) {
     alert("A system error occurred while submitting your report. Please try again later.");
   }
 }
+

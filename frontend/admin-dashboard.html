@@ -1,52 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Cityplus - Civic Issue Reporting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/styles.css" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100;300;400;500;700;900&display=swap" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100;300;400;500;700;900&display=swap" />
+
 </head>
+
 <body>
   <!-- Navbar -->
   <header class="navbar">
     <div class="container navbar-inner">
-      <a href="index.html" class="brand">
-        <div class="brand-title">CityPlus</div>
-      </a>
+      <div class="navbar-left-items">
+        <button class="mobile-menu-toggle">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <a href="index.html" class="brand">
+          <div class="brand-title">CityPlus</div>
+        </a>
+      </div>
       <div class="navbar-auth">
         <a href="#" class="btn btn-outline" onclick="event.preventDefault(); showLogoutConfirmation();">Logout</a>
       </div>
     </div>
   </header>
 
-  <!-- Admin Dashboard Navigation Tabs -->
-  <div class="admin-nav-tabs">
-    <div class="container admin-nav-container">
-      <div class="admin-tab-list">
-        <button class="admin-nav-tab active" data-tab="dashboard">
-          <span class="material-icons-round">dashboard</span>
-          Dashboard
-        </button>
-        <button class="admin-nav-tab" data-tab="issues">
-          <span class="material-icons-round">assignment</span>
-          All Issues
-        </button>
-        <button class="admin-nav-tab" data-tab="users">
-          <span class="material-icons-round">group</span>
-          User Management
+  <div class="app-shell">
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <!-- Logo -->
+      <div class="sidebar__logo">
+        <button id="sidebarToggleBtn" class="sidebar__logo-inner"
+          style="background: none; border: none; cursor: pointer; width: 100%; text-align: left; padding: 0; display: flex; align-items: center; gap: 0.75rem; justify-content: flex-start; color: var(--text-primary);">
+          <span class="material-icons-round">menu</span>
+          <span class="sidebar__logo-text" style="font-size: 1.25rem; font-weight: 600;">Menu</span>
         </button>
       </div>
-    </div>
-  </div>
 
-  <div class="dashboard-layout">
+      <!-- Nav -->
+      <nav class="sidebar__nav">
+        <a class="nav-link nav-link--active admin-nav-tab active" data-tab="dashboard" href="#"
+          onclick="event.preventDefault();">
+          <span class="material-icons-round">dashboard</span>
+          Dashboard
+        </a>
+        <a class="nav-link admin-nav-tab" data-tab="issues" href="#" onclick="event.preventDefault();">
+          <span class="material-icons-round">assignment</span>
+          All Issues
+        </a>
 
-    <!-- Main -->
-    <main class="main-panel">
+        <a class="nav-link admin-nav-tab" data-tab="users" href="#" onclick="event.preventDefault();">
+          <span class="material-icons-round">group</span>
+          User Management
+        </a>
+      </nav>
+
+      <!-- User -->
+      <div class="sidebar__user">
+        <div class="sidebar__user-inner">
+          <div class="sidebar__avatar">
+            <span class="material-icons-round">admin_panel_settings</span>
+          </div>
+          <div class="sidebar__user-info">
+            <p class="sidebar__user-name">Admin</p>
+            <p class="sidebar__user-email">Administrator</p>
+          </div>
+        </div>
+        <button class="nav-link" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem; padding: 0.5rem;"
+          onclick="showLogoutConfirmation()">
+          <span class="material-icons-round">logout</span>
+          Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Main ===== -->
+    <main class="main">
       <!-- Dashboard Tab Content -->
-      <div class="admin-tab-content active" id="dashboard-tab">
-        <header class="panel-header">
+      <div class="content-container admin-tab-content active" id="dashboard-tab">
+        <header class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
             <div class="tag">Logged in as Admin</div>
             <h1 class="section-title" style="margin-top:8px;">
@@ -56,33 +93,81 @@
               Monitor system statistics, user activity, and issue metrics.
             </p>
           </div>
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem;"
+            onclick="refreshAdminData(this)">
+            <span class="material-icons-round">refresh</span>
+            Refresh Data
+          </button>
         </header>
 
         <!-- System Statistics Section -->
         <section class="admin-section">
           <h2 class="admin-section-title">System Statistics</h2>
-          <div class="stat-grid">
+          <div class="stats-grid">
             <article class="stat-card">
-              <div class="stat-label">Total Users</div>
-              <div class="stat-value" id="uTotal">0</div>
-              <div class="stat-pill" id="uBreakdown">Citizens: 0 • Staff: 0 • Admins: 0</div>
-            </article>
-            <article class="stat-card">
-              <div class="stat-label">Total Issues</div>
-              <div class="stat-value" id="iTotal">0</div>
-              <div class="stat-pill">All statuses combined</div>
-            </article>
-            <article class="stat-card">
-              <div class="stat-label">Open Issues</div>
-              <div class="stat-value" id="iOpen">0</div>
-              <div class="stat-pill" style="color:#c62828;">Requires attention</div>
-            </article>
-            <article class="stat-card">
-              <div class="stat-label">In Progress / Resolved</div>
-              <div class="stat-value">
-                <span id="iProgress">0</span> / <span id="iResolved">0</span>
+              <div class="stat-card__accent stat-card__accent--primary"></div>
+              <div class="stat-card__top">
+                <div>
+                  <p class="stat-card__label">Total Users</p>
+                  <h3 class="stat-card__value" id="uTotal">0</h3>
+                </div>
+                <div class="stat-card__icon stat-card__icon--primary">
+                  <span class="material-icons-round">group</span>
+                </div>
               </div>
-              <div class="stat-pill">Active / Completed</div>
+              <div class="stat-card__footer">
+                <span class="stat-card__footer-text" id="uBreakdown">Citizens: 0 • Staff: 0 • Admins: 0</span>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__accent stat-card__accent--blue"></div>
+              <div class="stat-card__top">
+                <div>
+                  <p class="stat-card__label">Total Issues</p>
+                  <h3 class="stat-card__value" id="iTotal">0</h3>
+                </div>
+                <div class="stat-card__icon stat-card__icon--blue">
+                  <span class="material-icons-round">assignment</span>
+                </div>
+              </div>
+              <div class="stat-card__footer">
+                <span class="stat-card__footer-text">All statuses combined</span>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__accent stat-card__accent--yellow"></div>
+              <div class="stat-card__top">
+                <div>
+                  <p class="stat-card__label">Open Issues</p>
+                  <h3 class="stat-card__value" id="iOpen">0</h3>
+                </div>
+                <div class="stat-card__icon stat-card__icon--yellow">
+                  <span class="material-icons-round">error_outline</span>
+                </div>
+              </div>
+              <div class="stat-card__footer">
+                <span class="stat-card__footer-text" style="color: #ef4444;">Requires attention</span>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__accent stat-card__accent--green"></div>
+              <div class="stat-card__top">
+                <div>
+                  <p class="stat-card__label">In Progress / Resolved</p>
+                  <h3 class="stat-card__value">
+                    <span id="iProgress">0</span> / <span id="iResolved">0</span>
+                  </h3>
+                </div>
+                <div class="stat-card__icon stat-card__icon--green">
+                  <span class="material-icons-round">check_circle_outline</span>
+                </div>
+              </div>
+              <div class="stat-card__footer">
+                <span class="stat-card__footer-text">Active / Completed</span>
+              </div>
             </article>
           </div>
         </section>
@@ -100,21 +185,21 @@
                 <div class="chart-bar">
                   <div class="chart-bar-label">Open</div>
                   <div class="chart-bar-container">
-                    <div class="chart-bar-fill" id="chart-open" style="width: 45%;" title="45%"></div>
+                    <div class="chart-bar-fill" id="chart-open" style="width: 0%;" title="0%"></div>
                   </div>
                   <div class="chart-bar-value" id="chart-open-val">0</div>
                 </div>
                 <div class="chart-bar">
                   <div class="chart-bar-label">In Progress</div>
                   <div class="chart-bar-container">
-                    <div class="chart-bar-fill progress" id="chart-progress" style="width: 30%;" title="30%"></div>
+                    <div class="chart-bar-fill progress" id="chart-progress" style="width: 0%;" title="0%"></div>
                   </div>
                   <div class="chart-bar-value" id="chart-progress-val">0</div>
                 </div>
                 <div class="chart-bar">
                   <div class="chart-bar-label">Resolved</div>
                   <div class="chart-bar-container">
-                    <div class="chart-bar-fill resolved" id="chart-resolved" style="width: 25%;" title="25%"></div>
+                    <div class="chart-bar-fill resolved" id="chart-resolved" style="width: 0%;" title="0%"></div>
                   </div>
                   <div class="chart-bar-value" id="chart-resolved-val">0</div>
                 </div>
@@ -167,8 +252,8 @@
       </div>
 
       <!-- All Issues Tab Content -->
-      <div class="admin-tab-content" id="issues-tab">
-        <header class="panel-header">
+      <div class="content-container admin-tab-content" id="issues-tab">
+        <header class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
             <div class="tag">Issue Management</div>
             <h1 class="section-title" style="margin-top:8px;">
@@ -178,6 +263,11 @@
               Assign civic issues to municipal staff members and manage their status.
             </p>
           </div>
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem;"
+            onclick="refreshAdminData(this)">
+            <span class="material-icons-round">refresh</span>
+            Refresh Data
+          </button>
         </header>
 
         <!-- Issue Assignment Section -->
@@ -210,9 +300,11 @@
         </section>
       </div>
 
+
+
       <!-- User Management Tab Content -->
-      <div class="admin-tab-content" id="users-tab">
-        <header class="panel-header">
+      <div class="content-container admin-tab-content" id="users-tab">
+        <header class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
             <div class="tag">User Administration</div>
             <h1 class="section-title" style="margin-top:8px;">
@@ -222,6 +314,11 @@
               View, manage, and control user accounts across all roles.
             </p>
           </div>
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem;"
+            onclick="refreshAdminData(this)">
+            <span class="material-icons-round">refresh</span>
+            Refresh Data
+          </button>
         </header>
 
         <!-- User Management Section -->
@@ -296,7 +393,7 @@
       </div>
 
     </main>
-  </div>
+  </div><!-- /app-shell -->
 
   <!-- Admin Issue Modal -->
   <div id="adminIssueModal" class="issue-modal-backdrop">
@@ -402,7 +499,7 @@
     </div>
   </div>
 
-  <footer class="footer" style="text-align: center; padding: 1.25rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569;">
+  <footer class="footer">
     © 2026 CityPlus. All rights reserved.
   </footer>
 
@@ -424,4 +521,5 @@
   <script src="js/theme.js"></script>
   <script src="js/admin-dashboard.js"></script>
 </body>
+
 </html>

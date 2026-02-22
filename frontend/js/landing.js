@@ -74,7 +74,7 @@ async function loadRecentIssues() {
       if (issue.status === "Resolved") statusClass = "resolved";
 
       const imageHtml = issue.image
-        ? `<img src="http://localhost:5000${issue.image}" alt="${issue.title}" class="issue-card-image">`
+        ? `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}" class="issue-card-image">`
         : "";
 
       const card = document.createElement("div");
@@ -140,7 +140,7 @@ function openIssueModal(issue) {
   // Set image or placeholder
   const imageContainer = document.getElementById("modalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="http://localhost:5000${issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
   } else {
     imageContainer.innerHTML = `
       <div class="issue-modal-no-image">

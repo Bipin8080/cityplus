@@ -10,9 +10,8 @@ export const createIssue = async (req, res, next) => {
     error.statusCode = 400;
     return next(error);
   }
-
-  // Get the path for the uploaded image, if it exists
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  // Get the Cloudinary URL for the uploaded image, if it exists
+  const imageUrl = req.file ? req.file.path : null;
 
   const issue = await Issue.create({
     title,

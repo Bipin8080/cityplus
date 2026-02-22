@@ -2,6 +2,8 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import multer from "multer";
 import { asyncHandler } from "../middleware/errorMiddleware.js";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
 import {
   createIssue,
   getPublicIssues,
@@ -15,28 +17,16 @@ import {
 
 const router = express.Router();
 
-// Multer setup for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // The 'uploads' directory must exist
-  },
-  filename: (req, file, cb) => {
-    // Create a unique filename to prevent overwrites
-    cb(null, `${Date.now()}-${file.originalname}`);
+// Multer setup with Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "cityplus_issues",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
   },
 });
 
-// File filter to accept only images
-const fileFilter = (req, file, cb) => {
-  const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only image files are allowed (jpg, jpeg, png, webp)"), false);
-  }
-};
-
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+const upload = multer({ storage: storage });
 
 // ----- Public Routes -----
 // These routes are accessible without authentication for the public-facing landing page.

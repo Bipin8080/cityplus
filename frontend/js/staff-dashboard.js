@@ -59,7 +59,7 @@ function renderStaffIssues() {
     const citizenName = issue.citizen ? issue.citizen.name : "-";
 
     const imageCell = issue.image
-      ? `<a href="http://localhost:5000${issue.image}" target="_blank" title="View full image"><img src="http://localhost:5000${issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
+      ? `<a href="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
       : "-";
 
     const statusOptions = ["Open", "In Progress", "Resolved"]
@@ -89,6 +89,11 @@ function renderStaffIssues() {
       ${actionCell}
     `;
     tr.dataset.issue = JSON.stringify(issue);
+    tr.style.cursor = "pointer";
+    tr.onclick = (e) => {
+      if (e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
+      openStaffIssueModal(issue);
+    };
     tbody.appendChild(tr);
   });
 }
@@ -107,19 +112,47 @@ document.addEventListener("DOMContentLoaded", () => {
   tabAllIssuesLink.addEventListener("click", (e) => {
     e.preventDefault();
     currentStaffView = "all";
-    tabAllIssuesLink.classList.add("active");
-    tabMyAssignedLink.classList.remove("active");
+    tabAllIssuesLink.classList.add("active", "nav-link--active");
+    tabMyAssignedLink.classList.remove("active", "nav-link--active");
     renderStaffIssues();
+
+    // Auto-close sidebar on mobile
+    if (window.innerWidth <= 1024) {
+      document.querySelector('.sidebar').classList.remove('active');
+    }
   });
 
   // Handle My Assigned Issues click
   tabMyAssignedLink.addEventListener("click", (e) => {
     e.preventDefault();
     currentStaffView = "assigned";
-    tabMyAssignedLink.classList.add("active");
-    tabAllIssuesLink.classList.remove("active");
+    tabMyAssignedLink.classList.add("active", "nav-link--active");
+    tabAllIssuesLink.classList.remove("active", "nav-link--active");
     renderStaffIssues();
+
+    // Auto-close sidebar on mobile
+    if (window.innerWidth <= 1024) {
+      document.querySelector('.sidebar').classList.remove('active');
+    }
   });
+
+  // Mobile menu toggle
+  const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  if (mobileMenuToggle && sidebar) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+    });
+  }
+
+  // Desktop sidebar collapse toggle
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  if (sidebarToggleBtn && sidebar) {
+    sidebarToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sidebar.classList.toggle('collapsed');
+    });
+  }
 
   // Event listener for status changes in table (only for assigned issues)
   staffIssuesBody.addEventListener("change", async (e) => {
@@ -183,7 +216,7 @@ function openStaffIssueModal(issue) {
   // Set image
   const imageContainer = document.getElementById("staffModalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="http://localhost:5000${issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
   } else {
     imageContainer.innerHTML = `
       <div class="issue-modal-no-image">
@@ -218,10 +251,9 @@ function openStaffIssueModal(issue) {
   statusSelect.dataset.issueId = issue._id;
 
   // Hide or show the status update section based on current view
-  const statusUpdateSection = document.querySelector(".issue-modal-section:has(.issue-modal-section-title:contains('Update Status'))")
-    || Array.from(document.querySelectorAll(".issue-modal-section")).find(
-      el => el.textContent.includes("Update Status")
-    );
+  const statusUpdateSection = Array.from(document.querySelectorAll(".issue-modal-section")).find(
+    el => el.textContent.includes("Update Status")
+  );
 
   if (statusUpdateSection) {
     if (currentStaffView === "all") {
@@ -333,7 +365,9 @@ function hideLogoutConfirmation() {
 }
 
 function confirmLogout() {
+  const theme = localStorage.getItem('cityplus-theme');
   localStorage.clear();
+  if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
 
@@ -360,3 +394,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Expose for inline HTML
 window.showLogoutConfirmation = showLogoutConfirmation;
+
+async function refreshStaffData(btn) {
+  const icon = btn.querySelector('.material-icons-round');
+  const originalHtml = btn.innerHTML;
+
+  if (icon) icon.classList.add('spin-animation');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> Refreshing...`;
+
+  try {
+    await loadStaffData();
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
+
+window.refreshStaffData = refreshStaffData;

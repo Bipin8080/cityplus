@@ -5,6 +5,7 @@ let currentSearchTerm = '';
 let currentRoleFilter = '';
 let currentStatusFilter = '';
 
+
 async function loadAdminData() {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -32,14 +33,14 @@ async function loadAdminData() {
     ]);
 
     const summaryData = await summaryRes.json();
-    const usersData   = await usersRes.json();
-    const staffData   = await staffRes.json();
-    const issuesData  = await issuesRes.json();
+    const usersData = await usersRes.json();
+    const staffData = await staffRes.json();
+    const issuesData = await issuesRes.json();
 
     if (!summaryRes.ok) throw new Error(summaryData.message || "Unable to retrieve system summary. Please refresh the page or try again later.");
-    if (!usersRes.ok)   throw new Error(usersData.message || "Unable to retrieve user data. Please refresh the page or try again later.");
-    if (!staffRes.ok)   throw new Error(staffData.message || "Unable to retrieve staff data. Please refresh the page or try again later.");
-    if (!issuesRes.ok)  throw new Error(issuesData.message || "Unable to retrieve issue data. Please refresh the page or try again later.");
+    if (!usersRes.ok) throw new Error(usersData.message || "Unable to retrieve user data. Please refresh the page or try again later.");
+    if (!staffRes.ok) throw new Error(staffData.message || "Unable to retrieve staff data. Please refresh the page or try again later.");
+    if (!issuesRes.ok) throw new Error(issuesData.message || "Unable to retrieve issue data. Please refresh the page or try again later.");
 
     // Store staff data globally for modal
     window.adminStaffList = staffData.staff || [];
@@ -58,6 +59,7 @@ async function loadAdminData() {
     document.querySelector("#iOpen").textContent = i.open;
     document.querySelector("#iProgress").textContent = i.inProgress;
     document.querySelector("#iResolved").textContent = i.resolved;
+
 
     // ----- Update Analytics Section -----
     updateAnalytics(summaryData, usersData);
@@ -85,7 +87,7 @@ async function loadAdminData() {
         .map(s => `<option value="${s}" ${issue.status === s ? "selected" : ""}>${s}</option>`)
         .join("");
       const imageCell = issue.image
-        ? `<a href="http://localhost:5000${issue.image}" target="_blank" title="View full image"><img src="http://localhost:5000${issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
+        ? `<a href="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
         : "-";
 
       tr.innerHTML = `
@@ -111,6 +113,11 @@ async function loadAdminData() {
           <button class="btn btn-secondary btn-small view-btn" onclick="openAdminIssueModalFromTable(this)" data-issue='${JSON.stringify(issue)}'>View</button>
         </td>
       `;
+      tr.style.cursor = "pointer";
+      tr.onclick = (e) => {
+        if (e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
+        openAdminIssueModal(issue, window.adminStaffList);
+      };
       tbodyIssues.appendChild(tr);
     });
 
@@ -361,7 +368,7 @@ function openAdminIssueModal(issue, staffList) {
   // Set image
   const imageContainer = document.getElementById("adminModalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="http://localhost:5000${issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
   } else {
     imageContainer.innerHTML = `
       <div class="issue-modal-no-image">
@@ -469,7 +476,9 @@ function hideLogoutConfirmation() {
 }
 
 function confirmLogout() {
+  const theme = localStorage.getItem('cityplus-theme');
   localStorage.clear();
+  if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
 
@@ -558,16 +567,27 @@ function setupTabNavigation() {
       const tabName = button.getAttribute('data-tab');
 
       // Remove active class from all buttons and content
-      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.remove('nav-link--active');
+      });
       document.querySelectorAll('.admin-tab-content').forEach(content => {
         content.classList.remove('active');
       });
 
       // Add active class to clicked button and corresponding content
       button.classList.add('active');
+      button.classList.add('nav-link--active');
       const tabContent = document.getElementById(tabName + '-tab');
       if (tabContent) {
         tabContent.classList.add('active');
+      }
+
+
+      // Close sidebar on mobile
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar && window.innerWidth <= 768) {
+        sidebar.classList.remove('active');
       }
     });
   });
@@ -678,6 +698,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Attach user action listeners
   attachUserActionListeners();
 
+  // Mobile menu toggle
+  const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  if (mobileMenuToggle && sidebar) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+    });
+  }
+
+  // Desktop sidebar collapse toggle
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  if (sidebarToggleBtn && sidebar) {
+    sidebarToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sidebar.classList.toggle('collapsed');
+    });
+  }
+
   const cancelBtn = document.getElementById('cancelLogoutBtn');
   const confirmBtn = document.getElementById('confirmLogoutBtn');
   const modal = document.getElementById('logoutConfirmModal');
@@ -705,3 +743,30 @@ window.showLogoutConfirmation = showLogoutConfirmation;
 window.openAdminIssueModalFromTable = openAdminIssueModalFromTable;
 window.clearSearch = clearSearch;
 window.resetFilters = resetFilters;
+
+async function refreshAdminData(btn) {
+  const icon = btn.querySelector('.material-icons-round');
+  const originalHtml = btn.innerHTML;
+
+  // Add spinning style and disable button
+  if (icon) icon.classList.add('spin-animation');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> Refreshing...`;
+
+  try {
+    await loadAdminData();
+  } finally {
+    // Restore original state
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
+
+window.refreshAdminData = refreshAdminData;
+
+
+
+// Function callable from popup HTML strings safely
+window.openAdminIssueModalFromHtml = function (issueObj) {
+  openAdminIssueModal(issueObj, window.adminStaffList);
+}

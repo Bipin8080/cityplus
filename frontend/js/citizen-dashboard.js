@@ -223,7 +223,7 @@ function renderTable() {
       <td>
         <div class="issue-cell">
           <div class="issue-thumb">
-            ${issue.image ? `<img src="http://localhost:5000${issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
+            ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
           </div>
           <div>
             <p class="issue-title">${issue.title}</p>
@@ -341,7 +341,7 @@ function renderAllIssuesTable() {
       <td>
         <div class="issue-cell">
           <div class="issue-thumb">
-            ${issue.image ? `<img src="http://localhost:5000${issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
+            ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image}" alt="${issue.title}">` : '<span class="material-icons">image_not_supported</span>'}
           </div>
           <div>
             <p class="issue-title">${issue.title}</p>
@@ -411,7 +411,7 @@ function openIssueModal(issue) {
 
   const imageEl = document.querySelector('#modalImage');
   if (issue.image) {
-    imageEl.src = 'http://localhost:5000' + issue.image;
+    imageEl.src = issue.image.startsWith('http') ? issue.image : 'http://localhost:5000' + issue.image;
     imageEl.style.display = 'block';
   } else {
     imageEl.style.display = 'none';
@@ -585,7 +585,9 @@ function setupEventListeners() {
 
 // Logout function (kept for backwards compatibility)
 function logout() {
+  const theme = localStorage.getItem('cityplus-theme');
   localStorage.clear();
+  if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
 
@@ -601,12 +603,32 @@ function hideLogoutConfirmation() {
 }
 
 function confirmLogout() {
+  const theme = localStorage.getItem('cityplus-theme');
   localStorage.clear();
+  if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
 
 // Setup logout confirmation listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Mobile menu toggle
+  const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  if (mobileMenuToggle && sidebar) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+    });
+  }
+
+  // Desktop sidebar collapse toggle
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  if (sidebarToggleBtn && sidebar) {
+    sidebarToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sidebar.classList.toggle('collapsed');
+    });
+  }
+
   const cancelBtn = document.getElementById('cancelLogoutBtn');
   const confirmBtn = document.getElementById('confirmLogoutBtn');
   const modal = document.getElementById('logoutConfirmModal');
@@ -635,3 +657,39 @@ function showErrorMessage(message) {
 // Expose functions globally for HTML onclick handlers
 window.switchToDashboardTab = switchToDashboardTab;
 window.switchToAllIssuesTab = switchToAllIssuesTab;
+
+async function refreshCitizenData(btn) {
+  const icon = btn.querySelector('.material-icons-round');
+  const originalHtml = btn.innerHTML;
+
+  if (icon) icon.classList.add('spin-animation');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> Refreshing...`;
+
+  try {
+    await loadCitizenIssues();
+    updateActivityFeed();
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
+
+async function refreshAllCommunityData(btn) {
+  const icon = btn.querySelector('.material-icons-round');
+  const originalHtml = btn.innerHTML;
+
+  if (icon) icon.classList.add('spin-animation');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> Refreshing...`;
+
+  try {
+    await loadAllCommunityIssues();
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
+
+window.refreshCitizenData = refreshCitizenData;
+window.refreshAllCommunityData = refreshAllCommunityData;
