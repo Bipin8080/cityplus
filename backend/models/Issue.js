@@ -36,11 +36,25 @@ const IssueSchema = new mongoose.Schema(
     lat: { type: Number },
     lng: { type: Number },
 
-    // H: optional image upload
+    // H: optional image upload (initial submission)
     image: { type: String, default: null },
+
+    // Timeline elements
+    inProgressAt: { type: Date, default: null },
+    inProgressImage: { type: String, default: null },
+    inProgressNote: { type: String, default: null },
 
     // I: timestamp for resolution
     resolvedAt: { type: Date, default: null },
+    resolvedImage: { type: String, default: null },
+    resolvedNote: { type: String, default: null },
+
+    // J: Citizen feedback once resolved
+    feedback: {
+      rating: { type: Number, min: 1, max: 5 },
+      text: { type: String },
+      submittedAt: { type: Date }
+    }
   },
   { timestamps: true }
 );

@@ -10,13 +10,31 @@
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100..700&display=swap" />
   <link rel="stylesheet" href="css/styles.css" />
   <style>
     .navbar-inner {
       align-items: center;
+    }
+
+    .navbar-link.active {
+      color: var(--primary-color, #3b82f6) !important;
+      font-weight: 600;
+    }
+
+    .issue-details-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 768px) {
+      .issue-details-grid {
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
 </head>
@@ -29,11 +47,10 @@
         <div class="brand-title">CityPlus</div>
       </a>
       <nav class="navbar-menu">
-        <a href="#top" class="navbar-link">Home</a>
-        <a href="#how-it-works" class="navbar-link">How It Works</a>
-        <a href="#categories" class="navbar-link">Categories</a>
-        <a href="#recent-issues" class="navbar-link">Recent Issues</a>
-        <a href="#faq" class="navbar-link">FAQ</a>
+        <a href="javascript:void(0);" onclick="switchView('home')" class="navbar-link active" id="nav-home">Home</a>
+        <a href="javascript:void(0);" onclick="switchView('recent-issues')" class="navbar-link" id="nav-recent">Recent
+          Issues</a>
+        <a href="javascript:void(0);" onclick="switchView('about')" class="navbar-link" id="nav-about">About</a>
       </nav>
       <div class="navbar-auth">
         <a href="login.html" class="btn btn-outline">Login</a>
@@ -42,438 +59,540 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
+  <!-- Main Content -->
   <main class="container" id="top">
-    <section class="hero">
-      <!-- Left -->
-      <div>
-        <h1 class="hero-title">
-          Report local problems, track resolutions, and build a better city with CityPlus.
-        </h1>
-        <p class="hero-subtitle">
-          CityPlus allows citizens to quickly report civic issues like potholes, streetlight failures,
-          water leakage and garbage dumps. Municipal staff can triage, assign and resolve complaints
-          from a single dashboard.
-        </p>
-        <div class="hero-badges">
-          <span class="badge">Civic Issue Management</span>
-          <span class="badge badge-alt">Role-based Access Control</span>
-          <span class="badge">Municipal Service Platform</span>
+    <!-- HOME VIEW -->
+    <div id="home-view">
+      <section class="hero">
+        <!-- Left -->
+        <div>
+          <h1 class="hero-title">
+            Report local problems, track resolutions, and build a better city with CityPlus.
+          </h1>
+          <p class="hero-subtitle">
+            CityPlus allows citizens to quickly report civic issues like potholes, streetlight failures,
+            water leakage and garbage dumps. Municipal staff can triage, assign and resolve complaints
+            from a single dashboard.
+          </p>
+          <div class="hero-badges">
+            <span class="badge">Civic Issue Management</span>
+            <span class="badge badge-alt">Role-based Access Control</span>
+            <span class="badge">Municipal Service Platform</span>
+          </div>
+
+          <div class="hero-actions">
+            <a href="login.html" class="btn btn-primary">Sign in to Cityplus</a>
+          </div>
+
+          <div class="hero-meta">
+            <div>
+              <strong>Citizen</strong>
+              Raise complaints, upload photos, see live status.
+            </div>
+            <div>
+              <strong>Admin & Staff</strong>
+              Assign issues, update progress, analyze hotspots.
+            </div>
+          </div>
         </div>
 
-        <div class="hero-actions">
-          <a href="login.html" class="btn btn-primary">Sign in to Cityplus</a>
-        </div>
+        <!-- Right: Overview card with key service metrics -->
+        <aside class="hero-card">
+          <div class="hero-card-title">Service Metrics</div>
+          <p class="card-text">
+            Cityplus consolidates civic complaints, resolution activity and ward coverage into a single
+            view for municipal administrators.
+          </p>
 
-        <div class="hero-meta">
-          <div>
-            <strong>Citizen</strong>
-            Raise complaints, upload photos, see live status.
+          <div class="hero-card-grid">
+            <div class="hero-card-item">
+              <div class="hero-card-icon">
+                <span class="material-icons-round">assignment</span>
+              </div>
+              <div class="hero-card-label">Total Complaints</div>
+              <div class="hero-card-value" id="landing-total">--</div>
+            </div>
+            <div class="hero-card-item">
+              <div class="hero-card-icon">
+                <span class="material-icons-round">check_circle</span>
+              </div>
+              <div class="hero-card-label">Resolved Issues</div>
+              <div class="hero-card-value" id="landing-resolved">--</div>
+            </div>
+            <div class="hero-card-item">
+              <div class="hero-card-icon">
+                <span class="material-icons-round">sync</span>
+              </div>
+              <div class="hero-card-label">In Progress</div>
+              <div class="hero-card-value" id="landing-progress">--</div>
+            </div>
+            <div class="hero-card-item">
+              <div class="hero-card-icon">
+                <span class="material-icons-round">location_on</span>
+              </div>
+              <div class="hero-card-label">Total Wards Covered</div>
+              <div class="hero-card-value" id="landing-wards">All</div>
+            </div>
           </div>
-          <div>
-            <strong>Admin & Staff</strong>
-            Assign issues, update progress, analyze hotspots.
-          </div>
-        </div>
-      </div>
+        </aside>
+      </section>
 
-      <!-- Right: Overview card with key service metrics -->
-      <aside class="hero-card">
-        <div class="hero-card-title">Service Metrics</div>
-        <p class="card-text">
-          Cityplus consolidates civic complaints, resolution activity and ward coverage into a single
-          view for municipal administrators.
-        </p>
-
-        <div class="hero-card-grid">
-          <div class="hero-card-item">
-            <div class="hero-card-icon">
-              <span class="material-icons-round">assignment</span>
-            </div>
-            <div class="hero-card-label">Total Complaints</div>
-            <div class="hero-card-value" id="landing-total">--</div>
-          </div>
-          <div class="hero-card-item">
-            <div class="hero-card-icon">
-              <span class="material-icons-round">check_circle</span>
-            </div>
-            <div class="hero-card-label">Resolved Issues</div>
-            <div class="hero-card-value" id="landing-resolved">--</div>
-          </div>
-          <div class="hero-card-item">
-            <div class="hero-card-icon">
-              <span class="material-icons-round">sync</span>
-            </div>
-            <div class="hero-card-label">In Progress</div>
-            <div class="hero-card-value" id="landing-progress">--</div>
-          </div>
-          <div class="hero-card-item">
-            <div class="hero-card-icon">
-              <span class="material-icons-round">location_on</span>
-            </div>
-            <div class="hero-card-label">Total Wards Covered</div>
-            <div class="hero-card-value" id="landing-wards">All</div>
-          </div>
-        </div>
-      </aside>
-    </section>
-
-    <!-- How It Works -->
-    <section class="how-it-works" id="how-it-works">
-      <div class="section-header">
-        <h2 class="section-title">How It Works</h2>
-        <p class="section-subtitle">A four-step process involving three roles — Citizen, Admin, and Staff — to report,
-          manage, and resolve civic issues.</p>
-      </div>
-
-      <div class="steps-grid">
-        <!-- Step 1 -->
-        <div class="step-card">
-          <div class="step-number">01</div>
-          <div class="step-role-badge citizen">
-            <span class="material-icons-round">person</span>
-            Citizen
-          </div>
-          <div class="step-icon-wrap blue">
-            <span class="material-icons-round">edit_note</span>
-          </div>
-          <h3 class="step-heading">Submit an Issue</h3>
-          <p class="step-body">The citizen fills in the report form with a description, category, and location, and
-            uploads a photo. The report is saved to the database with a status of <strong>Pending</strong>.</p>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="step-card">
-          <div class="step-number">02</div>
-          <div class="step-role-badge admin">
-            <span class="material-icons-round">admin_panel_settings</span>
-            Admin
-          </div>
-          <div class="step-icon-wrap purple">
-            <span class="material-icons-round">manage_search</span>
-          </div>
-          <h3 class="step-heading">Admin Reviews & Assigns</h3>
-          <p class="step-body">The administrator logs into the dashboard and reviews the submitted report. If accepted,
-            the admin assigns the issue to an available staff member responsible for handling it.</p>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="step-card">
-          <div class="step-number">03</div>
-          <div class="step-role-badge staff">
-            <span class="material-icons-round">engineering</span>
-            Staff
-          </div>
-          <div class="step-icon-wrap orange">
-            <span class="material-icons-round">construction</span>
-          </div>
-          <h3 class="step-heading">Staff Works on Issue</h3>
-          <p class="step-body">The assigned staff member receives the issue and carries out the required field work.
-            They update the status to <strong>In Progress</strong> when work begins, and to <strong>Resolved</strong>
-            once completed.</p>
-        </div>
-
-        <!-- Step 4 -->
-        <div class="step-card">
-          <div class="step-number">04</div>
-          <div class="step-role-badge citizen">
-            <span class="material-icons-round">person</span>
-            Citizen
-          </div>
-          <div class="step-icon-wrap green">
-            <span class="material-icons-round">task_alt</span>
-          </div>
-          <h3 class="step-heading">Issue Resolved</h3>
-          <p class="step-body">Once the staff marks the issue as Resolved, it is closed in the system. The citizen can
-            view the final status through their dashboard.</p>
-        </div>
-      </div>
-
-      <!-- Status flow indicator -->
-      <div class="status-flow">
-        <div class="status-pill pending">
-          <span class="material-icons-round">radio_button_unchecked</span>
-          Pending
-        </div>
-        <div class="status-arrow">
-          <span class="material-icons-round">arrow_forward</span>
-        </div>
-        <div class="status-pill assigned">
-          <span class="material-icons-round">assignment_ind</span>
-          Assigned
-        </div>
-        <div class="status-arrow">
-          <span class="material-icons-round">arrow_forward</span>
-        </div>
-        <div class="status-pill inprogress">
-          <span class="material-icons-round">sync</span>
-          In Progress
-        </div>
-        <div class="status-arrow">
-          <span class="material-icons-round">arrow_forward</span>
-        </div>
-        <div class="status-pill resolved">
-          <span class="material-icons-round">check_circle</span>
-          Resolved
-        </div>
-      </div>
-      <p class="status-note">Status is updated manually by the admin and assigned staff. Citizens can track progress at
-        any time using their Citizen Dashboard.</p>
-    </section>
-    <!-- Categories -->
-    <section class="categories" id="categories">
-      <div class="container">
-        <div class="section-header-row">
-          <div>
-            <h2 class="section-title">Common Categories</h2>
-            <p class="section-subtitle">Select a category to view active reports or start a new one.</p>
-          </div>
-          <a href="#" class="view-all-link">
-            View All Categories <span class="material-icons-round">arrow_forward</span>
-          </a>
-        </div>
-        <div class="category-grid">
-          <a href="report-issue.html?category=Road%20%26%20Potholes" class="category-card">
-            <div class="category-icon orange">
-              <span class="material-icons-round">commute</span>
-            </div>
-            <h4 class="category-title">Potholes</h4>
-            <p class="category-subtitle">Roads & Streets</p>
-          </a>
-          <a href="report-issue.html?category=Garbage%20%26%20Waste" class="category-card">
-            <div class="category-icon green">
-              <span class="material-icons-round">delete_outline</span>
-            </div>
-            <h4 class="category-title">Waste</h4>
-            <p class="category-subtitle">Sanitation</p>
-          </a>
-          <a href="report-issue.html?category=Water%20Supply%20%2F%20Leakage" class="category-card">
-            <div class="category-icon blue">
-              <span class="material-icons-round">water_drop</span>
-            </div>
-            <h4 class="category-title">Water Supply</h4>
-            <p class="category-subtitle">Utilities</p>
-          </a>
-          <a href="report-issue.html?category=Street%20Lights" class="category-card">
-            <div class="category-icon yellow">
-              <span class="material-icons-round">lightbulb</span>
-            </div>
-            <h4 class="category-title">Lighting</h4>
-            <p class="category-subtitle">Infrastructure</p>
-          </a>
-          <a href="report-issue.html?category=Drainage%20%2F%20Sewage" class="category-card">
-            <div class="category-icon purple">
-              <span class="material-icons-round">volume_up</span>
-            </div>
-            <h4 class="category-title">Drainage Issues</h4>
-            <p class="category-subtitle">Sewage</p>
-          </a>
-          <a href="report-issue.html?category=Electricity%20Issues" class="category-card">
-            <div class="category-icon teal">
-              <span class="material-icons-round">park</span>
-            </div>
-            <h4 class="category-title">Electricity</h4>
-            <p class="category-subtitle">Power Supply</p>
-          </a>
-          <a href="report-issue.html?category=Public%20Property%20Damage" class="category-card">
-            <div class="category-icon red">
-              <span class="material-icons-round">dangerous</span>
-            </div>
-            <h4 class="category-title">Vandalism</h4>
-            <p class="category-subtitle">Public Property</p>
-          </a>
-          <a href="report-issue.html?category=Other" class="category-card">
-            <div class="category-icon gray">
-              <span class="material-icons-round">more_horiz</span>
-            </div>
-            <h4 class="category-title">Other</h4>
-            <p class="category-subtitle">General</p>
-          </a>
-        </div>
-      </div>
-    </section>
-    <!-- Recent Complaints Section -->
-    <section class="issues-section" id="recent-issues">
-      <h2 class="section-title">Recently Reported Issues</h2>
-      <p class="section-subtitle">
-        Live feed of civic issues reported by citizens across the city. Issues marked with images show field evidence.
-      </p>
-      <div class="issue-cards-container">
-        <!-- Complaint cards will be dynamically injected here by landing.js -->
-      </div>
-    </section>
-
-    <!-- FAQ Section -->
-    <section class="faq" id="faq">
-      <div class="container-small">
+      <!-- How It Works -->
+      <section class="how-it-works" id="how-it-works">
         <div class="section-header">
-          <h2 class="section-title">Frequently Asked Questions</h2>
-          <p class="section-subtitle">Everything you need to know about the CityPlus platform.</p>
-        </div>
-        <div class="faq-list">
-          <details class="faq-item" open>
-            <summary class="faq-question">
-              <h3>How do I create an account and register on CityPlus?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>To create an account on CityPlus, click the "Login" button on the homepage and select the
-                "Register" tab. Choose your role (Citizen or Staff), fill in your details including name, email,
-                and password. Once your account is created, you can immediately
-                start reporting issues if you're a citizen or access the dashboard if you're staff.</p>
-            </div>
-          </details>
-          <details class="faq-item">
-            <summary class="faq-question">
-              <h3>How do I track my report and get updates?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>Once you submit a report, it will be saved to your account. You
-                can track your report by logging in to your Citizen Dashboard to view all your
-                submitted reports with real-time status updates. Status updates are made by administrators and staff
-                members as they review, assign, and work on issues.</p>
-            </div>
-          </details>
-          <details class="faq-item">
-            <summary class="faq-question">
-              <h3>What information should I include when reporting an issue?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>When reporting an issue, please provide: (1) A clear title or brief description of the problem, (2)
-                Detailed description explaining the issue and its impact, (3) The exact location or address where the
-                problem is located, (4) The appropriate category (potholes, garbage, water supply, streetlights,
-                drainage, electricity, or vandalism), and (5) A clear photo or image showing the problem if possible.
-                The more details you provide, the faster the issue can be addressed.</p>
-            </div>
-          </details>
-          <details class="faq-item">
-            <summary class="faq-question">
-              <h3>How long does it typically take for issues to be resolved?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>Resolution time varies depending on the severity and type of issue. After an issue is reported, the
-                admin typically reviews it within 1-2 business days. Once approved and assigned to staff, resolution can
-                take anywhere from a few hours to several weeks depending on the complexity and available resources. You
-                can track the progress at any time using your dashboard. Critical issues affecting public
-                safety are prioritized for faster resolution.</p>
-            </div>
-          </details>
-          <details class="faq-item">
-            <summary class="faq-question">
-              <h3>Is my personal information safe and private?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>Yes, your personal information is protected with the highest priority. Your name, email, phone number,
-                and address are only accessible to the administrator and the staff member assigned to your issue. These
-                details are not displayed on public issue listings. Your reported issues and descriptions are visible to
-                authorized personnel only. We use secure encryption for data transmission and storage. Please refer to
-                our Privacy Policy for complete details on how we handle your data.</p>
-            </div>
-          </details>
-          <details class="faq-item">
-            <summary class="faq-question">
-              <h3>Can I edit or delete my report after submission?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>Once a report is submitted, you cannot directly edit or delete it from the system. However, if you need
-                to make changes or correct information, please contact our support team at cityplus.project@gmail.com
-                with the details of your issue. They can assist you with updating critical information or addressing any
-                issues
-                with your report.</p>
-            </div>
-          </details>
-          <details class="faq-item">
-            <summary class="faq-question">
-              <h3>What should I do if I forgot my password?</h3>
-              <span class="material-icons-round chevron">expand_more</span>
-            </summary>
-            <div class="faq-answer">
-              <p>If you forget your password, click the "Forgot Password?" link on the login page. Enter your email
-                address, and we'll send you a password reset link. Click the link in your email to set a new password.
-                The link is valid for 1 hour. If you don't receive the email, check your spam folder or contact support
-                at cityplus.project@gmail.com.</p>
-            </div>
-          </details>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Issue Details Modal -->
-  <div id="issueModal" class="issue-modal-backdrop">
-    <div class="issue-modal">
-      <div class="issue-modal-header">
-        <h2 class="issue-modal-title" id="modalIssueTitle">Issue Details</h2>
-        <button class="issue-modal-close" onclick="closeIssueModal()">&times;</button>
-      </div>
-      <div class="issue-modal-content">
-        <!-- Image will be inserted here -->
-        <div id="modalImageContainer"></div>
-
-        <!-- Status and Category Badges -->
-        <div class="issue-modal-badges" id="modalBadges"></div>
-
-        <!-- Description Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">description</span>
-            Description
-          </div>
-          <div class="issue-modal-description" id="modalDescription"></div>
+          <h2 class="section-title">How It Works</h2>
+          <p class="section-subtitle">A four-step process involving three roles — Citizen, Admin, and Staff — to report,
+            manage, and resolve civic issues.</p>
         </div>
 
-        <!-- Details Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">info</span>
-            Details
+        <div class="steps-grid">
+          <!-- Step 1 -->
+          <div class="step-card">
+            <div class="step-number">01</div>
+            <div class="step-role-badge citizen">
+              <span class="material-icons-round">person</span>
+              Citizen
+            </div>
+            <div class="step-icon-wrap blue">
+              <span class="material-icons-round">edit_note</span>
+            </div>
+            <h3 class="step-heading">Submit an Issue</h3>
+            <p class="step-body">The citizen fills in the report form with a description, category, and location, and
+              uploads a photo. The report is saved to the database with a status of <strong>Pending</strong>.</p>
           </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Complaint ID</span>
-            <span class="issue-modal-value" id="modalComplaintId">--</span>
+
+          <!-- Step 2 -->
+          <div class="step-card">
+            <div class="step-number">02</div>
+            <div class="step-role-badge admin">
+              <span class="material-icons-round">admin_panel_settings</span>
+              Admin
+            </div>
+            <div class="step-icon-wrap purple">
+              <span class="material-icons-round">manage_search</span>
+            </div>
+            <h3 class="step-heading">Admin Reviews & Assigns</h3>
+            <p class="step-body">The administrator logs into the dashboard and reviews the submitted report. If
+              accepted,
+              the admin assigns the issue to an available staff member responsible for handling it.</p>
           </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Location</span>
-            <span class="issue-modal-value" id="modalLocation">--</span>
+
+          <!-- Step 3 -->
+          <div class="step-card">
+            <div class="step-number">03</div>
+            <div class="step-role-badge staff">
+              <span class="material-icons-round">engineering</span>
+              Staff
+            </div>
+            <div class="step-icon-wrap orange">
+              <span class="material-icons-round">construction</span>
+            </div>
+            <h3 class="step-heading">Staff Works on Issue</h3>
+            <p class="step-body">The assigned staff member receives the issue and carries out the required field work.
+              They update the status to <strong>In Progress</strong> when work begins, and to <strong>Resolved</strong>
+              once completed.</p>
           </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Ward</span>
-            <span class="issue-modal-value" id="modalWard">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Status</span>
-            <span class="issue-modal-value" id="modalStatus">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Submitted</span>
-            <span class="issue-modal-value" id="modalDate">--</span>
+
+          <!-- Step 4 -->
+          <div class="step-card">
+            <div class="step-number">04</div>
+            <div class="step-role-badge citizen">
+              <span class="material-icons-round">person</span>
+              Citizen
+            </div>
+            <div class="step-icon-wrap green">
+              <span class="material-icons-round">task_alt</span>
+            </div>
+            <h3 class="step-heading">Issue Resolved</h3>
+            <p class="step-body">Once the staff marks the issue as Resolved, it is closed in the system. The citizen can
+              view the final status through their dashboard.</p>
           </div>
         </div>
 
-        <!-- Reporter Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">person</span>
-            Reporter
+        <!-- Status flow indicator -->
+        <div class="status-flow">
+          <div class="status-pill pending">
+            <span class="material-icons-round">radio_button_unchecked</span>
+            Pending
           </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Name</span>
-            <span class="issue-modal-value" id="modalReporter">--</span>
+          <div class="status-arrow">
+            <span class="material-icons-round">arrow_forward</span>
           </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Email</span>
-            <span class="issue-modal-value" id="modalEmail">--</span>
+          <div class="status-pill assigned">
+            <span class="material-icons-round">assignment_ind</span>
+            Assigned
+          </div>
+          <div class="status-arrow">
+            <span class="material-icons-round">arrow_forward</span>
+          </div>
+          <div class="status-pill inprogress">
+            <span class="material-icons-round">sync</span>
+            In Progress
+          </div>
+          <div class="status-arrow">
+            <span class="material-icons-round">arrow_forward</span>
+          </div>
+          <div class="status-pill resolved">
+            <span class="material-icons-round">check_circle</span>
+            Resolved
           </div>
         </div>
-      </div>
+        <p class="status-note">Status is updated manually by the admin and assigned staff. Citizens can track progress
+          at
+          any time using their Citizen Dashboard.</p>
+      </section>
+      <!-- Categories -->
+      <section class="categories" id="categories">
+        <div class="container">
+          <div class="section-header-row">
+            <div>
+              <h2 class="section-title">Common Categories</h2>
+              <p class="section-subtitle">Select a category to view active reports or start a new one.</p>
+            </div>
+            <a href="#" class="view-all-link">
+              View All Categories <span class="material-icons-round">arrow_forward</span>
+            </a>
+          </div>
+          <div class="category-grid">
+            <a href="report-issue.html?category=Road%20%26%20Potholes" class="category-card">
+              <div class="category-icon orange">
+                <span class="material-icons-round">commute</span>
+              </div>
+              <h4 class="category-title">Potholes</h4>
+              <p class="category-subtitle">Roads & Streets</p>
+            </a>
+            <a href="report-issue.html?category=Garbage%20%26%20Waste" class="category-card">
+              <div class="category-icon green">
+                <span class="material-icons-round">delete_outline</span>
+              </div>
+              <h4 class="category-title">Waste</h4>
+              <p class="category-subtitle">Sanitation</p>
+            </a>
+            <a href="report-issue.html?category=Water%20Supply%20%2F%20Leakage" class="category-card">
+              <div class="category-icon blue">
+                <span class="material-icons-round">water_drop</span>
+              </div>
+              <h4 class="category-title">Water Supply</h4>
+              <p class="category-subtitle">Utilities</p>
+            </a>
+            <a href="report-issue.html?category=Street%20Lights" class="category-card">
+              <div class="category-icon yellow">
+                <span class="material-icons-round">lightbulb</span>
+              </div>
+              <h4 class="category-title">Lighting</h4>
+              <p class="category-subtitle">Infrastructure</p>
+            </a>
+            <a href="report-issue.html?category=Drainage%20%2F%20Sewage" class="category-card">
+              <div class="category-icon purple">
+                <span class="material-icons-round">volume_up</span>
+              </div>
+              <h4 class="category-title">Drainage Issues</h4>
+              <p class="category-subtitle">Sewage</p>
+            </a>
+            <a href="report-issue.html?category=Electricity%20Issues" class="category-card">
+              <div class="category-icon teal">
+                <span class="material-icons-round">park</span>
+              </div>
+              <h4 class="category-title">Electricity</h4>
+              <p class="category-subtitle">Power Supply</p>
+            </a>
+            <a href="report-issue.html?category=Public%20Property%20Damage" class="category-card">
+              <div class="category-icon red">
+                <span class="material-icons-round">dangerous</span>
+              </div>
+              <h4 class="category-title">Vandalism</h4>
+              <p class="category-subtitle">Public Property</p>
+            </a>
+            <a href="report-issue.html?category=Other" class="category-card">
+              <div class="category-icon gray">
+                <span class="material-icons-round">more_horiz</span>
+              </div>
+              <h4 class="category-title">Other</h4>
+              <p class="category-subtitle">General</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ Section -->
+      <section class="faq" id="faq">
+        <div class="container-small">
+          <div class="section-header">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <p class="section-subtitle">Everything you need to know about the CityPlus platform.</p>
+          </div>
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary class="faq-question">
+                <h3>How do I create an account and register on CityPlus?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>To create an account on CityPlus, click the "Login" button on the homepage and select the
+                  "Register" tab. Choose your role (Citizen or Staff), fill in your details including name, email,
+                  and password. Once your account is created, you can immediately
+                  start reporting issues if you're a citizen or access the dashboard if you're staff.</p>
+              </div>
+            </details>
+            <details class="faq-item">
+              <summary class="faq-question">
+                <h3>How do I track my report and get updates?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>Once you submit a report, it will be saved to your account. You
+                  can track your report by logging in to your Citizen Dashboard to view all your
+                  submitted reports with real-time status updates. Status updates are made by administrators and staff
+                  members as they review, assign, and work on issues.</p>
+              </div>
+            </details>
+            <details class="faq-item">
+              <summary class="faq-question">
+                <h3>What information should I include when reporting an issue?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>When reporting an issue, please provide: (1) A clear title or brief description of the problem, (2)
+                  Detailed description explaining the issue and its impact, (3) The exact location or address where the
+                  problem is located, (4) The appropriate category (potholes, garbage, water supply, streetlights,
+                  drainage, electricity, or vandalism), and (5) A clear photo or image showing the problem if possible.
+                  The more details you provide, the faster the issue can be addressed.</p>
+              </div>
+            </details>
+            <details class="faq-item">
+              <summary class="faq-question">
+                <h3>How long does it typically take for issues to be resolved?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>Resolution time varies depending on the severity and type of issue. After an issue is reported, the
+                  admin typically reviews it within 1-2 business days. Once approved and assigned to staff, resolution
+                  can
+                  take anywhere from a few hours to several weeks depending on the complexity and available resources.
+                  You
+                  can track the progress at any time using your dashboard. Critical issues affecting public
+                  safety are prioritized for faster resolution.</p>
+              </div>
+            </details>
+            <details class="faq-item">
+              <summary class="faq-question">
+                <h3>Is my personal information safe and private?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>Yes, your personal information is protected with the highest priority. Your name, email, phone
+                  number,
+                  and address are only accessible to the administrator and the staff member assigned to your issue.
+                  These
+                  details are not displayed on public issue listings. Your reported issues and descriptions are visible
+                  to
+                  authorized personnel only. We use secure encryption for data transmission and storage. Please refer to
+                  our Privacy Policy for complete details on how we handle your data.</p>
+              </div>
+            </details>
+            <details class="faq-item">
+              <summary class="faq-question">
+                <h3>Can I edit or delete my report after submission?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>Once a report is submitted, you cannot directly edit or delete it from the system. However, if you
+                  need
+                  to make changes or correct information, please contact our support team at cityplus.project@gmail.com
+                  with the details of your issue. They can assist you with updating critical information or addressing
+                  any
+                  issues
+                  with your report.</p>
+              </div>
+            </details>
+            <details class="faq-item">
+              <summary class="faq-question">
+                <h3>What should I do if I forgot my password?</h3>
+                <span class="material-icons-round chevron">expand_more</span>
+              </summary>
+              <div class="faq-answer">
+                <p>If you forget your password, click the "Forgot Password?" link on the login page. Enter your email
+                  address, and we'll send you a password reset link. Click the link in your email to set a new password.
+                  The link is valid for 1 hour. If you don't receive the email, check your spam folder or contact
+                  support
+                  at cityplus.project@gmail.com.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+    </div> <!-- END HOME VIEW -->
+
+    <!-- RECENT ISSUES VIEW -->
+    <div id="recent-issues-view" style="display: none;">
+      <section class="issues-section" id="recent-issues" style="padding-top: 2rem;">
+        <h2 class="section-title">Recently Reported Issues</h2>
+        <p class="section-subtitle">
+          Live feed of civic issues reported by citizens across the city. Issues marked with images show field evidence.
+        </p>
+        <div class="issue-cards-container">
+          <!-- Complaint cards will be dynamically injected here by landing.js -->
+        </div>
+      </section>
     </div>
-  </div>
 
+    <!-- ABOUT VIEW -->
+    <div id="about-view" style="display: none;">
+      <section class="about-section" id="about" style="padding: 4rem 0;">
+        <div class="container-small">
+          <div class="section-header">
+            <h2 class="section-title">About CityPlus</h2>
+            <p class="section-subtitle">Empowering citizens and municipalities to build better cities together.</p>
+          </div>
+          <div class="about-content"
+            style="line-height: 1.8; color: var(--text-color); font-size: 1.1rem; text-align: justify;">
+            <p style="margin-bottom: 1.5rem;">
+              <strong>CityPlus</strong> is a comprehensive civic issue reporting and management platform designed to
+              bridge the gap between citizens and local authorities. Our mission is to streamline the process of
+              reporting, tracking, and resolving urban infrastructure problems, ensuring transparency and accountability
+              at every step.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+              Urban environments are complex, and maintaining them requires constant vigilance. Whether it's a pothole
+              that poses a danger to commuters, a faulty streetlight compromising safety, or a water supply issue
+              affecting daily life, CityPlus provides a unified platform where citizens can effortlessly report these
+              issues.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+              We provide municipal administrators and ground staff a robust dashboard to prioritize tasks, assign
+              responsibilities, and update resolutions in real-time. By leveraging digital tools and data-driven
+              insights, we enable local governments to operate more efficiently and allocate resources where they are
+              needed most.
+            </p>
+            <p>
+              Join us in our commitment to fostering cleaner, safer, and more responsive communities. With CityPlus,
+              every citizen has a voice, and every issue has a solution.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ISSUE DETAILS VIEW (NEW) -->
+    <div id="issue-details-view" style="display: none;">
+      <section class="issues-section" id="public-issue-details" style="padding-top: 2rem;">
+        <header class="panel-header"
+          style="display: flex; justify-content: flex-start; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-outline"
+            style="display:flex; align-items:center; gap:0.5rem; padding: 0.4rem 0.8rem; width: fit-content;"
+            onclick="closeIssueDetails()">
+            <span class="material-icons-round">arrow_back</span>
+            Back
+          </button>
+          <div>
+            <div class="tag">Issue Details</div>
+            <h1 class="section-title" id="pageIssueTitle" style="margin-top:0; font-size: 1.5rem;">Issue Details</h1>
+          </div>
+        </header>
+
+        <section class="admin-section"
+          style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <div class="issue-details-grid">
+            <!-- Left Column: Image, Description -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div id="pageImageContainer"
+                style="width: 100%; border-radius: 0.5rem; overflow: hidden; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; min-height: 250px;">
+                <img id="pageImage" src="" alt="Issue image"
+                  style="width:100%; height:100%; object-fit:cover; display: none;" />
+              </div>
+
+              <div>
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">description</span> Description
+                </h3>
+                <div id="pageDescription"
+                  style="color: var(--text-secondary); line-height: 1.6; background: var(--bg-tertiary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                </div>
+              </div>
+
+              <!-- Feedback Section -->
+              <div id="pageFeedbackSection" style="display: none;">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">star_rate</span> Citizen Feedback
+                </h3>
+                <div
+                  style="background: var(--bg-tertiary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                  <div style="display: flex; align-items: center; gap: 0.25rem; color: #eab308; margin-bottom: 0.5rem;"
+                    id="pageFeedbackStars"></div>
+                  <p id="pageFeedbackText" style="margin: 0; color: var(--text-secondary); font-size: 0.9375rem;">
+                  </p>
+                </div>
+              </div>
+
+              <!-- Timeline Section -->
+              <div id="pageTimelineSection">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">history</span> Timeline
+                </h3>
+                <div id="pageTimelineContent"
+                  style="display: flex; flex-direction: column; gap: 1.5rem; padding-left: 1.25rem; border-left: 2px solid var(--primary-color-light); position: relative;">
+                  <!-- Timeline items populated by JS -->
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Column: Details & Reporter -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">info</span> Details
+                </h3>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Complaint ID:</span>
+                  <span id="pageComplaintId" style="font-weight: 600;">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Category:</span>
+                  <span id="pageCategory" style="font-weight: 600;">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Location:</span>
+                  <span id="pageLocation">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Ward:</span>
+                  <span id="pageWard">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Status:</span>
+                  <span id="pageStatus">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Submitted:</span>
+                  <span id="pageSubmitted">--</span>
+                </div>
+              </div>
+
+              <!-- Reporter Info (Public logic: Hide email, show name or 'Anonymous') -->
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">person</span> Reporter
+                </h3>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Reported By:</span>
+                  <span id="pageReporter">--</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
   <!-- Privacy Policy Modal -->
   <div id="privacyPolicyModal" class="policy-modal-backdrop">
     <div class="policy-modal">
@@ -731,6 +850,41 @@
         });
       });
     });
+
+    // View Switching Logic
+    function switchView(viewName) {
+      // Hide all views
+      document.getElementById('home-view').style.display = 'none';
+      document.getElementById('recent-issues-view').style.display = 'none';
+      document.getElementById('about-view').style.display = 'none';
+      document.getElementById('issue-details-view').style.display = 'none';
+
+      // Remove active states
+      document.getElementById('nav-home').classList.remove('active');
+      document.getElementById('nav-recent').classList.remove('active');
+      document.getElementById('nav-about').classList.remove('active');
+
+      // Show selected view and activate nav
+      if (viewName === 'home') {
+        document.getElementById('home-view').style.display = 'block';
+        document.getElementById('nav-home').classList.add('active');
+      } else if (viewName === 'recent-issues') {
+        document.getElementById('recent-issues-view').style.display = 'block';
+        document.getElementById('nav-recent').classList.add('active');
+      } else if (viewName === 'about') {
+        document.getElementById('about-view').style.display = 'block';
+        document.getElementById('nav-about').classList.add('active');
+      }
+
+      // Close mobile menu if open
+      const navMenu = document.querySelector('.navbar-menu');
+      if (navMenu && navMenu.classList.contains('active')) {
+        navMenu.classList.remove('active');
+      }
+
+      // Scroll to top of the content
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   </script>
 
   <!-- Toast Notification Container -->

@@ -51,10 +51,13 @@ async function submitIssue(event) {
       return;
     }
 
-    showToast('success', "Your report has been successfully submitted. You will now be redirected to your dashboard to track its status.");
+    const issueId = data.issue ? data.issue._id : '';
+    const idText = issueId ? ` Issue ID: #${issueId.slice(-6).toUpperCase()}.` : '';
+
+    showToast('success', `Issue Submitted Successfully!${idText} Redirecting to your dashboard...`);
 
     // Since only logged-in citizens can submit, always redirect to their dashboard.
-    setTimeout(() => { window.location.href = "citizen-dashboard.html"; }, 2000);
+    setTimeout(() => { window.location.href = "citizen-dashboard.html"; }, 3000);
   } catch (err) {
     console.error(err);
     showToast('error', "A system error occurred while submitting your report. Please try again later.");

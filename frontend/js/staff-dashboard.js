@@ -2,6 +2,12 @@ let staffAllIssues = [];
 let staffAssignedIssues = [];
 let currentStaffView = "all"; // "all" or "assigned"
 
+// Search and pagination variables
+let currentStaffIssueSearchTerm = '';
+let currentStaffIssueStatusFilter = '';
+let currentStaffPage = 1;
+const staffIssuesPerPage = 10;
+
 async function loadStaffData() {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -51,7 +57,43 @@ function renderStaffIssues() {
     pageSubtitle.textContent = "Manage and update your assigned issues.";
   }
 
-  source.forEach(issue => {
+  // Apply Search and Filters
+  let filteredIssues = source;
+  if (currentStaffIssueSearchTerm.trim()) {
+    const searchLower = currentStaffIssueSearchTerm.toLowerCase();
+    filteredIssues = filteredIssues.filter(issue =>
+      (issue._id && issue._id.toLowerCase().includes(searchLower)) ||
+      (issue.category && issue.category.toLowerCase().includes(searchLower)) ||
+      (issue.location && issue.location.toLowerCase().includes(searchLower)) ||
+      (issue.citizen && issue.citizen.name && issue.citizen.name.toLowerCase().includes(searchLower))
+    );
+  }
+
+  if (currentStaffIssueStatusFilter) {
+    filteredIssues = filteredIssues.filter(issue => issue.status === currentStaffIssueStatusFilter);
+  }
+
+  updateStaffIssueSearchResultsInfo(filteredIssues, source.length);
+
+  if (filteredIssues.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No issues found matching your search criteria.</td></tr>`;
+    renderStaffPagination(0);
+    return;
+  }
+
+  // Calculate pagination
+  const totalItems = filteredIssues.length;
+  const totalPages = Math.ceil(totalItems / staffIssuesPerPage);
+
+  if (currentStaffPage > totalPages) {
+    currentStaffPage = totalPages > 0 ? totalPages : 1;
+  }
+
+  const startIndex = (currentStaffPage - 1) * staffIssuesPerPage;
+  const endIndex = Math.min(startIndex + staffIssuesPerPage, totalItems);
+  const currentIssuesSlice = filteredIssues.slice(startIndex, endIndex);
+
+  currentIssuesSlice.forEach(issue => {
     const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
       day: "2-digit", month: "short", year: "numeric"
     });
@@ -69,18 +111,21 @@ function renderStaffIssues() {
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", issue._id);
 
-    // For "All Issues" view: disable status select and show view-only message
-    const statusCell = isViewOnly
-      ? `<td><span class="status-pill status-${issue.status.toLowerCase().replace(' ', '-')}">${issue.status}</span></td>`
-      : `<td><select class="form-select status-select" data-id="${issue._id}">${statusOptions}</select></td>`;
+    // For "All Issues" view: disable action. For "Assigned" view, show view button.
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'open';
+    const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
+    const statusCell = `<td>${statusBadge}</td>`;
 
     const actionCell = isViewOnly
-      ? `<td><button class="btn btn-primary btn-small" onclick="openStaffIssueModalFromTable(this)" disabled style="opacity: 0.5; cursor: not-allowed;">View Only</button></td>`
-      : `<td><button class="btn btn-primary btn-small" onclick="openStaffIssueModalFromTable(this)">View</button></td>`;
+      ? `<td><button class="btn btn-primary btn-small" onclick="openStaffIssueDetailsFromTable(this)" disabled style="opacity: 0.5; cursor: not-allowed;">View Only</button></td>`
+      : `<td><button class="btn btn-primary btn-small" onclick="openStaffIssueDetailsFromTable(this)">View</button></td>`;
 
     tr.innerHTML = `
       <td>${issue._id.slice(-6)}</td>
-      <td>${issue.category}</td>
+      <td>
+        ${issue.category}
+        ${issue.feedback ? `<div style="color:#eab308;display:flex;align-items:center;font-size:0.875rem;margin-top:0.25rem;"><span class="material-icons-round" style="font-size:1rem;">star</span> ${issue.feedback.rating}</div>` : ''}
+      </td>
       <td>${issue.location}</td>
       <td>${issue.priority}</td>
       <td>${citizenName}</td>
@@ -92,13 +137,94 @@ function renderStaffIssues() {
     tr.style.cursor = "pointer";
     tr.onclick = (e) => {
       if (e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
-      openStaffIssueModal(issue);
+      openStaffIssueDetails(issue);
     };
     tbody.appendChild(tr);
   });
+
+  renderStaffPagination(totalItems, totalPages);
 }
 
+function renderStaffPagination(totalItems, totalPages = 0) {
+  const paginationContainer = document.getElementById('staffIssuePagination');
+  if (!paginationContainer) return;
+
+  if (totalItems <= staffIssuesPerPage) {
+    paginationContainer.style.display = 'none';
+    return;
+  }
+
+  paginationContainer.style.display = 'flex';
+
+  let html = `
+    <button class="btn btn-outline btn-small" ${currentStaffPage === 1 ? 'disabled' : ''} onclick="changeStaffIssuePage(${currentStaffPage - 1})">
+      <span class="material-icons-round" style="font-size: 1.2rem;">chevron_left</span> Previous
+    </button>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+      Page <strong style="color: var(--text-primary);">${currentStaffPage}</strong> of <strong>${totalPages}</strong>
+    </div>
+    <button class="btn btn-outline btn-small" ${currentStaffPage === totalPages ? 'disabled' : ''} onclick="changeStaffIssuePage(${currentStaffPage + 1})">
+      Next <span class="material-icons-round" style="font-size: 1.2rem;">chevron_right</span>
+    </button>
+  `;
+
+  paginationContainer.innerHTML = html;
+}
+
+function changeStaffIssuePage(newPage) {
+  currentStaffPage = newPage;
+  renderStaffIssues();
+}
+
+function updateStaffIssueSearchResultsInfo(filteredIssues, totalIssues) {
+  const totalCount = totalIssues;
+  const resultCount = filteredIssues.length;
+  const resultsInfo = document.getElementById('staffIssueSearchResultsInfo');
+
+  if (currentStaffIssueSearchTerm || currentStaffIssueStatusFilter) {
+    resultsInfo.style.display = 'flex';
+    document.getElementById('staffIssueResultCount').textContent = resultCount;
+    document.getElementById('staffIssueTotalCount').textContent = totalCount;
+  } else {
+    resultsInfo.style.display = 'none';
+  }
+}
+
+window.clearStaffIssueSearch = function () {
+  document.getElementById('staffIssueSearchInput').value = '';
+  currentStaffIssueSearchTerm = '';
+  currentStaffPage = 1;
+  document.getElementById('clearStaffIssueSearchBtn').style.display = 'none';
+  renderStaffIssues();
+};
+
+window.resetStaffIssueFilters = function () {
+  currentStaffIssueSearchTerm = '';
+  currentStaffIssueStatusFilter = '';
+  currentStaffPage = 1;
+
+  document.getElementById('staffIssueSearchInput').value = '';
+  document.getElementById('staffIssueStatusFilter').value = '';
+  document.getElementById('clearStaffIssueSearchBtn').style.display = 'none';
+  document.getElementById('staffIssueSearchResultsInfo').style.display = 'none';
+
+  renderStaffIssues();
+};
+
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Set user profile in sidebar
+  const userName_stored = localStorage.getItem('userName');
+  const userEmail_stored = localStorage.getItem('userEmail');
+  if (userName_stored) {
+    const nameEl = document.getElementById('userName');
+    if (nameEl) nameEl.textContent = userName_stored;
+  }
+  if (userEmail_stored) {
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = userEmail_stored;
+  }
+
   const staffIssuesBody = document.querySelector("#staffIssuesBody");
   const tabAllIssuesLink = document.querySelector("#tab-all-issues");
   const tabMyAssignedLink = document.querySelector("#tab-my-assigned");
@@ -114,6 +240,13 @@ document.addEventListener("DOMContentLoaded", () => {
     currentStaffView = "all";
     tabAllIssuesLink.classList.add("active", "nav-link--active");
     tabMyAssignedLink.classList.remove("active", "nav-link--active");
+
+    // Ensure details view is closed when switching tabs
+    const detailsTab = document.getElementById("staff-issue-details-container");
+    const mainTab = document.getElementById("staff-main-container");
+    if (detailsTab) detailsTab.style.display = "none";
+    if (mainTab) mainTab.style.display = "block";
+
     renderStaffIssues();
 
     // Auto-close sidebar on mobile
@@ -128,6 +261,13 @@ document.addEventListener("DOMContentLoaded", () => {
     currentStaffView = "assigned";
     tabMyAssignedLink.classList.add("active", "nav-link--active");
     tabAllIssuesLink.classList.remove("active", "nav-link--active");
+
+    // Ensure details view is closed when switching tabs
+    const detailsTab = document.getElementById("staff-issue-details-container");
+    const mainTab = document.getElementById("staff-main-container");
+    if (detailsTab) detailsTab.style.display = "none";
+    if (mainTab) mainTab.style.display = "block";
+
     renderStaffIssues();
 
     // Auto-close sidebar on mobile
@@ -154,54 +294,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Event listener for status changes in table (only for assigned issues)
-  staffIssuesBody.addEventListener("change", async (e) => {
-    if (e.target.classList.contains("status-select")) {
-      // Prevent status updates when viewing "All Issues"
-      if (currentStaffView === "all") {
-        showToast('warning', "You cannot update status for all issues. Use 'My Assigned Issues' tab.");
-        loadStaffData();
-        return;
+  // Event listener for status changes in table is removed; changes are made via modal only.
+
+  // Event listeners for search and filter
+  const searchInput = document.getElementById('staffIssueSearchInput');
+  const clearSearchBtn = document.getElementById('clearStaffIssueSearchBtn');
+  const statusFilter = document.getElementById('staffIssueStatusFilter');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentStaffIssueSearchTerm = e.target.value;
+      currentStaffPage = 1;
+
+      if (clearSearchBtn) {
+        clearSearchBtn.style.display = currentStaffIssueSearchTerm ? 'block' : 'none';
       }
 
-      const issueId = e.target.dataset.id;
-      const newStatus = e.target.value;
-      const token = localStorage.getItem("token");
+      renderStaffIssues();
+    });
+  }
 
-      try {
-        const res = await fetch(`/api/issues/${issueId}/status`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token
-          },
-          body: JSON.stringify({ status: newStatus })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to update status.");
-
-        // Show notification instead of alert
-        showStatusNotification(issueId, newStatus);
-        loadStaffData();
-      } catch (err) {
-        console.error("Error updating status:", err);
-        showToast('error', err.message);
-        loadStaffData();
-      }
-    }
-  });
+  if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+      currentStaffIssueStatusFilter = e.target.value;
+      currentStaffPage = 1;
+      renderStaffIssues();
+    });
+  }
 });
 
 // Helper function to open modal from table button
-function openStaffIssueModalFromTable(button) {
+function openStaffIssueDetailsFromTable(button) {
   const row = button.closest("tr");
   const issueData = JSON.parse(row.dataset.issue);
-  openStaffIssueModal(issueData);
+  openStaffIssueDetails(issueData);
 }
 
-// Modal functions for staff
-function openStaffIssueModal(issue) {
-  const modal = document.getElementById("staffIssueModal");
+// Details functions for staff
+function openStaffIssueDetails(issue) {
   const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric"
   });
@@ -211,16 +341,16 @@ function openStaffIssueModal(issue) {
   if (issue.status === "Resolved") statusClass = "resolved";
 
   // Set title
-  document.getElementById("staffModalTitle").textContent = issue.title || "Issue Details";
+  document.getElementById("staffDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}`;
 
   // Set image
   const imageContainer = document.getElementById("staffModalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue Image" style="width:100%; height:100%; object-fit:cover;">`;
   } else {
     imageContainer.innerHTML = `
-      <div class="issue-modal-no-image">
-        <span class="material-icons-round">image_not_supported</span>
+      <div class="issue-modal-no-image" style="display:flex; flex-direction:column; align-items:center; color:var(--text-secondary); padding: 3rem;">
+        <span class="material-icons-round" style="font-size:3rem; margin-bottom:1rem;">image_not_supported</span>
         <span>No image provided</span>
       </div>
     `;
@@ -228,8 +358,8 @@ function openStaffIssueModal(issue) {
 
   // Set badges
   const badgesHtml = `
-    <span class="issue-modal-badge category">${issue.category}</span>
-    <span class="issue-modal-badge status issue-card-status ${statusClass}">${issue.status}</span>
+    <span class="issue-modal-badge category" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem; background: var(--primary-color-light); color: var(--primary-color);">${issue.category}</span>
+    <span class="issue-modal-badge status issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>
   `;
   document.getElementById("staffModalBadges").innerHTML = badgesHtml;
 
@@ -245,16 +375,116 @@ function openStaffIssueModal(issue) {
   document.getElementById("staffModalCitizen").textContent = issue.citizen ? issue.citizen.name : "Anonymous";
   document.getElementById("staffModalEmail").textContent = issue.citizen ? issue.citizen.email : "--";
 
-  // Set status dropdown
+  // Set status form or show resolved message
+  const statusForm = document.getElementById("staffModalStatusForm");
+  const resolvedMsg = document.getElementById("staffModalStatusResolvedMsg");
   const statusSelect = document.getElementById("staffModalStatusSelect");
-  statusSelect.value = issue.status;
-  statusSelect.dataset.issueId = issue._id;
+  const noteInput = document.getElementById("staffModalStatusNote");
+  const imageInput = document.getElementById("staffModalStatusImage");
+
+  if (issue.status === "Resolved") {
+    if (statusForm) statusForm.style.display = "none";
+    if (resolvedMsg) resolvedMsg.style.display = "block";
+  } else {
+    if (statusForm) statusForm.style.display = "block";
+    if (resolvedMsg) resolvedMsg.style.display = "none";
+    if (statusSelect) {
+      statusSelect.value = issue.status;
+      statusSelect.dataset.issueId = issue._id;
+
+      // Disable invalid transitions (gray out)
+      Array.from(statusSelect.options).forEach(opt => {
+        if (issue.status === "Open") {
+          opt.disabled = (opt.value === "Resolved");
+        } else if (issue.status === "In Progress") {
+          opt.disabled = (opt.value === "Open");
+        } else {
+          opt.disabled = false;
+        }
+      });
+    }
+    if (noteInput) noteInput.value = "";
+    if (imageInput) imageInput.value = "";
+  }
+
+  // Set Feedback
+  const feedbackSection = document.getElementById("staffModalFeedbackSection");
+  if (issue.feedback && issue.feedback.rating) {
+    feedbackSection.style.display = "block";
+    const starsDiv = document.getElementById("staffModalExistingRatingStars");
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+      starsHtml += `<span class="material-icons-round" style="font-size:1.25rem;">${i <= issue.feedback.rating ? 'star' : 'star_border'}</span>`;
+    }
+    starsDiv.innerHTML = starsHtml;
+
+    const textEl = document.getElementById("staffModalExistingFeedbackText");
+    if (issue.feedback.text) {
+      textEl.textContent = `"${issue.feedback.text}"`;
+      textEl.style.display = "block";
+    } else {
+      textEl.style.display = "none";
+    }
+  } else {
+    feedbackSection.style.display = "none";
+  }
+
+  // Render Timeline
+  const timelineContent = document.getElementById("staffModalTimelineContent");
+  let timelineHtml = '';
+
+  const bulletStyle = 'position: absolute; left: -1.75rem; top: 0; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--primary-color); border: 2px solid white; box-shadow: 0 0 0 2px var(--primary-color);';
+
+  // 1. Submitted
+  const submittedDate = new Date(issue.createdAt).toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+  timelineHtml += `
+    <div style="position: relative; padding-bottom: 1.5rem;">
+      <div style="${bulletStyle}"></div>
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Issue Submitted</div>
+      <div style="font-size: 0.875rem; color: var(--text-secondary);">${submittedDate}</div>
+    </div>
+  `;
+
+  // 2. In Progress
+  if (issue.inProgressAt) {
+    const progressDate = new Date(issue.inProgressAt).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const imgUrl = issue.inProgressImage ? (issue.inProgressImage.startsWith('http') ? issue.inProgressImage : '' + issue.inProgressImage) : '';
+    timelineHtml += `
+      <div style="position: relative; padding-bottom: 1.5rem;">
+        <div style="${bulletStyle} background: #eab308; box-shadow: 0 0 0 2px #eab308;"></div>
+        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Marked as In Progress</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${progressDate}</div>
+        ${issue.inProgressNote ? `<div style="font-size: 0.9375rem; background: var(--slate-50); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">${issue.inProgressNote}</div>` : ''}
+        ${imgUrl ? `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="In Progress Proof" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></a>` : ''}
+      </div>
+    `;
+  }
+
+  // 3. Resolved
+  if (issue.resolvedAt) {
+    const resolvedDate = new Date(issue.resolvedAt).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const imgUrl = issue.resolvedImage ? (issue.resolvedImage.startsWith('http') ? issue.resolvedImage : '' + issue.resolvedImage) : '';
+    timelineHtml += `
+      <div style="position: relative;">
+        <div style="${bulletStyle} background: #22c55e; box-shadow: 0 0 0 2px #22c55e;"></div>
+        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Issue Resolved</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${resolvedDate}</div>
+        ${issue.resolvedNote ? `<div style="font-size: 0.9375rem; background: var(--slate-50); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">${issue.resolvedNote}</div>` : ''}
+        ${imgUrl ? `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="Resolution Proof" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></a>` : ''}
+      </div>
+    `;
+  }
+
+  timelineContent.innerHTML = timelineHtml;
 
   // Hide or show the status update section based on current view
-  const statusUpdateSection = Array.from(document.querySelectorAll(".issue-modal-section")).find(
-    el => el.textContent.includes("Update Status")
-  );
-
+  const statusUpdateSection = document.getElementById("staffModalStatusUpdateSection");
   if (statusUpdateSection) {
     if (currentStaffView === "all") {
       statusUpdateSection.style.display = "none";
@@ -263,95 +493,72 @@ function openStaffIssueModal(issue) {
     }
   }
 
-  // Show modal
-  modal.classList.add("active");
-
-  // Close on backdrop click
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      closeStaffIssueModal();
-    }
-  });
-
-  // Close on Escape key
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeStaffIssueModal();
-    }
-  });
+  // Show details view
+  const detailsTab = document.getElementById("staff-issue-details-container");
+  const mainTab = document.getElementById("staff-main-container");
+  if (mainTab) mainTab.style.display = "none";
+  if (detailsTab) detailsTab.style.display = "block";
+  window.scrollTo(0, 0);
 }
 
-function closeStaffIssueModal() {
-  const modal = document.getElementById("staffIssueModal");
-  modal.classList.remove("active");
+function closeStaffIssueDetails() {
+  const detailsTab = document.getElementById("staff-issue-details-container");
+  const mainTab = document.getElementById("staff-main-container");
+  if (detailsTab) detailsTab.style.display = "none";
+  if (mainTab) mainTab.style.display = "block";
 }
 
 async function updateStaffIssueStatus() {
   const statusSelect = document.getElementById("staffModalStatusSelect");
   const issueId = statusSelect.dataset.issueId;
   const newStatus = statusSelect.value;
+  const noteContent = document.getElementById("staffModalStatusNote").value;
+  const imageInput = document.getElementById("staffModalStatusImage");
+  const file = imageInput.files[0];
+
+  if ((newStatus === "In Progress" || newStatus === "Resolved") && !file) {
+    showToast('warning', `An image proof is required to change status to ${newStatus}.`);
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("status", newStatus);
+  if (noteContent) formData.append("note", noteContent);
+  if (file) formData.append("image", file);
+
   const token = localStorage.getItem("token");
+
+  // Show loading state
+  const btn = document.getElementById("staffModalStatusSubmitBtn");
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = 'Updating...';
+  btn.disabled = true;
 
   try {
     const res = await fetch(`/api/issues/${issueId}/status`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
         Authorization: "Bearer " + token
       },
-      body: JSON.stringify({ status: newStatus })
+      body: formData
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Failed to update status.");
-
-    // Show notification instead of alert
-    showStatusNotification(issueId, newStatus);
-    closeStaffIssueModal();
+    // Show toast notification
+    showToast('success', `Issue status successfully updated to "${newStatus}".`);
+    closeStaffIssueDetails();
     loadStaffData();
   } catch (err) {
     console.error("Error updating status:", err);
     showToast('error', err.message);
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
   }
 }
 
 // Expose for inline HTML
-window.closeStaffIssueModal = closeStaffIssueModal;
+window.closeStaffIssueDetails = closeStaffIssueDetails;
 window.updateStaffIssueStatus = updateStaffIssueStatus;
-window.closeStatusNotification = closeStatusNotification;
-
-// Status notification functions
-let notificationTimeout;
-
-function showStatusNotification(issueId, newStatus) {
-  const notification = document.getElementById("statusNotification");
-  const notificationMessage = document.getElementById("notificationMessage");
-
-  // Create a detailed message
-  const shortId = issueId.slice(-6);
-  notificationMessage.textContent = `Issue #${shortId} status updated to "${newStatus}".`;
-
-  // Add show class with animation
-  notification.classList.add("show");
-
-  // Clear existing timeout
-  if (notificationTimeout) {
-    clearTimeout(notificationTimeout);
-  }
-
-  // Auto-close after 4 seconds
-  notificationTimeout = setTimeout(() => {
-    closeStatusNotification();
-  }, 4000);
-}
-
-function closeStatusNotification() {
-  const notification = document.getElementById("statusNotification");
-  notification.classList.remove("show");
-
-  if (notificationTimeout) {
-    clearTimeout(notificationTimeout);
-  }
-}
 
 // Logout confirmation modal
 function showLogoutConfirmation() {
@@ -412,3 +619,88 @@ async function refreshStaffData(btn) {
 }
 
 window.refreshStaffData = refreshStaffData;
+
+// Open profile view
+window.openProfileModal = function () {
+  // Populate profile data
+  const userName_stored = localStorage.getItem('userName');
+  const userEmail_stored = localStorage.getItem('userEmail');
+
+  document.querySelector('#profileName').textContent = userName_stored || 'Staff User';
+  document.querySelector('#profileFullName').textContent = userName_stored || '-';
+  document.querySelector('#profileEmail').textContent = userEmail_stored || '-';
+
+  // Setup change password form
+  const cpEmail = document.querySelector('#cpEmail');
+  if (cpEmail) cpEmail.value = userEmail_stored || '';
+
+  const cpForm = document.querySelector('#changePasswordForm');
+  if (cpForm) cpForm.style.display = 'none';
+  if (document.querySelector('#cpCurrentPassword')) document.querySelector('#cpCurrentPassword').value = '';
+  if (document.querySelector('#cpNewPassword')) document.querySelector('#cpNewPassword').value = '';
+
+  // Hide other views and show profile view
+  const mainTab = document.getElementById("staff-main-container");
+  if (mainTab) mainTab.style.display = "none";
+  const detailsTab = document.getElementById("staff-issue-details-container");
+  if (detailsTab) detailsTab.style.display = "none";
+
+  document.getElementById('profile-view-container').style.display = 'block';
+  window.scrollTo(0, 0);
+};
+
+// Close profile view
+window.closeProfileView = function () {
+  document.getElementById('profile-view-container').style.display = 'none';
+  const mainTab = document.getElementById("staff-main-container");
+  if (mainTab) mainTab.style.display = "block";
+};
+
+// Toggle change password form
+window.toggleChangePasswordForm = function () {
+  const form = document.querySelector('#changePasswordForm');
+  if (form) {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+};
+
+// Submit password change
+window.submitPasswordChange = async function () {
+  const email = document.querySelector('#cpEmail').value.trim();
+  const currentPassword = document.querySelector('#cpCurrentPassword').value;
+  const newPassword = document.querySelector('#cpNewPassword').value;
+
+  if (!email || !currentPassword || !newPassword) {
+    showToast('error', 'All fields are required.');
+    return;
+  }
+
+  const btn = document.querySelector('#submitPasswordBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, currentPassword, newPassword })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast('success', 'Password changed successfully!');
+      document.querySelector('#changePasswordForm').style.display = 'none';
+      document.querySelector('#cpCurrentPassword').value = '';
+      document.querySelector('#cpNewPassword').value = '';
+    } else {
+      showToast('error', data.message || 'Failed to change password.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+};

@@ -13,7 +13,7 @@
 
 <body>
   <!-- Navbar -->
-  <header class="navbar">
+  <header class="navbar navbar-dashboard">
     <div class="container navbar-inner">
       <div class="navbar-left-items">
         <button class="mobile-menu-toggle">
@@ -67,11 +67,16 @@
             <span class="material-icons-round">admin_panel_settings</span>
           </div>
           <div class="sidebar__user-info">
-            <p class="sidebar__user-name">Admin</p>
-            <p class="sidebar__user-email">Administrator</p>
+            <p class="sidebar__user-name" id="userName">Admin</p>
+            <p class="sidebar__user-email" id="userEmail">Administrator</p>
           </div>
         </div>
         <button class="nav-link" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem; padding: 0.5rem;"
+          onclick="openProfileModal()">
+          <span class="material-icons-round">person</span>
+          Profile
+        </button>
+        <button class="nav-link" style="width: 100%; margin-top: 0.25rem; font-size: 0.875rem; padding: 0.5rem;"
           onclick="showLogoutConfirmation()">
           <span class="material-icons-round">logout</span>
           Logout
@@ -93,7 +98,7 @@
               Monitor system statistics, user activity, and issue metrics.
             </p>
           </div>
-          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem;"
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
             onclick="refreshAdminData(this)">
             <span class="material-icons-round">refresh</span>
             Refresh Data
@@ -263,7 +268,7 @@
               Assign civic issues to municipal staff members and manage their status.
             </p>
           </div>
-          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem;"
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
             onclick="refreshAdminData(this)">
             <span class="material-icons-round">refresh</span>
             Refresh Data
@@ -275,6 +280,38 @@
           <div class="admin-section-header">
             <h2 class="admin-section-title">Active Issues</h2>
             <span class="admin-section-subtitle">Manage and assign civic issues to staff</span>
+          </div>
+
+          <!-- Search and Filter Section for Issues -->
+          <div class="user-search-filter" style="margin-bottom: 1.5rem;">
+            <div class="search-box">
+              <span class="material-icons-round">search</span>
+              <input type="text" id="issueSearchInput" placeholder="Search by ID, category, location, citizen..."
+                class="search-input">
+              <button class="btn-clear-search" onclick="clearIssueSearch()" style="display: none;"
+                id="clearIssueSearchBtn">
+                <span class="material-icons-round">close</span>
+              </button>
+            </div>
+
+            <div class="filter-item">
+              <label class="filter-label">Status</label>
+              <select id="issueStatusFilter" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+
+            <button class="btn btn-secondary" onclick="resetIssueFilters()">
+              Reset
+            </button>
+
+            <div class="search-results-info" id="issueSearchResultsInfo" style="display: none;">
+              <span>Showing <strong id="issueResultCount">0</strong> of <strong id="issueTotalCount">0</strong>
+                issues</span>
+            </div>
           </div>
           <div class="table-card">
             <div class="table-wrapper">
@@ -296,6 +333,12 @@
                 </tbody>
               </table>
             </div>
+
+            <!-- Pagination Controls -->
+            <div id="issuePagination"
+              style="display: none; justify-content: flex-end; align-items: center; padding: 1rem; border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+              <!-- Filled by JS -->
+            </div>
           </div>
         </section>
       </div>
@@ -314,7 +357,7 @@
               View, manage, and control user accounts across all roles.
             </p>
           </div>
-          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem;"
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
             onclick="refreshAdminData(this)">
             <span class="material-icons-round">refresh</span>
             Refresh Data
@@ -385,6 +428,13 @@
                 </tbody>
               </table>
             </div>
+
+            <!-- Pagination Controls -->
+            <div id="userPagination"
+              style="display: none; justify-content: flex-end; align-items: center; padding: 1rem; border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+              <!-- Filled by JS -->
+            </div>
+
             <div class="no-users-message" id="noUsersMessage" style="display: none;">
               <p>No users found matching your search and filters.</p>
             </div>
@@ -392,116 +442,398 @@
         </section>
       </div>
 
+      <!-- User Details Tab Content -->
+      <div class="content-container admin-tab-content" id="user-details-tab">
+        <header class="panel-header"
+          style="display: flex; justify-content: flex-start; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-outline"
+            style="display:flex; align-items:center; gap:0.5rem; padding: 0.4rem 0.8rem; width: fit-content;"
+            onclick="closeAdminUserDetails()">
+            <span class="material-icons-round">arrow_back</span>
+            Back
+          </button>
+          <div>
+            <div class="tag">User Details</div>
+            <h1 class="section-title" id="adminUserDetailsTitle" style="margin-top:0; font-size: 1.5rem;">User Name</h1>
+          </div>
+        </header>
+
+        <section class="admin-section"
+          style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <div class="issue-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Left Column: Details -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">account_circle</span> Profile Information
+                </h3>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Name:</span>
+                  <span id="adminUserDetailName" style="font-weight: 600;">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Email:</span>
+                  <span id="adminUserDetailEmail">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Role:</span>
+                  <span id="adminUserDetailRole">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Joined:</span>
+                  <span id="adminUserDetailJoined">--</span>
+                </div>
+              </div>
+
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">manage_accounts</span> Account Status
+                </h3>
+                <div style="margin-bottom: 1rem;">
+                  <span id="adminUserDetailStatusBadge" class="status-pill status-active"
+                    style="font-size: 1rem;">Active</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;" id="adminUserDetailActionGroup">
+                  <label class="form-label">Change Account Status</label>
+                  <select id="adminUserDetailActionSelect" class="form-select">
+                    <option value="" disabled selected>Select Action...</option>
+                    <option value="active">Set Active</option>
+                    <option value="blocked">Block Account</option>
+                    <option value="terminated">Terminate Account</option>
+                  </select>
+                </div>
+                <button onclick="updateUserDetailsStatus()" id="adminUserDetailUpdateBtn" class="btn btn-primary"
+                  style="width: 100%;">
+                  Update Status
+                </button>
+                <div id="adminUserDetailActionMessage"
+                  style="color: var(--text-secondary); font-size: 0.875rem; display: none;">
+                  Admin accounts cannot be modified.
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Activity -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color); flex-grow: 1;">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">history</span> User Activity
+                </h3>
+                <p id="adminUserDetailActivitySummary"
+                  style="color: var(--text-secondary); margin-bottom: 1rem; font-weight: 500;"></p>
+                <div id="adminUserDetailActivityList"
+                  style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto;">
+                  <!-- Activity items populated by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Issue Details Tab Content -->
+      <div class="content-container admin-tab-content" id="issue-details-tab">
+        <header class="panel-header"
+          style="display: flex; justify-content: flex-start; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-outline"
+            style="display:flex; align-items:center; gap:0.5rem; padding: 0.4rem 0.8rem; width: fit-content;"
+            onclick="closeAdminIssueDetails()">
+            <span class="material-icons-round">arrow_back</span>
+            Back
+          </button>
+          <div>
+            <div class="tag">Issue Details</div>
+            <h1 class="section-title" id="adminDetailsTitle" style="margin-top:0; font-size: 1.5rem;">Issue #---</h1>
+          </div>
+        </header>
+
+        <section class="admin-section"
+          style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <div class="issue-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Left Column: Image, Description, Feedback -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div id="adminModalImageContainer"
+                style="width: 100%; border-radius: 0.5rem; overflow: hidden; background: var(--bg-primary); display: flex; align-items: center; justify-content: center; min-height: 250px;">
+              </div>
+
+              <div class="issue-modal-badges" id="adminModalBadges"
+                style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+
+              <div>
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">description</span> Description
+                </h3>
+                <div id="adminModalDescription"
+                  style="color: var(--text-secondary); line-height: 1.6; background: var(--bg-tertiary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                </div>
+              </div>
+
+              <div id="adminModalFeedbackSection" style="display: none;">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">star_rate</span> Citizen Feedback
+                </h3>
+                <div
+                  style="background: var(--bg-tertiary); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                  <div style="display: flex; align-items: center; gap: 0.25rem; color: #eab308; margin-bottom: 0.5rem;"
+                    id="adminModalExistingRatingStars"></div>
+                  <p id="adminModalExistingFeedbackText"
+                    style="margin: 0; color: var(--text-secondary); font-size: 0.9375rem;"></p>
+                </div>
+              </div>
+
+              <div id="adminModalTimelineSection">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">history</span> Timeline
+                </h3>
+                <div id="adminModalTimelineContent"
+                  style="display: flex; flex-direction: column; gap: 1.5rem; padding-left: 1.25rem; border-left: 2px solid var(--primary-color-light); position: relative;">
+                  <!-- Timeline items populated by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Details, Reporter, Actions -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">info</span> Details
+                </h3>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Complaint ID:</span>
+                  <span id="adminModalComplaintId" style="font-weight: 600;">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Location:</span>
+                  <span id="adminModalLocation">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Ward:</span>
+                  <span id="adminModalWard">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Priority:</span>
+                  <span id="adminModalPriority">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Submitted:</span>
+                  <span id="adminModalDate">--</span>
+                </div>
+              </div>
+
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">person</span> Reporter
+                </h3>
+                <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Name:</span>
+                  <span id="adminModalReporter">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Email:</span>
+                  <span id="adminModalEmail" style="word-break: break-all;">--</span>
+                </div>
+              </div>
+
+              <div
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">assignment_ind</span> Assign & Manage
+                </h3>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label class="form-label">Assign To Staff Member</label>
+                  <select id="adminModalStaffSelect" class="form-select">
+                    <option value="">Select Staff Member...</option>
+                  </select>
+                </div>
+                <button onclick="assignIssueToStaffModal()" class="btn btn-primary"
+                  style="width: 100%; margin-bottom: 1.5rem;">
+                  Assign Issue
+                </button>
+
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; color: var(--text-primary);">
+                  <span class="material-icons-round">sync</span> Update Status
+                </h3>
+                <div id="adminModalStatusForm">
+                  <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label class="form-label" style="font-size:0.875rem;">New Status</label>
+                    <select id="adminModalStatusSelect" class="form-select" style="width: 100%;">
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label class="form-label" style="font-size:0.875rem;">Image Proof <span
+                        style="color:#ef4444">*</span> <span
+                        style="font-size:0.75rem;font-weight:normal;color:var(--text-secondary)">(Required for In
+                        Progress / Resolved)</span></label>
+                    <input type="file" id="adminModalStatusImage" accept="image/*" class="form-input"
+                      style="width: 100%; box-sizing: border-box; padding: 0.4rem;">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" style="font-size:0.875rem;">Note <span
+                        style="font-size:0.75rem;font-weight:normal;color:var(--text-secondary)">(Optional)</span></label>
+                    <textarea id="adminModalStatusNote" class="form-input"
+                      placeholder="Add a note about this status update..."
+                      style="width: 100%; box-sizing: border-box; min-height: 80px; resize: vertical;"></textarea>
+                  </div>
+
+                  <button onclick="updateAdminIssueStatus()" id="adminModalStatusSubmitBtn" class="btn btn-primary"
+                    style="width: 100%;">
+                    Update Status
+                  </button>
+                </div>
+                <div id="adminModalStatusResolvedMsg"
+                  style="display: none; padding: 1rem; background: rgba(34,197,94,0.1); color: var(--green-600); border-radius: 0.5rem; text-align: center; font-weight: 500;">
+                  <span class="material-icons-round"
+                    style="vertical-align: middle; margin-right: 0.25rem;">check_circle</span>
+                  This issue is resolved and can no longer be updated.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div><!-- /issue-details-tab -->
+
+      <!-- Profile View Container (Hidden by default) -->
+      <div class="content-container admin-tab-content" id="profile-view-container" style="display: none;">
+        <header class="panel-header"
+          style="display: flex; justify-content: flex-start; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <button class="btn btn-outline"
+            style="display:flex; align-items:center; gap:0.5rem; padding: 0.4rem 0.8rem; width: fit-content;"
+            onclick="closeProfileView()">
+            <span class="material-icons-round">arrow_back</span>
+            Back
+          </button>
+          <div>
+            <div class="tag">Admin Account</div>
+            <h1 class="section-title" style="margin-top:0; font-size: 1.5rem;">User Profile</h1>
+          </div>
+        </header>
+
+        <section class="admin-section"
+          style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <div class="issue-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+
+            <!-- Left Column: Profile Card -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div
+                style="background: var(--bg-tertiary); padding: 2rem; border-radius: 0.5rem; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div
+                  style="width: 100px; height: 100px; border-radius: 50%; background: var(--primary-10); display: flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: 1rem;">
+                  <span class="material-icons-round" style="font-size: 4rem;">admin_panel_settings</span>
+                </div>
+                <h2 style="margin: 0; font-weight: 600; font-size: 1.5rem; color: var(--text-primary);"
+                  id="profileName">Loading...</h2>
+                <p style="margin: 0.5rem 0 0 0; font-size: 1rem; color: var(--text-secondary);">Admin Account</p>
+                <div style="margin-top: 1.5rem;">
+                  <span
+                    style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 1rem; border-radius: 9999px; background: rgba(34,197,94,0.1); color: var(--green-600); font-size: 0.875rem; font-weight: 600;">
+                    <span
+                      style="width: 0.5rem; height: 0.5rem; background: var(--green-600); border-radius: 50%; display: inline-block;"></span>
+                    Active Status
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style="background: var(--bg-tertiary); padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                  <span class="material-icons-round">info</span> Account Information
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Full Name:</span>
+                  <span id="profileFullName" style="font-weight: 600; color: var(--text-primary);">-</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Email Address:</span>
+                  <span id="profileEmail" style="color: var(--text-primary);">-</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Account Type:</span>
+                  <span><span class="role-badge admin">Admin</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Security -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div
+                style="background: var(--bg-tertiary); padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                  <span class="material-icons-round">security</span> Security Settings
+                </h3>
+
+                <p style="color: var(--text-secondary); font-size: 0.9375rem; margin-bottom: 1.5rem;">
+                  Update your password regularly to keep your account secure.
+                </p>
+
+                <button class="btn btn-outline" style="width: 100%; margin-bottom: 1.5rem;"
+                  onclick="toggleChangePasswordForm()">
+                  <span class="material-icons-round" style="font-size: 1.25rem;">vpn_key</span> Change Password
+                </button>
+
+                <div id="changePasswordForm"
+                  style="display: none; background: var(--bg-secondary); padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                  <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label"
+                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Email
+                      Address</label>
+                    <input type="email" id="cpEmail" class="form-input" style="width: 100%; box-sizing:border-box;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label"
+                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Current
+                      Password</label>
+                    <input type="password" id="cpCurrentPassword" class="form-input"
+                      style="width: 100%; box-sizing:border-box;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label class="form-label"
+                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">New
+                      Password</label>
+                    <input type="password" id="cpNewPassword" class="form-input"
+                      style="width: 100%; box-sizing:border-box;">
+                  </div>
+                  <button class="btn btn-primary" style="width: 100%;" onclick="submitPasswordChange()"
+                    id="submitPasswordBtn">Update Password</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div><!-- /profile-view-container -->
+
     </main>
   </div><!-- /app-shell -->
-
-  <!-- Admin Issue Modal -->
-  <div id="adminIssueModal" class="issue-modal-backdrop">
-    <div class="issue-modal">
-      <div class="issue-modal-header">
-        <h2 class="issue-modal-title" id="adminModalTitle">Issue Details</h2>
-        <button class="issue-modal-close" onclick="closeAdminIssueModal()">&times;</button>
-      </div>
-      <div class="issue-modal-content">
-        <!-- Image will be inserted here -->
-        <div id="adminModalImageContainer"></div>
-
-        <!-- Status and Category Badges -->
-        <div class="issue-modal-badges" id="adminModalBadges"></div>
-
-        <!-- Description Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">description</span>
-            Description
-          </div>
-          <div class="issue-modal-description" id="adminModalDescription"></div>
-        </div>
-
-        <!-- Details Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">info</span>
-            Details
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Complaint ID</span>
-            <span class="issue-modal-value" id="adminModalComplaintId">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Location</span>
-            <span class="issue-modal-value" id="adminModalLocation">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Ward</span>
-            <span class="issue-modal-value" id="adminModalWard">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Priority</span>
-            <span class="issue-modal-value" id="adminModalPriority">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Submitted</span>
-            <span class="issue-modal-value" id="adminModalDate">--</span>
-          </div>
-        </div>
-
-        <!-- Reporter Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">person</span>
-            Reporter
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Name</span>
-            <span class="issue-modal-value" id="adminModalReporter">--</span>
-          </div>
-          <div class="issue-modal-row">
-            <span class="issue-modal-label">Email</span>
-            <span class="issue-modal-value" id="adminModalEmail">--</span>
-          </div>
-        </div>
-
-        <!-- Admin Actions Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">assignment_ind</span>
-            Assign & Manage
-          </div>
-          <div class="form-group">
-            <label class="form-label">Assign To Staff Member</label>
-            <select id="adminModalStaffSelect" class="form-select">
-              <option value="">Select Staff Member...</option>
-              <!-- Populated by JavaScript -->
-            </select>
-          </div>
-          <button onclick="assignIssueToStaff()" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
-            Assign Issue
-          </button>
-        </div>
-
-        <!-- Status Management Section -->
-        <div class="issue-modal-section">
-          <div class="issue-modal-section-title">
-            <span class="material-icons-round">sync</span>
-            Update Status
-          </div>
-          <select id="adminModalStatusSelect" class="form-select">
-            <option value="Open">Open</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Resolved">Resolved</option>
-          </select>
-          <button onclick="updateAdminIssueStatus()" class="btn btn-primary" style="width: 100%; margin-top: 0.8rem;">
-            Update Status
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <footer class="footer">
     © 2026 CityPlus. All rights reserved.
   </footer>
+
+
 
   <!-- Logout Confirmation Modal -->
   <div id="logoutConfirmModal" class="confirm-modal-backdrop">
@@ -518,6 +850,7 @@
     </div>
   </div>
 
+  <div id="toast-container" class="toast-container"></div>
   <script src="js/theme.js"></script>
   <script src="js/admin-dashboard.js"></script>
 </body>

@@ -5,7 +5,8 @@ import {
   registerCitizen,
   registerStaff,
   registerAdmin,
-  login
+  login,
+  changePassword
 } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -18,6 +19,9 @@ router.post("/register-staff", asyncHandler(registerStaff));
 
 // -------- Login (all roles) --------
 router.post("/login", asyncHandler(login));
+
+// -------- Change Password --------
+router.post("/change-password", asyncHandler(changePassword));
 
 // -------- Admin Registration (for project) --------
 router.post("/register-admin", asyncHandler(registerAdmin));

@@ -72,10 +72,13 @@ async function loginUser() {
       return;
     }
 
-    // Save token + role + email (name not available from login endpoint)
+    // Save token + role + email + name
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.role);
     localStorage.setItem("userEmail", email);
+    if (data.name) {
+      localStorage.setItem("userName", data.name);
+    }
 
     // Redirect based on role
     if (data.role === "citizen") {

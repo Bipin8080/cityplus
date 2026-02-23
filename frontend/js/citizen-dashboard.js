@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Tab switching functions
 function switchToDashboardTab() {
   currentTab = 'dashboard';
+  const detailsContainer = document.getElementById('citizen-issue-details-container');
+  if (detailsContainer) detailsContainer.style.display = 'none';
   document.getElementById('dashboardView').style.display = 'block';
   document.getElementById('allIssuesView').style.display = 'none';
   updateSidebarActive('dashboard');
@@ -31,6 +33,8 @@ function switchToDashboardTab() {
 
 function switchToAllIssuesTab() {
   currentTab = 'allIssues';
+  const detailsContainer = document.getElementById('citizen-issue-details-container');
+  if (detailsContainer) detailsContainer.style.display = 'none';
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('allIssuesView').style.display = 'block';
   updateSidebarActive('allIssues');
@@ -218,7 +222,7 @@ function renderTable() {
     }
 
     const row = document.createElement('tr');
-    row.onclick = () => openIssueModal(issue);
+    row.onclick = () => openIssueDetails(issue);
     row.innerHTML = `
       <td>
         <div class="issue-cell">
@@ -227,7 +231,10 @@ function renderTable() {
           </div>
           <div>
             <p class="issue-title">${issue.title}</p>
-            <p class="issue-id">ID: #${issue._id.slice(-6)}</p>
+            <p class="issue-id" style="display:flex;align-items:center;gap:0.25rem;">
+              ID: #${issue._id.slice(-6)}
+              ${issue.feedback ? `<span style="color:#eab308;display:flex;align-items:center;font-size:0.875rem;"><span class="material-icons" style="font-size:1rem;">star</span> ${issue.feedback.rating}</span>` : ''}
+            </p>
           </div>
         </div>
       </td>
@@ -336,7 +343,7 @@ function renderAllIssuesTable() {
     const reportedBy = issue.citizen ? issue.citizen.name : 'Anonymous';
 
     const row = document.createElement('tr');
-    row.onclick = () => openIssueModal(issue);
+    row.onclick = () => openIssueDetails(issue);
     row.innerHTML = `
       <td>
         <div class="issue-cell">
@@ -345,7 +352,10 @@ function renderAllIssuesTable() {
           </div>
           <div>
             <p class="issue-title">${issue.title}</p>
-            <p class="issue-id">ID: #${issue._id.slice(-6)}</p>
+            <p class="issue-id" style="display:flex;align-items:center;gap:0.25rem;">
+              ID: #${issue._id.slice(-6)}
+              ${issue.feedback ? `<span style="color:#eab308;display:flex;align-items:center;font-size:0.875rem;"><span class="material-icons" style="font-size:1rem;">star</span> ${issue.feedback.rating}</span>` : ''}
+            </p>
           </div>
         </div>
       </td>
@@ -391,9 +401,9 @@ function updateAllIssuesPaginationControls() {
   document.querySelector('#allIssuesNextBtn').disabled = allIssuesCurrentPage >= totalPages;
 }
 
-// Open issue modal
-function openIssueModal(issue) {
-  const modal = document.querySelector('#issueModal');
+// Open issue details
+function openIssueDetails(issue) {
+  // (Wait to show container at the end)
   document.querySelector('#modalTitle').textContent = issue.title;
   document.querySelector('#modalCategory').textContent = issue.category;
   document.querySelector('#modalWard').textContent = issue.ward;
@@ -401,6 +411,13 @@ function openIssueModal(issue) {
   document.querySelector('#modalPriority').textContent = issue.priority;
   document.querySelector('#modalStatus').textContent = issue.status;
   document.querySelector('#modalDescription').textContent = issue.description;
+
+  if (issue.assignedTo && issue.assignedTo.name) {
+    document.querySelector('#modalAssigned').textContent = issue.assignedTo.name;
+    document.querySelector('#assignedContainer').style.display = 'grid';
+  } else {
+    document.querySelector('#assignedContainer').style.display = 'none';
+  }
 
   const submitted = new Date(issue.createdAt).toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -417,18 +434,200 @@ function openIssueModal(issue) {
     imageEl.style.display = 'none';
   }
 
-  modal.style.display = 'flex';
+  // Handle Feedback UI
+  const feedbackSection = document.querySelector('#modalFeedbackSection');
+  const existingFeedback = document.querySelector('#existingFeedback');
+  const leaveFeedbackForm = document.querySelector('#leaveFeedbackForm');
+
+  if (issue.status === 'Resolved') {
+    feedbackSection.style.display = 'block';
+
+    if (issue.feedback && issue.feedback.rating) {
+      // Feedback exists, show it
+      existingFeedback.style.display = 'block';
+      leaveFeedbackForm.style.display = 'none';
+
+      const starsDiv = document.querySelector('#existingRatingStars');
+      let starsHtml = '';
+      for (let i = 1; i <= 5; i++) {
+        starsHtml += `<span class="material-icons" style="font-size:1.25rem;">${i <= issue.feedback.rating ? 'star' : 'star_border'}</span>`;
+      }
+      starsDiv.innerHTML = starsHtml;
+
+      const textEl = document.querySelector('#existingFeedbackText');
+      if (issue.feedback.text) {
+        textEl.textContent = `"${issue.feedback.text}"`;
+        textEl.style.display = 'block';
+      } else {
+        textEl.style.display = 'none';
+      }
+    } else {
+      // No feedback yet, show form only if the user reported this issue
+      const submitBtn = document.querySelector('#submitFeedbackBtn');
+      // For simplicity, if they are in "dashboard" view it's their issue.
+      if (currentTab === 'dashboard') {
+        existingFeedback.style.display = 'none';
+        leaveFeedbackForm.style.display = 'block';
+
+        currentRating = 0;
+        updateStarUI();
+        document.querySelector('#feedbackText').value = '';
+        submitBtn.onclick = () => submitFeedback(issue._id);
+      } else {
+        feedbackSection.style.display = 'none';
+      }
+    }
+  } else {
+    feedbackSection.style.display = 'none';
+  }
+
+  // Render Timeline
+  const timelineContent = document.getElementById("modalTimelineContent");
+  let timelineHtml = '';
+
+  const bulletStyle = 'position: absolute; left: -1.75rem; top: 0; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--primary-color); border: 2px solid white; box-shadow: 0 0 0 2px var(--primary-color);';
+
+  // 1. Submitted
+  const submittedDate = new Date(issue.createdAt).toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+  timelineHtml += `
+    <div style="position: relative; padding-bottom: 1.5rem;">
+      <div style="${bulletStyle}"></div>
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Issue Submitted</div>
+      <div style="font-size: 0.875rem; color: var(--text-secondary);">${submittedDate}</div>
+    </div>
+  `;
+
+  // 2. In Progress
+  if (issue.inProgressAt) {
+    const progressDate = new Date(issue.inProgressAt).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const imgUrl = issue.inProgressImage ? (issue.inProgressImage.startsWith('http') ? issue.inProgressImage : '' + issue.inProgressImage) : '';
+    timelineHtml += `
+      <div style="position: relative; padding-bottom: 1.5rem;">
+        <div style="${bulletStyle} background: #eab308; box-shadow: 0 0 0 2px #eab308;"></div>
+        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Marked as In Progress</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${progressDate}</div>
+        ${issue.inProgressNote ? `<div style="font-size: 0.9375rem; background: var(--slate-50); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">${issue.inProgressNote}</div>` : ''}
+        ${imgUrl ? `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="In Progress Proof" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></a>` : ''}
+      </div>
+    `;
+  }
+
+  // 3. Resolved
+  if (issue.resolvedAt) {
+    const resolvedDate = new Date(issue.resolvedAt).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const imgUrl = issue.resolvedImage ? (issue.resolvedImage.startsWith('http') ? issue.resolvedImage : '' + issue.resolvedImage) : '';
+    timelineHtml += `
+      <div style="position: relative;">
+        <div style="${bulletStyle} background: #22c55e; box-shadow: 0 0 0 2px #22c55e;"></div>
+        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Issue Resolved</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${resolvedDate}</div>
+        ${issue.resolvedNote ? `<div style="font-size: 0.9375rem; background: var(--slate-50); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">${issue.resolvedNote}</div>` : ''}
+        ${imgUrl ? `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="Resolution Proof" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></a>` : ''}
+      </div>
+    `;
+  }
+
+  timelineContent.innerHTML = timelineHtml;
+  // Hide main views and show details
+  document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('allIssuesView').style.display = 'none';
+  document.getElementById('citizen-issue-details-container').style.display = 'block';
+  window.scrollTo(0, 0);
 }
 
-// Close issue modal
-function closeIssueModal() {
-  document.querySelector('#issueModal').style.display = 'none';
+let currentRating = 0;
+
+function updateStarUI() {
+  const stars = document.querySelectorAll('.star-btn');
+  stars.forEach(star => {
+    const val = parseInt(star.getAttribute('data-value'));
+    if (val <= currentRating) {
+      star.textContent = 'star';
+      star.style.color = '#eab308';
+    } else {
+      star.textContent = 'star_border';
+      star.style.color = 'var(--slate-300)';
+    }
+  });
 }
 
-// Open profile modal
+async function submitFeedback(issueId) {
+  if (currentRating === 0) {
+    showToast('error', 'Please select a star rating.');
+    return;
+  }
+
+  const text = document.querySelector('#feedbackText').value.trim();
+  const token = localStorage.getItem('token');
+  const btn = document.querySelector('#submitFeedbackBtn');
+  const originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const res = await fetch(`/api/issues/${issueId}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token
+      },
+      body: JSON.stringify({ rating: currentRating, text })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast('success', 'Feedback submitted successfully!');
+
+      const issueIndex = allIssues.findIndex(i => i._id === issueId);
+      if (issueIndex !== -1) {
+        allIssues[issueIndex].feedback = data.issue.feedback;
+      }
+
+      const commIssueIndex = allCommunityIssues.findIndex(i => i._id === issueId);
+      if (commIssueIndex !== -1) {
+        allCommunityIssues[commIssueIndex].feedback = data.issue.feedback;
+      }
+
+      if (currentTab === 'dashboard') {
+        applyFiltersAndRender();
+      } else {
+        applyAllIssuesFiltersAndRender();
+      }
+
+      openIssueDetails(data.issue);
+
+    } else {
+      showToast('error', data.message || 'Failed to submit feedback.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// Close issue details
+function closeIssueDetails() {
+  document.getElementById('citizen-issue-details-container').style.display = 'none';
+  if (currentTab === 'dashboard') {
+    document.getElementById('dashboardView').style.display = 'block';
+  } else {
+    document.getElementById('allIssuesView').style.display = 'block';
+  }
+}
+
+// Open profile view
 function openProfileModal() {
-  const modal = document.querySelector('#profileModal');
-
   // Populate profile data
   const userName_stored = localStorage.getItem('userName');
   const userEmail_stored = localStorage.getItem('userEmail');
@@ -437,13 +636,84 @@ function openProfileModal() {
   document.querySelector('#profileFullName').textContent = userName_stored || '-';
   document.querySelector('#profileEmail').textContent = userEmail_stored || '-';
 
-  modal.style.display = 'flex';
+  // Setup change password form
+  const cpEmail = document.querySelector('#cpEmail');
+  if (cpEmail) cpEmail.value = userEmail_stored || '';
+
+  const cpForm = document.querySelector('#changePasswordForm');
+  if (cpForm) cpForm.style.display = 'none';
+  if (document.querySelector('#cpCurrentPassword')) document.querySelector('#cpCurrentPassword').value = '';
+  if (document.querySelector('#cpNewPassword')) document.querySelector('#cpNewPassword').value = '';
+
+  // Hide other views and show profile view
+  document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('allIssuesView').style.display = 'none';
+  const detailsContainer = document.getElementById('citizen-issue-details-container');
+  if (detailsContainer) detailsContainer.style.display = 'none';
+
+  document.getElementById('profile-view-container').style.display = 'block';
+  window.scrollTo(0, 0);
 }
 
-// Close profile modal
-function closeProfileModal() {
-  document.querySelector('#profileModal').style.display = 'none';
+// Close profile view
+function closeProfileView() {
+  document.getElementById('profile-view-container').style.display = 'none';
+  if (currentTab === 'dashboard') {
+    document.getElementById('dashboardView').style.display = 'block';
+  } else {
+    document.getElementById('allIssuesView').style.display = 'block';
+  }
 }
+
+
+// Toggle change password form
+window.toggleChangePasswordForm = function () {
+  const form = document.querySelector('#changePasswordForm');
+  if (form) {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+};
+
+// Submit password change
+window.submitPasswordChange = async function () {
+  const email = document.querySelector('#cpEmail').value.trim();
+  const currentPassword = document.querySelector('#cpCurrentPassword').value;
+  const newPassword = document.querySelector('#cpNewPassword').value;
+
+  if (!email || !currentPassword || !newPassword) {
+    showToast('error', 'All fields are required.');
+    return;
+  }
+
+  const btn = document.querySelector('#submitPasswordBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, currentPassword, newPassword })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast('success', 'Password changed successfully!');
+      document.querySelector('#changePasswordForm').style.display = 'none';
+      document.querySelector('#cpCurrentPassword').value = '';
+      document.querySelector('#cpNewPassword').value = '';
+    } else {
+      showToast('error', data.message || 'Failed to change password.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+};
 
 // Update activity feed
 function updateActivityFeed() {
@@ -568,18 +838,22 @@ function setupEventListeners() {
     }
   });
 
-  // Close modal when clicking outside
-  document.querySelector('#issueModal').addEventListener('click', (e) => {
-    if (e.target.id === 'issueModal') {
-      closeIssueModal();
-    }
-  });
+
 
   // Close profile modal when clicking outside
   document.querySelector('#profileModal').addEventListener('click', (e) => {
     if (e.target.id === 'profileModal') {
       closeProfileModal();
     }
+  });
+
+  // Star feedback rating interactions
+  const stars = document.querySelectorAll('.star-btn');
+  stars.forEach(star => {
+    star.addEventListener('click', () => {
+      currentRating = parseInt(star.getAttribute('data-value'));
+      updateStarUI();
+    });
   });
 }
 

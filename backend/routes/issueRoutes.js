@@ -13,6 +13,7 @@ import {
   updateStatus,
   assignIssue,
   getIssueById,
+  addFeedback,
 } from "../controllers/issueController.js";
 
 const router = express.Router();
@@ -50,12 +51,15 @@ router.get("/all", asyncHandler(getAllIssues));
 router.get("/assigned/mine", asyncHandler(getMyAssignedIssues));
 
 // ----- Staff/Admin: change status -----
-router.patch("/:id/status", asyncHandler(updateStatus));
+router.patch("/:id/status", upload.single("image"), asyncHandler(updateStatus));
 
 // ----- Admin: assign staff to issue -----
 router.patch("/:id/assign", asyncHandler(assignIssue));
 
 // ----- Get single issue (for details modal if you want backend fetch) -----
 router.get("/:id", asyncHandler(getIssueById));
+
+// ----- Citizen: Add feedback -----
+router.post("/:id/feedback", asyncHandler(addFeedback));
 
 export default router;

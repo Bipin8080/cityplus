@@ -177,3 +177,39 @@ export const login = async (req, res, next) => {
     name: user.name
   });
 };
+
+// Change Password
+export const changePassword = async (req, res, next) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  if (!email || !currentPassword || !newPassword) {
+    const error = new Error("Email, current password, and new password are required");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    const error = new Error("Invalid email or password");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const match = await bcrypt.compare(currentPassword, user.password);
+  if (!match) {
+    const error = new Error("Invalid current password");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+
+  user.password = hashed;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "Password changed successfully"
+  });
+};
+

@@ -5,6 +5,15 @@ let currentSearchTerm = '';
 let currentRoleFilter = '';
 let currentStatusFilter = '';
 
+let currentIssueSearchTerm = '';
+let currentIssueStatusFilter = '';
+window.adminIssuesList = [];
+
+// Pagination variables
+let currentPage = 1;
+const issuesPerPage = 10;
+let currentUserPage = 1;
+const usersPerPage = 10;
 
 async function loadAdminData() {
   const token = localStorage.getItem("token");
@@ -68,85 +77,8 @@ async function loadAdminData() {
     displayUsers(window.adminUsersList);
 
     // ----- Assign Issues table -----
-    const staffList = staffData.staff || [];
-    const tbodyIssues = document.querySelector("#adminIssuesBody");
-    tbodyIssues.innerHTML = "";
-
-    (issuesData.issues || []).forEach(issue => {
-      const tr = document.createElement("tr");
-      const assignedId = issue.assignedTo ? issue.assignedTo._id : "";
-      const assignedName = issue.assignedTo ? issue.assignedTo.name : "";
-      const citizenName = issue.citizen ? issue.citizen.name : "-";
-
-      const staffOptions = staffList.map(s => {
-        const selected = s._id === assignedId ? "selected" : "";
-        return `<option value="${s._id}" ${selected}>${s.name}</option>`;
-      }).join("");
-
-      const statusOptions = ["Open", "In Progress", "Resolved"]
-        .map(s => `<option value="${s}" ${issue.status === s ? "selected" : ""}>${s}</option>`)
-        .join("");
-      const imageCell = issue.image
-        ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
-        : "-";
-
-      tr.innerHTML = `
-        <td><code style="font-size:11px; color:#666;">#${issue._id.slice(-6)}</code></td>
-        <td><strong>${issue.category}</strong></td>
-        <td>${issue.location}</td>
-        <td>${citizenName}</td>
-        <td>
-          <select class="form-select assign-select" data-id="${issue._id}">
-            <option value="">-- Select Staff --</option>
-            ${staffOptions}
-          </select>
-          ${assignedName ? `<div style="font-size:11px; color:#666; margin-top:4px;">Current: ${assignedName}</div>` : ""}
-        </td>
-        <td>${imageCell}</td>
-        <td>
-          <select class="form-select status-select" data-id="${issue._id}">
-            ${statusOptions}
-          </select>
-        </td>
-        <td class="action-buttons">
-          <button class="btn btn-primary btn-small assign-btn" data-id="${issue._id}">Assign</button>
-          <button class="btn btn-secondary btn-small view-btn" onclick="openAdminIssueModalFromTable(this)" data-issue='${JSON.stringify(issue)}'>View</button>
-        </td>
-      `;
-      tr.style.cursor = "pointer";
-      tr.onclick = (e) => {
-        if (e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
-        openAdminIssueModal(issue, window.adminStaffList);
-      };
-      tbodyIssues.appendChild(tr);
-    });
-
-    // Event listener for assign button clicks
-    tbodyIssues.addEventListener("click", async (e) => {
-      if (e.target.classList.contains("assign-btn")) {
-        const id = e.target.getAttribute("data-id");
-        const select = tbodyIssues.querySelector(`.assign-select[data-id="${id}"]`);
-        const staffId = select.value;
-
-        if (!staffId) {
-          showToast('warning', "Please select a staff member from the dropdown menu before assigning this issue.");
-          return;
-        }
-
-        const token = localStorage.getItem("token");
-        await submitStaffAssignment(token, id, staffId);
-      }
-    });
-
-    // Add event listener for status changes
-    tbodyIssues.addEventListener("change", async (e) => {
-      if (e.target.classList.contains("status-select")) {
-        const id = e.target.getAttribute("data-id");
-        const status = e.target.value;
-        const token = localStorage.getItem("token");
-        await updateIssueStatus(token, id, status);
-      }
-    });
+    window.adminIssuesList = issuesData.issues || [];
+    displayIssues(window.adminIssuesList);
 
   } catch (err) {
     console.error(err);
@@ -197,7 +129,24 @@ function displayUsers(users) {
   // Sort users based on current sorting
   const sortedUsers = sortUsers(users, currentSortField, sortDirection);
 
-  sortedUsers.forEach(user => {
+  if (sortedUsers.length === 0) {
+    renderUserPagination(0);
+    return;
+  }
+
+  // Calculate pagination
+  const totalItems = sortedUsers.length;
+  const totalPages = Math.ceil(totalItems / usersPerPage);
+
+  if (currentUserPage > totalPages) {
+    currentUserPage = totalPages > 0 ? totalPages : 1;
+  }
+
+  const startIndex = (currentUserPage - 1) * usersPerPage;
+  const endIndex = Math.min(startIndex + usersPerPage, totalItems);
+  const currentUsersSlice = sortedUsers.slice(startIndex, endIndex);
+
+  currentUsersSlice.forEach(user => {
     const joined = new Date(user.createdAt).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -223,18 +172,49 @@ function displayUsers(users) {
         <span class="status-pill status-${userStatus.toLowerCase()}">${userStatus}</span>
       </td>
       <td class="action-buttons">
-        ${user.role === 'admin' ? '<span style="font-size: 12px; color: #64748b;">(Admin)</span>' : `
-          <select class="form-select user-action-select" data-id="${user._id}" data-name="${user.name}" style="width: 150px;">
-            <option value="" disabled selected>Take Action...</option>
-            <option value="active" ${userStatus === 'active' ? 'disabled' : ''}>Set Active</option>
-            <option value="blocked" ${userStatus === 'blocked' ? 'disabled' : ''}>Block Account</option>
-            <option value="terminated" ${userStatus === 'terminated' ? 'disabled' : ''}>Terminate Account</option>
-          </select>
-        `}
+        <button class="btn btn-secondary btn-small view-btn" onclick="openAdminUserDetailsFromTableEncoded(this)" data-user-encoded='${encodeURIComponent(JSON.stringify(user))}'>View</button>
       </td>
     `;
+    tr.style.cursor = "pointer";
+    tr.onclick = (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+      openAdminUserDetails(user);
+    };
     tbodyUsers.appendChild(tr);
   });
+
+  renderUserPagination(totalItems, totalPages);
+}
+
+function renderUserPagination(totalItems, totalPages = 0) {
+  const paginationContainer = document.getElementById('userPagination');
+  if (!paginationContainer) return;
+
+  if (totalItems <= usersPerPage) {
+    paginationContainer.style.display = 'none';
+    return;
+  }
+
+  paginationContainer.style.display = 'flex';
+
+  let html = `
+    <button class="btn btn-outline btn-small" ${currentUserPage === 1 ? 'disabled' : ''} onclick="changeUserPage(${currentUserPage - 1})">
+      <span class="material-icons-round" style="font-size: 1.2rem;">chevron_left</span> Previous
+    </button>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+      Page <strong style="color: var(--text-primary);">${currentUserPage}</strong> of <strong>${totalPages}</strong>
+    </div>
+    <button class="btn btn-outline btn-small" ${currentUserPage === totalPages ? 'disabled' : ''} onclick="changeUserPage(${currentUserPage + 1})">
+      Next <span class="material-icons-round" style="font-size: 1.2rem;">chevron_right</span>
+    </button>
+  `;
+
+  paginationContainer.innerHTML = html;
+}
+
+function changeUserPage(newPage) {
+  currentUserPage = newPage;
+  applySearchAndFilters();
 }
 
 // Sort users function
@@ -262,22 +242,28 @@ function sortUsers(users, field, direction) {
   return sorted;
 }
 
-async function updateIssueStatus(token, issueId, status) {
+async function updateIssueStatus(token, issueId, formData) {
   try {
+    // If formData is just a string (for compatibility if any other place calls it without passing FormData)
+    let bodyData = formData;
+    let headers = { Authorization: "Bearer " + token };
+
+    if (!(formData instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+      bodyData = JSON.stringify({ status: formData });
+    }
+
     const res = await fetch(`/api/issues/${issueId}/status`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
-      body: JSON.stringify({ status })
+      headers: headers,
+      body: bodyData
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to update status.");
-    showToast('success', `Issue status successfully updated to "${status}".`);
+    showToast('success', `Issue status successfully updated.`);
   } catch (err) {
     console.error(err);
-    showToast('error', "A system error occurred while updating the status. Please try again later.");
+    showToast('error', err.message || "A system error occurred while updating the status. Please try again later.");
   } finally {
     // Reload data to reflect the change and revert dropdown on failure
     loadAdminData();
@@ -346,14 +332,13 @@ async function updateUserStatusAdmin(userId, status) {
 }
 
 // Helper function to open modal from table button
-function openAdminIssueModalFromTable(button) {
+function openAdminIssueDetailsFromTable(button) {
   const issue = JSON.parse(button.getAttribute("data-issue"));
-  openAdminIssueModal(issue, window.adminStaffList);
+  openAdminIssueDetails(issue, window.adminStaffList);
 }
 
-// Modal functions for Admin
-function openAdminIssueModal(issue, staffList) {
-  const modal = document.getElementById("adminIssueModal");
+// Details functions for Admin
+function openAdminIssueDetails(issue, staffList) {
   const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric"
   });
@@ -363,16 +348,16 @@ function openAdminIssueModal(issue, staffList) {
   if (issue.status === "Resolved") statusClass = "resolved";
 
   // Set title
-  document.getElementById("adminModalTitle").textContent = issue.title || "Issue Details";
+  document.getElementById("adminDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}`;
 
   // Set image
   const imageContainer = document.getElementById("adminModalImageContainer");
   if (issue.image) {
-    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}" class="issue-modal-image">`;
+    imageContainer.innerHTML = `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue Image" style="width:100%; height:100%; object-fit:cover;">`;
   } else {
     imageContainer.innerHTML = `
-      <div class="issue-modal-no-image">
-        <span class="material-icons-round">image_not_supported</span>
+      <div class="issue-modal-no-image" style="display:flex; flex-direction:column; align-items:center; color:var(--text-secondary); padding: 3rem;">
+        <span class="material-icons-round" style="font-size:3rem; margin-bottom:1rem;">image_not_supported</span>
         <span>No image provided</span>
       </div>
     `;
@@ -380,8 +365,8 @@ function openAdminIssueModal(issue, staffList) {
 
   // Set badges
   const badgesHtml = `
-    <span class="issue-modal-badge category">${issue.category}</span>
-    <span class="issue-modal-badge status issue-card-status ${statusClass}">${issue.status}</span>
+    <span class="issue-modal-badge category" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem; background: var(--primary-color-light); color: var(--primary-color);">${issue.category}</span>
+    <span class="issue-modal-badge status issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>
   `;
   document.getElementById("adminModalBadges").innerHTML = badgesHtml;
 
@@ -411,32 +396,139 @@ function openAdminIssueModal(issue, staffList) {
   });
   staffSelect.dataset.issueId = issue._id;
 
-  // Set status dropdown
+  // Set status form or show resolved message
+  const statusForm = document.getElementById("adminModalStatusForm");
+  const resolvedMsg = document.getElementById("adminModalStatusResolvedMsg");
   const statusSelect = document.getElementById("adminModalStatusSelect");
-  statusSelect.value = issue.status;
-  statusSelect.dataset.issueId = issue._id;
+  const noteInput = document.getElementById("adminModalStatusNote");
+  const imageInput = document.getElementById("adminModalStatusImage");
 
-  // Show modal
-  modal.classList.add("active");
+  if (issue.status === "Resolved") {
+    if (statusForm) statusForm.style.display = "none";
+    if (resolvedMsg) resolvedMsg.style.display = "block";
+  } else {
+    if (statusForm) statusForm.style.display = "block";
+    if (resolvedMsg) resolvedMsg.style.display = "none";
+    if (statusSelect) {
+      statusSelect.value = issue.status;
+      statusSelect.dataset.issueId = issue._id;
 
-  // Close on backdrop click
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      closeAdminIssueModal();
+      // Disable invalid transitions (gray out)
+      Array.from(statusSelect.options).forEach(opt => {
+        if (issue.status === "Open") {
+          opt.disabled = (opt.value === "Resolved");
+        } else if (issue.status === "In Progress") {
+          opt.disabled = (opt.value === "Open");
+        } else {
+          opt.disabled = false;
+        }
+      });
     }
+    if (noteInput) noteInput.value = "";
+    if (imageInput) imageInput.value = "";
+  }
+
+  // Set Feedback
+  const feedbackSection = document.getElementById("adminModalFeedbackSection");
+  if (issue.feedback && issue.feedback.rating) {
+    feedbackSection.style.display = "block";
+    const starsDiv = document.getElementById("adminModalExistingRatingStars");
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+      starsHtml += `<span class="material-icons-round" style="font-size:1.25rem;">${i <= issue.feedback.rating ? 'star' : 'star_border'}</span>`;
+    }
+    starsDiv.innerHTML = starsHtml;
+
+    const textEl = document.getElementById("adminModalExistingFeedbackText");
+    if (issue.feedback.text) {
+      textEl.textContent = `"${issue.feedback.text}"`;
+      textEl.style.display = "block";
+    } else {
+      textEl.style.display = "none";
+    }
+  } else {
+    feedbackSection.style.display = "none";
+  }
+
+  // Render Timeline
+  const timelineContent = document.getElementById("adminModalTimelineContent");
+  let timelineHtml = '';
+
+  const bulletStyle = 'position: absolute; left: -1.75rem; top: 0; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--primary-color); border: 2px solid white; box-shadow: 0 0 0 2px var(--primary-color);';
+
+  // 1. Submitted
+  const submittedDate = new Date(issue.createdAt).toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+  timelineHtml += `
+    <div style="position: relative; padding-bottom: 1.5rem;">
+      <div style="${bulletStyle}"></div>
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Issue Submitted</div>
+      <div style="font-size: 0.875rem; color: var(--text-secondary);">${submittedDate}</div>
+    </div>
+  `;
+
+  // 2. In Progress
+  if (issue.inProgressAt) {
+    const progressDate = new Date(issue.inProgressAt).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const imgUrl = issue.inProgressImage ? (issue.inProgressImage.startsWith('http') ? issue.inProgressImage : '' + issue.inProgressImage) : '';
+    timelineHtml += `
+      <div style="position: relative; padding-bottom: 1.5rem;">
+        <div style="${bulletStyle} background: #eab308; box-shadow: 0 0 0 2px #eab308;"></div>
+        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Marked as In Progress</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${progressDate}</div>
+        ${issue.inProgressNote ? `<div style="font-size: 0.9375rem; background: var(--slate-50); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">${issue.inProgressNote}</div>` : ''}
+        ${imgUrl ? `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="In Progress Proof" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></a>` : ''}
+      </div>
+    `;
+  }
+
+  // 3. Resolved
+  if (issue.resolvedAt) {
+    const resolvedDate = new Date(issue.resolvedAt).toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const imgUrl = issue.resolvedImage ? (issue.resolvedImage.startsWith('http') ? issue.resolvedImage : '' + issue.resolvedImage) : '';
+    timelineHtml += `
+      <div style="position: relative;">
+        <div style="${bulletStyle} background: #22c55e; box-shadow: 0 0 0 2px #22c55e;"></div>
+        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Issue Resolved</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${resolvedDate}</div>
+        ${issue.resolvedNote ? `<div style="font-size: 0.9375rem; background: var(--slate-50); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">${issue.resolvedNote}</div>` : ''}
+        ${imgUrl ? `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" alt="Resolution Proof" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></a>` : ''}
+      </div>
+    `;
+  }
+
+  timelineContent.innerHTML = timelineHtml;
+
+
+  // Show details view
+  document.querySelectorAll('.admin-tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  document.querySelectorAll('.admin-nav-tab').forEach(btn => {
+    btn.classList.remove('active');
+    btn.classList.remove('nav-link--active');
   });
 
-  // Close on Escape key
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeAdminIssueModal();
-    }
-  });
+  const detailsTab = document.getElementById("issue-details-tab");
+  if (detailsTab) detailsTab.classList.add("active");
+  window.scrollTo(0, 0);
 }
 
-function closeAdminIssueModal() {
-  const modal = document.getElementById("adminIssueModal");
-  modal.classList.remove("active");
+function closeAdminIssueDetails() {
+  const detailsTab = document.getElementById("issue-details-tab");
+  if (detailsTab) detailsTab.classList.remove("active");
+
+  const issuesTabBtn = document.querySelector('.admin-nav-tab[data-tab="issues"]');
+  if (issuesTabBtn) {
+    issuesTabBtn.click();
+  } else {
+    document.getElementById("issues-tab").classList.add("active");
+  }
 }
 
 async function assignIssueToStaffModal() {
@@ -451,17 +543,42 @@ async function assignIssueToStaffModal() {
   }
 
   await submitStaffAssignment(token, issueId, staffId);
-  closeAdminIssueModal();
+  closeAdminIssueDetails();
 }
 
 async function updateAdminIssueStatus() {
   const statusSelect = document.getElementById("adminModalStatusSelect");
   const issueId = statusSelect.dataset.issueId;
   const newStatus = statusSelect.value;
+  const noteContent = document.getElementById("adminModalStatusNote").value;
+  const imageInput = document.getElementById("adminModalStatusImage");
+  const file = imageInput.files[0];
+
+  if ((newStatus === "In Progress" || newStatus === "Resolved") && !file) {
+    showToast('warning', `An image proof is required to change status to ${newStatus}.`);
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("status", newStatus);
+  if (noteContent) formData.append("note", noteContent);
+  if (file) formData.append("image", file);
+
   const token = localStorage.getItem("token");
 
-  await updateIssueStatus(token, issueId, newStatus);
-  closeAdminIssueModal();
+  // Show loading state
+  const btn = document.getElementById("adminModalStatusSubmitBtn");
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = 'Updating...';
+  btn.disabled = true;
+
+  try {
+    await updateIssueStatus(token, issueId, formData);
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    closeAdminIssueDetails();
+  }
 }
 
 // Logout confirmation modal
@@ -510,9 +627,6 @@ function applySearchAndFilters() {
 
   // Update result info
   updateSearchResultsInfo(filteredUsers);
-
-  // Re-attach event listeners
-  attachUserActionListeners();
 }
 
 function updateSearchResultsInfo(filteredUsers) {
@@ -539,6 +653,7 @@ function updateSearchResultsInfo(filteredUsers) {
 function clearSearch() {
   document.getElementById('userSearchInput').value = '';
   currentSearchTerm = '';
+  currentUserPage = 1;
   document.getElementById('clearSearchBtn').style.display = 'none';
   applySearchAndFilters();
 }
@@ -547,6 +662,7 @@ function resetFilters() {
   currentSearchTerm = '';
   currentRoleFilter = '';
   currentStatusFilter = '';
+  currentUserPage = 1;
 
   document.getElementById('userSearchInput').value = '';
   document.getElementById('roleFilter').value = '';
@@ -556,6 +672,160 @@ function resetFilters() {
 
   displayUsers(window.adminUsersList);
   attachUserActionListeners();
+}
+
+function displayIssues(issues) {
+  const tbodyIssues = document.querySelector("#adminIssuesBody");
+  tbodyIssues.innerHTML = "";
+
+  if (issues.length === 0) {
+    tbodyIssues.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No issues found matching your search criteria.</td></tr>`;
+    renderPagination(0);
+    return;
+  }
+
+  // Calculate pagination
+  const totalItems = issues.length;
+  const totalPages = Math.ceil(totalItems / issuesPerPage);
+
+  if (currentPage > totalPages) {
+    currentPage = totalPages > 0 ? totalPages : 1;
+  }
+
+  const startIndex = (currentPage - 1) * issuesPerPage;
+  const endIndex = Math.min(startIndex + issuesPerPage, totalItems);
+  const currentIssues = issues.slice(startIndex, endIndex);
+
+  currentIssues.forEach(issue => {
+    const tr = document.createElement("tr");
+    const assignedName = issue.assignedTo ? issue.assignedTo.name : "";
+    const citizenName = issue.citizen ? issue.citizen.name : "-";
+
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'open';
+    const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
+    const imageCell = issue.image
+      ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
+      : "-";
+
+    // Escape characters in JSON string for HTML attributes safely
+    const issueDataLink = encodeURIComponent(JSON.stringify(issue));
+
+    tr.innerHTML = `
+      <td><code style="font-size:11px; color:#666;">#${issue._id.slice(-6)}</code></td>
+      <td>
+        <strong>${issue.category}</strong>
+        ${issue.feedback ? `<div style="color:#eab308;display:flex;align-items:center;font-size:0.875rem;margin-top:0.25rem;"><span class="material-icons-round" style="font-size:1rem;">star</span> ${issue.feedback.rating}</div>` : ''}
+      </td>
+      <td>${issue.location}</td>
+      <td>${citizenName}</td>
+      <td>${assignedName || "<span style='color:#999'>Unassigned</span>"}</td>
+      <td>${imageCell}</td>
+      <td>${statusBadge}</td>
+      <td class="action-buttons">
+        <button class="btn btn-secondary btn-small view-btn" onclick="openAdminIssueDetailsFromTableEncoded(this)" data-issue-encoded='${issueDataLink}'>View</button>
+      </td>
+    `;
+    tr.style.cursor = "pointer";
+    tr.onclick = (e) => {
+      if (e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
+      openAdminIssueDetails(issue, window.adminStaffList);
+    };
+    tbodyIssues.appendChild(tr);
+  });
+
+  renderPagination(totalItems, totalPages);
+}
+
+function renderPagination(totalItems, totalPages = 0) {
+  const paginationContainer = document.getElementById('issuePagination');
+  if (!paginationContainer) return;
+
+  if (totalItems <= issuesPerPage) {
+    paginationContainer.style.display = 'none';
+    return;
+  }
+
+  paginationContainer.style.display = 'flex';
+
+  let html = `
+    <button class="btn btn-outline btn-small" ${currentPage === 1 ? 'disabled' : ''} onclick="changeIssuePage(${currentPage - 1})">
+      <span class="material-icons-round" style="font-size: 1.2rem;">chevron_left</span> Previous
+    </button>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+      Page <strong style="color: var(--text-primary);">${currentPage}</strong> of <strong>${totalPages}</strong>
+    </div>
+    <button class="btn btn-outline btn-small" ${currentPage === totalPages ? 'disabled' : ''} onclick="changeIssuePage(${currentPage + 1})">
+      Next <span class="material-icons-round" style="font-size: 1.2rem;">chevron_right</span>
+    </button>
+  `;
+
+  paginationContainer.innerHTML = html;
+}
+
+function changeIssuePage(newPage) {
+  currentPage = newPage;
+  applyIssueSearchAndFilters();
+}
+
+function openAdminIssueDetailsFromTableEncoded(button) {
+  const issue = JSON.parse(decodeURIComponent(button.getAttribute("data-issue-encoded")));
+  openAdminIssueDetails(issue, window.adminStaffList);
+}
+
+function applyIssueSearchAndFilters() {
+  let filteredIssues = window.adminIssuesList;
+
+  if (currentIssueSearchTerm.trim()) {
+    const searchLower = currentIssueSearchTerm.toLowerCase();
+    filteredIssues = filteredIssues.filter(issue =>
+      (issue._id && issue._id.toLowerCase().includes(searchLower)) ||
+      (issue.category && issue.category.toLowerCase().includes(searchLower)) ||
+      (issue.location && issue.location.toLowerCase().includes(searchLower)) ||
+      (issue.citizen && issue.citizen.name && issue.citizen.name.toLowerCase().includes(searchLower))
+    );
+  }
+
+  if (currentIssueStatusFilter) {
+    filteredIssues = filteredIssues.filter(issue => issue.status === currentIssueStatusFilter);
+  }
+
+  displayIssues(filteredIssues);
+  updateIssueSearchResultsInfo(filteredIssues);
+}
+
+function updateIssueSearchResultsInfo(filteredIssues) {
+  const totalCount = window.adminIssuesList.length;
+  const resultCount = filteredIssues.length;
+  const resultsInfo = document.getElementById('issueSearchResultsInfo');
+
+  if (currentIssueSearchTerm || currentIssueStatusFilter) {
+    resultsInfo.style.display = 'flex';
+    document.getElementById('issueResultCount').textContent = resultCount;
+    document.getElementById('issueTotalCount').textContent = totalCount;
+  } else {
+    resultsInfo.style.display = 'none';
+  }
+}
+
+function clearIssueSearch() {
+  document.getElementById('issueSearchInput').value = '';
+  currentIssueSearchTerm = '';
+  currentPage = 1;
+  document.getElementById('clearIssueSearchBtn').style.display = 'none';
+  applyIssueSearchAndFilters();
+}
+
+function resetIssueFilters() {
+  currentIssueSearchTerm = '';
+  currentIssueStatusFilter = '';
+  currentPage = 1;
+
+  document.getElementById('issueSearchInput').value = '';
+  document.getElementById('issueStatusFilter').value = '';
+  document.getElementById('clearIssueSearchBtn').style.display = 'none';
+  document.getElementById('issueSearchResultsInfo').style.display = 'none';
+
+  displayIssues(window.adminIssuesList);
 }
 
 // Tab Navigation
@@ -574,6 +844,9 @@ function setupTabNavigation() {
       document.querySelectorAll('.admin-tab-content').forEach(content => {
         content.classList.remove('active');
       });
+      // Ensure details tab is hidden
+      const detailsTab = document.getElementById("issue-details-tab");
+      if (detailsTab) detailsTab.classList.remove('active');
 
       // Add active class to clicked button and corresponding content
       button.classList.add('active');
@@ -603,6 +876,7 @@ function setupSearchAndFilters() {
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       currentSearchTerm = e.target.value;
+      currentUserPage = 1;
       clearSearchBtn.style.display = currentSearchTerm ? 'flex' : 'none';
       applySearchAndFilters();
     });
@@ -611,6 +885,7 @@ function setupSearchAndFilters() {
   if (roleFilter) {
     roleFilter.addEventListener('change', (e) => {
       currentRoleFilter = e.target.value;
+      currentUserPage = 1;
       applySearchAndFilters();
     });
   }
@@ -618,7 +893,31 @@ function setupSearchAndFilters() {
   if (statusFilter) {
     statusFilter.addEventListener('change', (e) => {
       currentStatusFilter = e.target.value;
+      currentUserPage = 1;
       applySearchAndFilters();
+    });
+  }
+}
+
+function setupIssueSearchAndFilters() {
+  const searchInput = document.getElementById('issueSearchInput');
+  const statusFilter = document.getElementById('issueStatusFilter');
+  const clearSearchBtn = document.getElementById('clearIssueSearchBtn');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentIssueSearchTerm = e.target.value;
+      currentPage = 1;
+      clearSearchBtn.style.display = currentIssueSearchTerm ? 'flex' : 'none';
+      applyIssueSearchAndFilters();
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+      currentIssueStatusFilter = e.target.value;
+      currentPage = 1;
+      applyIssueSearchAndFilters();
     });
   }
 }
@@ -639,47 +938,189 @@ function setupSortableHeaders() {
         sortDirection = 'asc';
       }
 
+      currentUserPage = 1;
+
       // Update visual indicators
       sortHeaders.forEach(h => h.classList.remove('asc', 'desc'));
       header.classList.add(sortDirection);
 
       // Re-display users with new sort
       displayUsers(window.adminUsersList);
-
-      // Re-attach event listeners
-      attachUserActionListeners();
     });
   });
 }
 
-// Attach user action listeners
+// Attach user action listeners - OBSOLETE, removed body to avoid errors
 function attachUserActionListeners() {
-  const tbodyUsers = document.querySelector("#adminUsersBody");
-  if (tbodyUsers) {
-    tbodyUsers.addEventListener('change', async (e) => {
-      if (e.target.classList.contains('user-action-select')) {
-        const select = e.target;
-        const userId = select.dataset.id;
-        const userName = select.dataset.name;
-        const newStatus = select.value;
+  // Logic absorbed by user detail view
+}
 
-        if (!newStatus) return;
+// User Detail Functions
+function openAdminUserDetailsFromTableEncoded(button) {
+  const user = JSON.parse(decodeURIComponent(button.getAttribute("data-user-encoded")));
+  openAdminUserDetails(user);
+}
 
-        showConfirmModal(
-          "Confirm Action",
-          `Are you sure you want to ${newStatus} the account for "${userName}"?`,
-          async () => {
-            await updateUserStatusAdmin(userId, newStatus);
-            select.value = ""; // Reset select after action
-          }
-        );
-      }
+function openAdminUserDetails(user) {
+  const joined = new Date(user.createdAt).toLocaleDateString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric"
+  });
+
+  document.getElementById("adminUserDetailsTitle").textContent = user.name;
+  document.getElementById("adminUserDetailName").textContent = user.name;
+  document.getElementById("adminUserDetailEmail").textContent = user.email;
+
+  // Format Role
+  const roleDisplay = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+  document.getElementById("adminUserDetailRole").innerHTML = `<span class="role-badge ${user.role}">${roleDisplay}</span>`;
+  document.getElementById("adminUserDetailJoined").textContent = joined;
+
+  // Status Badge
+  const statusStr = user.status || 'active';
+  const statusCap = statusStr.charAt(0).toUpperCase() + statusStr.slice(1);
+  document.getElementById("adminUserDetailStatusBadge").className = `status-pill status-${statusStr.toLowerCase()}`;
+  document.getElementById("adminUserDetailStatusBadge").textContent = statusCap;
+
+  // Action Form
+  const actionGroup = document.getElementById("adminUserDetailActionGroup");
+  const updateBtn = document.getElementById("adminUserDetailUpdateBtn");
+  const actionMsg = document.getElementById("adminUserDetailActionMessage");
+  const actionSelect = document.getElementById("adminUserDetailActionSelect");
+
+  if (user.role === 'admin') {
+    actionGroup.style.display = 'none';
+    updateBtn.style.display = 'none';
+    actionMsg.style.display = 'block';
+  } else {
+    actionGroup.style.display = 'block';
+    updateBtn.style.display = 'block';
+    actionMsg.style.display = 'none';
+
+    actionSelect.value = "";
+    actionSelect.dataset.userId = user._id;
+    actionSelect.dataset.userName = user.name;
+
+    // Disable current user status option
+    Array.from(actionSelect.options).forEach(opt => {
+      opt.disabled = (opt.value === statusStr.toLowerCase());
     });
   }
+
+  // Activity
+  renderUserActivity(user);
+
+  // Show Tab
+  document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.admin-nav-tab').forEach(b => { b.classList.remove('active'); b.classList.remove('nav-link--active'); });
+  document.getElementById("user-details-tab").classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function renderUserActivity(user) {
+  const listContainer = document.getElementById("adminUserDetailActivityList");
+  const summaryText = document.getElementById("adminUserDetailActivitySummary");
+  listContainer.innerHTML = "";
+
+  if (!window.adminIssuesList || window.adminIssuesList.length === 0) {
+    summaryText.textContent = "No activity data available.";
+    return;
+  }
+
+  let userIssues = [];
+  if (user.role === 'citizen') {
+    userIssues = window.adminIssuesList.filter(i => i.citizen && i.citizen._id === user._id);
+  } else if (user.role === 'staff') {
+    userIssues = window.adminIssuesList.filter(i => i.assignedTo && i.assignedTo._id === user._id);
+  }
+
+  // Sort by newest first
+  userIssues.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (userIssues.length === 0) {
+    summaryText.textContent = user.role === 'citizen' ? "This citizen hasn't reported any issues." : "This staff member has no assigned issues.";
+    return;
+  }
+
+  if (user.role === 'citizen') {
+    summaryText.textContent = `Reported ${userIssues.length} issue(s).`;
+  } else {
+    summaryText.textContent = `Assigned to ${userIssues.length} issue(s).`;
+  }
+
+  userIssues.forEach(issue => {
+    const d = new Date(issue.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'open';
+
+    const div = document.createElement("div");
+    div.style.cssText = "padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--surface); display: flex; flex-direction: column; gap: 0.25rem;";
+
+    // Create an encoded issue data object for clicking
+    const issueDataLink = encodeURIComponent(JSON.stringify(issue));
+
+    div.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <strong style="color: var(--text-primary); cursor: pointer;" onclick="openAdminIssueDetailsFromTableEncoded({getAttribute: ()=> '${issueDataLink}'})">${issue.category} (#${issue._id.slice(-6)})</strong>
+        <span class="issue-card-status ${statusClass}" style="padding: 0.15rem 0.5rem; border-radius: 9999px; font-weight: 500; font-size: 0.75rem;">${issue.status}</span>
+      </div>
+      <div style="font-size: 0.875rem; color: var(--text-secondary);">${issue.location}</div>
+      <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">${d}</div>
+    `;
+    listContainer.appendChild(div);
+  });
+}
+
+function closeAdminUserDetails() {
+  document.getElementById("user-details-tab").classList.remove("active");
+  const usersTabBtn = document.querySelector('.admin-nav-tab[data-tab="users"]');
+  if (usersTabBtn) {
+    usersTabBtn.click();
+  } else {
+    document.getElementById("users-tab").classList.add("active");
+  }
+}
+
+async function updateUserDetailsStatus() {
+  const select = document.getElementById("adminUserDetailActionSelect");
+  const newStatus = select.value;
+  const userId = select.dataset.userId;
+  const userName = select.dataset.userName;
+
+  if (!newStatus) return;
+
+  showConfirmModal(
+    "Confirm Action",
+    `Are you sure you want to ${newStatus} the account for "${userName}"?`,
+    async () => {
+      // Show loading
+      const btn = document.getElementById("adminUserDetailUpdateBtn");
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Updating...';
+      btn.disabled = true;
+      try {
+        await updateUserStatusAdmin(userId, newStatus);
+        closeAdminUserDetails();
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+  );
 }
 
 // Setup logout confirmation listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Set user profile in sidebar
+  const userName_stored = localStorage.getItem('userName');
+  const userEmail_stored = localStorage.getItem('userEmail');
+  if (userName_stored) {
+    const nameEl = document.getElementById('userName');
+    if (nameEl) nameEl.textContent = userName_stored;
+  }
+  if (userEmail_stored) {
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = userEmail_stored;
+  }
+
   // Load initial data
   loadAdminData();
 
@@ -694,6 +1135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup search and filters
   setupSearchAndFilters();
+  setupIssueSearchAndFilters();
 
   // Setup sortable headers
   setupSortableHeaders();
@@ -739,13 +1181,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Expose for inline HTML
-window.closeAdminIssueModal = closeAdminIssueModal;
+window.closeAdminIssueDetails = closeAdminIssueDetails;
 window.assignIssueToStaff = assignIssueToStaffModal;
 window.updateAdminIssueStatus = updateAdminIssueStatus;
 window.showLogoutConfirmation = showLogoutConfirmation;
-window.openAdminIssueModalFromTable = openAdminIssueModalFromTable;
+window.openAdminIssueDetailsFromTable = openAdminIssueDetailsFromTable;
+window.openAdminIssueDetailsFromTableEncoded = openAdminIssueDetailsFromTableEncoded;
 window.clearSearch = clearSearch;
 window.resetFilters = resetFilters;
+window.clearIssueSearch = clearIssueSearch;
+window.resetIssueFilters = resetIssueFilters;
+window.changeIssuePage = changeIssuePage;
+window.changeUserPage = changeUserPage;
+window.openAdminUserDetailsFromTableEncoded = openAdminUserDetailsFromTableEncoded;
+window.closeAdminUserDetails = closeAdminUserDetails;
+window.updateUserDetailsStatus = updateUserDetailsStatus;
 
 async function refreshAdminData(btn) {
   const icon = btn.querySelector('.material-icons-round');
@@ -770,6 +1220,104 @@ window.refreshAdminData = refreshAdminData;
 
 
 // Function callable from popup HTML strings safely
+// Function callable from popup HTML strings safely
 window.openAdminIssueModalFromHtml = function (issueObj) {
-  openAdminIssueModal(issueObj, window.adminStaffList);
+  openAdminIssueDetails(issueObj, window.adminStaffList);
 }
+
+// Open profile view
+window.openProfileModal = function () {
+  // Populate profile data
+  const userName_stored = localStorage.getItem('userName');
+  const userEmail_stored = localStorage.getItem('userEmail');
+
+  document.querySelector('#profileName').textContent = userName_stored || 'Admin User';
+  document.querySelector('#profileFullName').textContent = userName_stored || '-';
+  document.querySelector('#profileEmail').textContent = userEmail_stored || '-';
+
+  // Setup change password form
+  const cpEmail = document.querySelector('#cpEmail');
+  if (cpEmail) cpEmail.value = userEmail_stored || '';
+
+  const cpForm = document.querySelector('#changePasswordForm');
+  if (cpForm) cpForm.style.display = 'none';
+  if (document.querySelector('#cpCurrentPassword')) document.querySelector('#cpCurrentPassword').value = '';
+  if (document.querySelector('#cpNewPassword')) document.querySelector('#cpNewPassword').value = '';
+
+  // Hide all tab contents and show profile view
+  document.querySelectorAll('.admin-tab-content').forEach(tab => {
+    tab.style.display = 'none';
+  });
+  document.getElementById('profile-view-container').style.display = 'block';
+  window.scrollTo(0, 0);
+};
+
+// Close profile view
+window.closeProfileView = function () {
+  document.getElementById('profile-view-container').style.display = 'none';
+  // Return to the tab highlighted in sidebar
+  const activeSidebarLink = document.querySelector('.sidebar__nav-link.active');
+  if (activeSidebarLink && activeSidebarLink.getAttribute('onclick')) {
+    const match = activeSidebarLink.getAttribute('onclick').match(/'([^']+)'/);
+    if (match && match[1]) {
+      const tabId = match[1];
+      const targetTab = document.getElementById(`${tabId}-tab`);
+      if (targetTab) {
+        targetTab.style.display = 'block';
+        return;
+      }
+    }
+  }
+  if (document.getElementById('dashboard-tab')) {
+    document.getElementById('dashboard-tab').style.display = 'block';
+  }
+};
+
+// Toggle change password form
+window.toggleChangePasswordForm = function () {
+  const form = document.querySelector('#changePasswordForm');
+  if (form) {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+};
+
+// Submit password change
+window.submitPasswordChange = async function () {
+  const email = document.querySelector('#cpEmail').value.trim();
+  const currentPassword = document.querySelector('#cpCurrentPassword').value;
+  const newPassword = document.querySelector('#cpNewPassword').value;
+
+  if (!email || !currentPassword || !newPassword) {
+    showToast('error', 'All fields are required.');
+    return;
+  }
+
+  const btn = document.querySelector('#submitPasswordBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, currentPassword, newPassword })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast('success', 'Password changed successfully!');
+      document.querySelector('#changePasswordForm').style.display = 'none';
+      document.querySelector('#cpCurrentPassword').value = '';
+      document.querySelector('#cpNewPassword').value = '';
+    } else {
+      showToast('error', data.message || 'Failed to change password.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+};
