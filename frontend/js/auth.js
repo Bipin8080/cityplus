@@ -9,6 +9,32 @@ function closeErrorModal() {
   document.getElementById('errorModal').style.display = 'none';
 }
 
+// Success Modal Function
+function showSuccessModal(title, message, redirectUrl) {
+  document.getElementById('successModalTitle').textContent = title;
+  document.getElementById('successModalMessage').textContent = message;
+  document.getElementById('successModal').style.display = 'flex';
+
+  const progressBar = document.getElementById('successProgressBar');
+  const countdownEl = document.getElementById('successCountdown');
+  let countdown = 3;
+
+  // Start progress bar animation
+  setTimeout(() => {
+    progressBar.style.width = '0%';
+  }, 50);
+
+  // Countdown timer
+  const timer = setInterval(() => {
+    countdown--;
+    countdownEl.textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      window.location.href = redirectUrl;
+    }
+  }, 1000);
+}
+
 // Close modal when clicking outside of it
 document.addEventListener('DOMContentLoaded', () => {
   const errorModal = document.getElementById('errorModal');
@@ -80,16 +106,24 @@ async function loginUser() {
       localStorage.setItem("userName", data.name);
     }
 
-    // Redirect based on role
+    // Redirect based on role with success modal
+    let dashboardUrl = '';
     if (data.role === "citizen") {
-      window.location.href = "citizen-dashboard.html";
+      dashboardUrl = "citizen-dashboard.html";
     } else if (data.role === "staff") {
-      window.location.href = "staff-dashboard.html";
+      dashboardUrl = "staff-dashboard.html";
     } else if (data.role === "admin") {
-      window.location.href = "admin-dashboard.html";
+      dashboardUrl = "admin-dashboard.html";
     } else {
       showErrorModal("Invalid Role", "Invalid user role detected. Please contact system administrator.");
+      return;
     }
+
+    showSuccessModal(
+      "Login Successful!",
+      `Welcome back${data.name ? ', ' + data.name : ''}! You are being redirected to your dashboard.`,
+      dashboardUrl
+    );
   } catch (err) {
     console.error(err);
     showErrorModal("System Error", "A system error occurred. Please try again later or contact support if the issue persists.");
@@ -173,14 +207,21 @@ async function registerUser() {
     localStorage.setItem("userName", name);
     localStorage.setItem("userEmail", email);
 
-    // Redirect based on role
+    // Redirect based on role with success modal
+    let regDashboardUrl = '';
     if (loginData.role === "citizen") {
-      window.location.href = "citizen-dashboard.html";
+      regDashboardUrl = "citizen-dashboard.html";
     } else if (loginData.role === "staff") {
-      window.location.href = "staff-dashboard.html";
+      regDashboardUrl = "staff-dashboard.html";
     } else if (loginData.role === "admin") {
-      window.location.href = "admin-dashboard.html";
+      regDashboardUrl = "admin-dashboard.html";
     }
+
+    showSuccessModal(
+      "Registration Successful!",
+      `Welcome to CityPlus, ${name}! Your account has been created. Redirecting to your dashboard.`,
+      regDashboardUrl
+    );
   } catch (err) {
     console.error(err);
     showToast('error', "A system error occurred during registration. Please try again later.");

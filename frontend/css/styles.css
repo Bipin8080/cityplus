@@ -5639,6 +5639,126 @@ td.action-cell {
   min-width: 100px;
 }
 
+/* ===== Success Modal Styles ===== */
+.success-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(6px);
+  animation: successBackdropIn 0.3s ease;
+}
+
+@keyframes successBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.success-modal {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  padding: 40px 32px 32px;
+  animation: successModalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes successModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.success-modal-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+  animation: successIconBounce 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes successIconBounce {
+  from {
+    transform: scale(0);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.success-modal-icon {
+  color: white;
+  font-size: 44px;
+}
+
+.success-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.success-modal-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.success-modal-redirect {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0 0 16px;
+  font-weight: 500;
+}
+
+.success-modal-redirect span {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.success-modal-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.success-modal-progress-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+
 /* ===== Animation for Refresh Button ===== */
 .spin-animation {
   animation: spin 1s linear infinite;
@@ -6130,15 +6250,62 @@ td.action-cell {
 }
 
 /* Notification responsive */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .navbar-dashboard .navbar-auth {
+    gap: 8px;
+  }
+
   .notif-panel {
-    width: calc(100vw - 32px);
-    right: -60px;
+    width: 320px;
+    right: -16px;
+  }
+
+  .notif-bell-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 
-@media (max-width: 768px) {
-  .navbar-auth {
-    gap: 8px;
+@media (max-width: 480px) {
+  .navbar-dashboard .navbar-auth {
+    gap: 6px;
+  }
+
+  .navbar-dashboard .navbar-auth .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .notif-bell-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .notif-bell-btn .material-icons-round {
+    font-size: 20px;
+  }
+
+  .notif-bell-wrapper {
+    position: static;
+  }
+
+  .notif-panel {
+    position: fixed;
+    top: 65px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: calc(100vh - 80px);
+    border-radius: 12px;
+  }
+
+  .notif-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .notif-panel-header {
+    padding: 12px 14px;
   }
 }
