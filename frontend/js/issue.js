@@ -17,6 +17,12 @@ async function submitIssue(event) {
     return;
   }
 
+  const imageInput = form.querySelector("#image");
+  if (!imageInput || !imageInput.files || imageInput.files.length === 0) {
+    showToast('warning', "Please upload a photo of the issue before submitting.");
+    return;
+  }
+
   // If user is not a logged-in citizen, show a modal prompting them to log in.
   if (!isLoggedIn) {
     if (typeof openLoginModal === "function") {

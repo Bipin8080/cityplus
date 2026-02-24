@@ -145,7 +145,7 @@
               <div class="stat-card__accent stat-card__accent--yellow"></div>
               <div class="stat-card__top">
                 <div>
-                  <p class="stat-card__label">Open Issues</p>
+                  <p class="stat-card__label">Pending Issues</p>
                   <h3 class="stat-card__value" id="iOpen">0</h3>
                 </div>
                 <div class="stat-card__icon stat-card__icon--yellow">
@@ -188,7 +188,7 @@
               </div>
               <div class="analytics-chart">
                 <div class="chart-bar">
-                  <div class="chart-bar-label">Open</div>
+                  <div class="chart-bar-label">Pending</div>
                   <div class="chart-bar-container">
                     <div class="chart-bar-fill" id="chart-open" style="width: 0%;" title="0%"></div>
                   </div>
@@ -298,7 +298,7 @@
               <label class="filter-label">Status</label>
               <select id="issueStatusFilter" class="filter-select">
                 <option value="">All Statuses</option>
-                <option value="Open">Open</option>
+                <option value="Pending">Pending</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Resolved">Resolved</option>
               </select>
@@ -659,7 +659,7 @@
                     <option value="">Select Staff Member...</option>
                   </select>
                 </div>
-                <button onclick="assignIssueToStaffModal()" class="btn btn-primary"
+                <button id="adminAssignIssueBtn" onclick="assignIssueToStaffModal()" class="btn btn-primary"
                   style="width: 100%; margin-bottom: 1.5rem;">
                   Assign Issue
                 </button>
@@ -672,7 +672,7 @@
                   <div class="form-group" style="margin-bottom: 0.75rem;">
                     <label class="form-label" style="font-size:0.875rem;">New Status</label>
                     <select id="adminModalStatusSelect" class="form-select" style="width: 100%;">
-                      <option value="Open">Open</option>
+                      <option value="Pending">Pending</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Resolved">Resolved</option>
                     </select>
@@ -852,6 +852,7 @@
 
   <div id="toast-container" class="toast-container"></div>
   <script src="js/theme.js"></script>
+  <script src="js/notifications.js"></script>
   <script src="js/admin-dashboard.js"></script>
 </body>
 

@@ -1,5 +1,6 @@
 import Issue from "../models/Issue.js";
 import User from "../models/User.js";
+import { createNotification, notifyAllAdmins } from "./notificationController.js";
 
 // Citizen: create issue
 export const createIssue = async (req, res, next) => {
@@ -10,8 +11,13 @@ export const createIssue = async (req, res, next) => {
     error.statusCode = 400;
     return next(error);
   }
-  // Get the Cloudinary URL for the uploaded image, if it exists
-  const imageUrl = req.file ? req.file.path : null;
+  // Image is required
+  if (!req.file) {
+    const error = new Error("An image is required. Please upload a photo of the issue.");
+    error.statusCode = 400;
+    return next(error);
+  }
+  const imageUrl = req.file.path;
 
   const issue = await Issue.create({
     title,
@@ -25,6 +31,14 @@ export const createIssue = async (req, res, next) => {
     lng,
     image: imageUrl, // Save the image URL to the database
   });
+
+  // Notify all admins about the new issue
+  notifyAllAdmins(
+    "issue_created",
+    "New Issue Reported",
+    `New issue reported: "${issue.title}" in Ward ${issue.ward}`,
+    issue._id
+  );
 
   res.status(201).json({
     success: true,
@@ -122,7 +136,7 @@ export const updateStatus = async (req, res, next) => {
   }
 
   const { status, note } = req.body;
-  const allowed = ["Open", "In Progress", "Resolved"];
+  const allowed = ["Pending", "In Progress", "Resolved"];
 
   if (!allowed.includes(status)) {
     const error = new Error("Invalid status");
@@ -143,20 +157,15 @@ export const updateStatus = async (req, res, next) => {
     return next(error);
   }
 
-  // Enforce strict linear progression
-  if (existingIssue.status === "Open" && status !== "In Progress") {
-    const error = new Error("An Open issue can only be changed to In Progress.");
+  // Allow backward transitions (e.g. In Progress -> Pending)
+  // Only block no-op (same status)
+  if (existingIssue.status === status) {
+    const error = new Error("Issue is already in this status.");
     error.statusCode = 400;
     return next(error);
   }
 
-  if (existingIssue.status === "In Progress" && status !== "Resolved") {
-    const error = new Error("An In Progress issue can only be changed to Resolved.");
-    error.statusCode = 400;
-    return next(error);
-  }
-
-  // Require image for changing to In Progress or Resolved
+  // Require image for changing to In Progress or Resolved (forward transitions only)
   if (status === "In Progress" || status === "Resolved") {
     if (!req.file) {
       const error = new Error(`An image proof is required to change status to ${status}.`);
@@ -178,6 +187,14 @@ export const updateStatus = async (req, res, next) => {
     updateData.resolvedAt = new Date();
     updateData.resolvedImage = imageUrl;
     updateData.resolvedNote = note || null;
+  } else if (status === "Pending") {
+    // Backward transition: clear in-progress data
+    updateData.inProgressAt = null;
+    updateData.inProgressImage = null;
+    updateData.inProgressNote = null;
+    updateData.resolvedAt = null;
+    updateData.resolvedImage = null;
+    updateData.resolvedNote = null;
   }
 
   // NOTE: Open status does not overwrite anything, it's the initial state. 
@@ -187,6 +204,17 @@ export const updateStatus = async (req, res, next) => {
     updateData,
     { new: true }
   );
+
+  // Notify the citizen who reported this issue about the status change
+  if (existingIssue.citizen) {
+    createNotification(
+      existingIssue.citizen,
+      "status_updated",
+      `Issue ${status}`,
+      `Your issue "${existingIssue.title}" is now ${status}`,
+      issue._id
+    );
+  }
 
   res.json({
     success: true,
@@ -219,6 +247,11 @@ export const assignIssue = async (req, res, next) => {
     return next(error);
   }
 
+  // Check if this is a reassignment
+  const existingIssue = await Issue.findById(req.params.id);
+  const previousStaffId = existingIssue ? existingIssue.assignedTo : null;
+  const isReassignment = previousStaffId && previousStaffId.toString() !== staffId;
+
   const issue = await Issue.findByIdAndUpdate(
     req.params.id,
     { assignedTo: staffId },
@@ -229,6 +262,38 @@ export const assignIssue = async (req, res, next) => {
     const error = new Error("Issue not found");
     error.statusCode = 404;
     return next(error);
+  }
+
+  // Notify the assigned staff member
+  const notifType = isReassignment ? "issue_reassigned" : "issue_assigned";
+  createNotification(
+    staffId,
+    notifType,
+    isReassignment ? "Issue Re-assigned to You" : "New Issue Assigned",
+    `You have been assigned issue: "${issue.title}"`,
+    issue._id
+  );
+
+  // Notify the citizen who reported the issue
+  if (issue.citizen) {
+    createNotification(
+      issue.citizen,
+      notifType,
+      isReassignment ? "Issue Re-assigned" : "Issue Assigned",
+      `Your issue "${issue.title}" has been ${isReassignment ? "re-assigned" : "assigned"} to a staff member`,
+      issue._id
+    );
+  }
+
+  // If reassignment, notify the previous staff
+  if (isReassignment && previousStaffId) {
+    createNotification(
+      previousStaffId,
+      "issue_reassigned",
+      "Issue Re-assigned Away",
+      `Issue "${issue.title}" has been re-assigned to another staff member`,
+      issue._id
+    );
   }
 
   res.json({
@@ -303,6 +368,26 @@ export const addFeedback = async (req, res, next) => {
   };
 
   await issue.save();
+
+  // Notify assigned staff about the feedback
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+  if (issue.assignedTo) {
+    createNotification(
+      issue.assignedTo,
+      "feedback_received",
+      "Feedback Received",
+      `Citizen rated your resolved issue "${issue.title}" ${stars}`,
+      issue._id
+    );
+  }
+
+  // Notify all admins about the feedback
+  notifyAllAdmins(
+    "feedback_received",
+    "Feedback Received",
+    `Citizen rated resolved issue "${issue.title}" ${stars}`,
+    issue._id
+  );
 
   res.json({
     success: true,

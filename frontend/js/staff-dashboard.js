@@ -104,7 +104,7 @@ function renderStaffIssues() {
       ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
       : "-";
 
-    const statusOptions = ["Open", "In Progress", "Resolved"]
+    const statusOptions = ["Pending", "In Progress", "Resolved"]
       .map(s => `<option value="${s}" ${issue.status === s ? "selected" : ""}>${s}</option>`)
       .join("");
 
@@ -112,7 +112,7 @@ function renderStaffIssues() {
     tr.setAttribute("data-id", issue._id);
 
     // For "All Issues" view: disable action. For "Assigned" view, show view button.
-    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'open';
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
     const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
     const statusCell = `<td>${statusBadge}</td>`;
 
@@ -336,7 +336,7 @@ function openStaffIssueDetails(issue) {
     day: "2-digit", month: "short", year: "numeric"
   });
 
-  let statusClass = "open";
+  let statusClass = "pending";
   if (issue.status === "In Progress") statusClass = "progress";
   if (issue.status === "Resolved") statusClass = "resolved";
 
@@ -392,15 +392,9 @@ function openStaffIssueDetails(issue) {
       statusSelect.value = issue.status;
       statusSelect.dataset.issueId = issue._id;
 
-      // Disable invalid transitions (gray out)
+      // Enable all status options (backward transitions allowed)
       Array.from(statusSelect.options).forEach(opt => {
-        if (issue.status === "Open") {
-          opt.disabled = (opt.value === "Resolved");
-        } else if (issue.status === "In Progress") {
-          opt.disabled = (opt.value === "Open");
-        } else {
-          opt.disabled = false;
-        }
+        opt.disabled = false;
       });
     }
     if (noteInput) noteInput.value = "";

@@ -7,6 +7,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import issueRoutes from "./routes/issueRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 
 // Path setup for ES Modules
@@ -31,6 +32,7 @@ app.use(express.static(path.join(__dirname, "../frontend")));
 app.use("/api/auth", authRoutes);
 app.use("/api/issues", issueRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Serve frontend for all other routes
 app.get("*", (req, res) => {

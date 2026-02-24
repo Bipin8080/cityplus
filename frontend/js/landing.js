@@ -74,7 +74,7 @@ async function loadRecentIssues() {
         day: "2-digit", month: "short", year: "numeric"
       });
 
-      let statusClass = "open";
+      let statusClass = "pending";
       if (issue.status === "In Progress") statusClass = "progress";
       if (issue.status === "Resolved") statusClass = "resolved";
 
@@ -186,7 +186,7 @@ function openIssueDetails(issue) {
   // Status with badge style
   let statusColor = "var(--slate-500)";
   let statusBg = "var(--slate-100)";
-  if (issue.status === "Open") { statusColor = "var(--yellow-600)"; statusBg = "rgba(234, 179, 8, 0.1)"; }
+  if (issue.status === "Pending") { statusColor = "var(--yellow-600)"; statusBg = "rgba(234, 179, 8, 0.1)"; }
   if (issue.status === "In Progress") { statusColor = "var(--blue-600)"; statusBg = "rgba(59, 130, 246, 0.1)"; }
   if (issue.status === "Resolved") { statusColor = "var(--green-600)"; statusBg = "rgba(34, 197, 94, 0.1)"; }
   document.getElementById("pageStatus").innerHTML = `<span style="background: ${statusBg}; color: ${statusColor}; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">${issue.status || '--'}</span>`;

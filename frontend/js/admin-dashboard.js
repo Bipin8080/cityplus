@@ -343,7 +343,7 @@ function openAdminIssueDetails(issue, staffList) {
     day: "2-digit", month: "short", year: "numeric"
   });
 
-  let statusClass = "open";
+  let statusClass = "pending";
   if (issue.status === "In Progress") statusClass = "progress";
   if (issue.status === "Resolved") statusClass = "resolved";
 
@@ -396,6 +396,12 @@ function openAdminIssueDetails(issue, staffList) {
   });
   staffSelect.dataset.issueId = issue._id;
 
+  // Dynamic assign/reassign button text
+  const assignBtn = document.getElementById("adminAssignIssueBtn");
+  if (assignBtn) {
+    assignBtn.textContent = issue.assignedTo ? "Reassign Issue" : "Assign Issue";
+  }
+
   // Set status form or show resolved message
   const statusForm = document.getElementById("adminModalStatusForm");
   const resolvedMsg = document.getElementById("adminModalStatusResolvedMsg");
@@ -413,15 +419,9 @@ function openAdminIssueDetails(issue, staffList) {
       statusSelect.value = issue.status;
       statusSelect.dataset.issueId = issue._id;
 
-      // Disable invalid transitions (gray out)
+      // Enable all status options (backward transitions allowed)
       Array.from(statusSelect.options).forEach(opt => {
-        if (issue.status === "Open") {
-          opt.disabled = (opt.value === "Resolved");
-        } else if (issue.status === "In Progress") {
-          opt.disabled = (opt.value === "Open");
-        } else {
-          opt.disabled = false;
-        }
+        opt.disabled = false;
       });
     }
     if (noteInput) noteInput.value = "";
@@ -701,7 +701,7 @@ function displayIssues(issues) {
     const assignedName = issue.assignedTo ? issue.assignedTo.name : "";
     const citizenName = issue.citizen ? issue.citizen.name : "-";
 
-    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'open';
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
     const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
     const imageCell = issue.image
       ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
@@ -1049,7 +1049,7 @@ function renderUserActivity(user) {
 
   userIssues.forEach(issue => {
     const d = new Date(issue.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'open';
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
 
     const div = document.createElement("div");
     div.style.cssText = "padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--surface); display: flex; flex-direction: column; gap: 0.25rem;";

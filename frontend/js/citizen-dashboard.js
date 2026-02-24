@@ -178,7 +178,7 @@ function updateStats() {
 
   filteredIssues.forEach(issue => {
     total++;
-    if (issue.status === 'Open') open++;
+    if (issue.status === 'Pending') open++;
     else if (issue.status === 'In Progress') progress++;
     else if (issue.status === 'Resolved') resolved++;
   });
@@ -212,7 +212,7 @@ function renderTable() {
     });
 
     let statusClass = 'pending';
-    let statusLabel = 'Open';
+    let statusLabel = 'Pending';
     if (issue.status === 'In Progress') {
       statusClass = 'inprogress';
       statusLabel = 'In Progress';
@@ -331,7 +331,7 @@ function renderAllIssuesTable() {
     });
 
     let statusClass = 'pending';
-    let statusLabel = 'Open';
+    let statusLabel = 'Pending';
     if (issue.status === 'In Progress') {
       statusClass = 'inprogress';
       statusLabel = 'In Progress';

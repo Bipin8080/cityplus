@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Issue from "../models/Issue.js";
+import { createNotification } from "./notificationController.js";
 
 // GET /api/admin/summary
 export const getSummary = async (req, res, next) => {
@@ -12,7 +13,7 @@ export const getSummary = async (req, res, next) => {
 
   const [totalIssues, openCount, progressCount, resolvedCount] = await Promise.all([
     Issue.countDocuments(),
-    Issue.countDocuments({ status: "Open" }),
+    Issue.countDocuments({ status: "Pending" }),
     Issue.countDocuments({ status: "In Progress" }),
     Issue.countDocuments({ status: "Resolved" })
   ]);
@@ -86,6 +87,15 @@ export const updateUserStatus = async (req, res, next) => {
 
   user.status = status;
   await user.save();
+
+  // Notify the affected user about their account status change
+  createNotification(
+    userId,
+    "account_status_changed",
+    "Account Status Updated",
+    `Your account has been ${status} by an administrator`,
+    null
+  );
 
   res.json({ success: true, message: `User status updated to ${status}.`, user });
 };
