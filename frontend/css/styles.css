@@ -338,18 +338,24 @@ body>div:not(.app-shell) {
 
   .navbar-inner {
     flex-wrap: wrap;
-    padding-top: 15px;
-    padding-bottom: 15px;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 
   .navbar-menu {
     display: none;
     width: 100%;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--bg-secondary);
     flex-direction: column;
     align-items: flex-start;
-    padding: 1rem 0;
+    padding: 1.5rem 5%;
     gap: 1rem;
     order: 3;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   }
 
   .navbar-menu.show {
@@ -368,9 +374,32 @@ body>div:not(.app-shell) {
   .navbar-auth.show {
     display: flex;
     width: 100%;
+    position: absolute;
+    top: calc(100% + 220px);
+    /* rough position under menu */
+    left: 0;
+    background: var(--bg-secondary);
+    padding: 0 5% 1.5rem;
     justify-content: flex-start;
-    padding-bottom: 1rem;
     order: 4;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title {
+    font-size: 20px;
+  }
+
+  .btn.btn-outline {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .navbar-login .navbar-inner,
+  .navbar-dashboard .navbar-inner {
+    gap: 10px;
   }
 }
 
@@ -587,6 +616,9 @@ body>div:not(.app-shell) {
   font-weight: 600;
   border: 1px solid rgba(30, 64, 175, 0.15);
   transition: all 0.3s ease;
+  white-space: normal;
+  text-align: center;
+  flex: 1 1 auto;
 }
 
 .badge:hover {
@@ -610,6 +642,11 @@ body>div:not(.app-shell) {
   flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 32px;
+}
+
+.hero-actions .btn {
+  flex: 1 1 auto;
+  text-align: center;
 }
 
 .hero-meta {
@@ -2232,6 +2269,16 @@ body>div:not(.app-shell) {
 @media (max-width: 640px) {
   .faq {
     padding: 3rem 0;
+  }
+
+  .auth-card {
+    padding: 24px;
+    margin: 16px;
+    width: 100%;
+  }
+
+  .auth-container {
+    padding: 10px;
   }
 
   .section-header {
@@ -5731,6 +5778,7 @@ td.action-cell {
     display: block;
   }
 
+
   /* Modals */
   .modal,
   .issue-modal,
@@ -5789,9 +5837,21 @@ td.action-cell {
   gap: 2rem;
 }
 
+.issue-details-grid span {
+  word-break: break-word;
+}
+
 @media (max-width: 900px) {
   .issue-details-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .issue-details-grid [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 0.25rem !important;
+    margin-bottom: 1rem !important;
   }
 }
