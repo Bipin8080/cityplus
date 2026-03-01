@@ -626,11 +626,10 @@
                     <label class="form-label"
                       style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Email
                       Address</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                      <input type="email" id="cpEmail" class="form-input" style="flex: 1; box-sizing:border-box;"
-                        readonly>
-                      <button class="btn btn-outline" style="white-space: nowrap;" onclick="sendChangePasswordOTP()"
-                        id="sendCpOtpBtn">Send OTP</button>
+                    <div class="otp-input-group">
+                      <input type="email" id="cpEmail" class="form-input" readonly>
+                      <button class="btn btn-outline" onclick="sendChangePasswordOTP()" id="sendCpOtpBtn">Send
+                        OTP</button>
                     </div>
                   </div>
                   <div class="form-group" style="margin-bottom: 1rem;">

@@ -9,6 +9,7 @@
     <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" />
     <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
     <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" alt="Cloudinary" />
+    <img src="https://img.shields.io/badge/PWA-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA" />
   </p>
 </div>
 
@@ -27,10 +28,11 @@ The system provides a seamless online submission portal for citizens, while equi
 ## ✨ Key Features & Enhancements
 
 ### 👤 Citizen Module
-- **Authentication**: Secure user registration and login functionality.
+- **Authentication**: Secure user registration and login functionality, enhanced with secure OTP-based password verification.
 - **Issue Reporting**: Users can seamlessly report civic issues with relevant details, categorize the incident by type, and upload images as tangible evidence.
 - **Real-Time Tracking**: Citizens have a dedicated dashboard to view all their submitted reports and track progressive resolution statuses in real-time.
-- **Modern User Interface**: A clean, intuitive dashboard interface with persistent Dark/Light mode theme selections, collapsible sidebar navigation, and fluid responsive styling.
+- **Modern User Interface**: A clean, intuitive dashboard interface with persistent Dark/Light mode theme selections, collapsible mini-sidebar navigation, skeletal loading states, and fluid responsive styling.
+- **Progressive Web App (PWA)**: Installable web application offering an app-like experience with service worker integration.
 
 ### 🛡️ Admin & Staff Module
 - **Role-Based Access Control**: Dedicated, secure authentication portals separating Admin and Staff tier users.
@@ -98,6 +100,8 @@ Ensure you have the following services installed:
    CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
    CLOUDINARY_API_KEY=your_cloudinary_api_key
    CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+   SMTP_USER=your_email_address
+   SMTP_PASS=your_email_password
    ```
 
 4. **Start the development server:**
@@ -136,8 +140,8 @@ The backend exposes a well-defined RESTful API for client consumption:
 ## 🔐 Security & Best Practices
 
 - **Scalable Media Management**: Migrated reporting media logic to Cloudinary to handle assets efficiently, avoiding local server bloat and ensuring high cloud availability.
-- **Environment Isolation**: Sensitive credentials, database URIs, and API keys are stored in a `.env` file kept safely out of version control systems via `.gitignore`.
-- **Stateless Authentication**: Protected API routes universally mandate JSON Web Tokens (JWT) passed securely via the HTTP authorization header protocols.
+- **Secure Authentication & Recovery**: Protected API routes universally mandate JSON Web Tokens (JWT). Password modifications are comprehensively secured with time-sensitive OTP verification delivered via email.
+- **Environment Isolation**: Sensitive credentials, database URIs, API keys, and email service credentials are stored in a `.env` file kept safely out of version control systems via `.gitignore`.
 - **MVC Architecture Pattern**: The server-side codebase is uniformly structured following the Model-View-Controller framework paradigm for robust long-term maintainability.
 
 ---
