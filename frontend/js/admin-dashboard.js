@@ -450,6 +450,36 @@ function openAdminIssueDetails(issue, staffList) {
     feedbackSection.style.display = "none";
   }
 
+  // Initialize Map if coordinates present
+  const mapContainer = document.getElementById('adminModalMapContainer');
+  const mapEl = document.getElementById('adminModalMap');
+
+  if (issue.lat && issue.lng && window.isLeafletLoaded) {
+    mapContainer.style.display = 'block';
+
+    setTimeout(() => {
+      // Clear previous map instance if it exists
+      if (window.adminIssueMap) {
+        window.adminIssueMap.remove();
+      }
+
+      const pos = [issue.lat, issue.lng];
+      window.adminIssueMap = L.map(mapEl).setView(pos, 15);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.adminIssueMap);
+
+      L.marker(pos).addTo(window.adminIssueMap);
+
+      // Fix map styling glitch
+      setTimeout(() => { window.adminIssueMap.invalidateSize() }, 100);
+    }, 100);
+  } else {
+    mapContainer.style.display = 'none';
+  }
+
   // Render Timeline
   const timelineContent = document.getElementById("adminModalTimelineContent");
   let timelineHtml = '';
@@ -1108,7 +1138,7 @@ async function updateUserDetailsStatus() {
 }
 
 // Setup logout confirmation listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Set user profile in sidebar
   const userName_stored = localStorage.getItem('userName');
   const userEmail_stored = localStorage.getItem('userEmail');
@@ -1123,6 +1153,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load initial data
   loadAdminData();
+
+  // Load Leaflet API
+  if (window.loadLeafletApi) await window.loadLeafletApi();
 
   // Remove the main navigation menu on dashboard pages for a cleaner look
   const menu = document.querySelector('.navbar-menu');
@@ -1284,11 +1317,12 @@ window.toggleChangePasswordForm = function () {
 // Submit password change
 window.submitPasswordChange = async function () {
   const email = document.querySelector('#cpEmail').value.trim();
+  const otp = document.querySelector('#cpOtpCode').value.trim();
   const currentPassword = document.querySelector('#cpCurrentPassword').value;
   const newPassword = document.querySelector('#cpNewPassword').value;
 
-  if (!email || !currentPassword || !newPassword) {
-    showToast('error', 'All fields are required.');
+  if (!email || !otp || !currentPassword || !newPassword) {
+    showToast('error', 'All fields, including OTP, are required.');
     return;
   }
 
@@ -1301,17 +1335,57 @@ window.submitPasswordChange = async function () {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword })
+      body: JSON.stringify({ email, currentPassword, newPassword, otp })
     });
     const data = await res.json();
 
     if (res.ok) {
       showToast('success', 'Password changed successfully!');
       document.querySelector('#changePasswordForm').style.display = 'none';
+      document.querySelector('#cpOtpCode').value = '';
       document.querySelector('#cpCurrentPassword').value = '';
       document.querySelector('#cpNewPassword').value = '';
     } else {
       showToast('error', data.message || 'Failed to change password.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+};
+
+// Send OTP for Change Password
+window.sendChangePasswordOTP = async function () {
+  const email = document.querySelector('#cpEmail').value.trim();
+  if (!email) {
+    showToast('error', 'Email is required to send OTP.');
+    return;
+  }
+
+  const btn = document.querySelector('#sendCpOtpBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/auth/send-change-password-otp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token
+      },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast('success', 'OTP sent to your email.');
+    } else {
+      showToast('error', data.message || 'Failed to send OTP.');
     }
   } catch (err) {
     console.error(err);

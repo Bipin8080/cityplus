@@ -54,9 +54,16 @@ const IssueSchema = new mongoose.Schema(
       rating: { type: Number, min: 1, max: 5 },
       text: { type: String },
       submittedAt: { type: Date }
-    }
+    },
+
+    // Soft delete flag
+    deleted: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
+
+// Compound index for efficient filtered + sorted queries
+IssueSchema.index({ status: 1, createdAt: -1 });
+IssueSchema.index({ deleted: 1, createdAt: -1 });
 
 export default mongoose.model("Issue", IssueSchema);

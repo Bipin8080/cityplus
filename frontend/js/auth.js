@@ -170,9 +170,20 @@ async function registerUser() {
   }
 
   try {
+    // Staff/Admin registration requires admin authentication
+    const headers = { "Content-Type": "application/json" };
+    if (role === "staff" || role === "admin") {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        showToast('error', "You must be logged in as an admin to register staff or admin accounts.");
+        return;
+      }
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const res = await fetch(`${endpoint}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ name, email, password })
     });
 
@@ -227,3 +238,158 @@ async function registerUser() {
     showToast('error', "A system error occurred during registration. Please try again later.");
   }
 }
+
+// ──── Forgot Password Flow ──────────────────────────────────────────────
+let fpEmail = '';
+
+function openForgotPasswordModal() {
+  document.getElementById('forgotPasswordModal').style.display = 'flex';
+  document.getElementById('fpStep1').style.display = 'block';
+  document.getElementById('fpStep2').style.display = 'none';
+  document.getElementById('fpStep3').style.display = 'none';
+  document.getElementById('fpEmail').value = '';
+  fpEmail = '';
+}
+
+function closeForgotPasswordModal() {
+  document.getElementById('forgotPasswordModal').style.display = 'none';
+}
+
+async function sendForgotPasswordOTP() {
+  const email = document.getElementById('fpEmail').value.trim();
+  if (!email) {
+    showToast('warning', 'Please enter your email address.');
+    return;
+  }
+
+  const btn = document.getElementById('fpSendBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast('error', data.message || 'Failed to send OTP.');
+      return;
+    }
+
+    fpEmail = email;
+    document.getElementById('fpEmailDisplay').textContent = email;
+    document.getElementById('fpStep1').style.display = 'none';
+    document.getElementById('fpStep2').style.display = 'block';
+    showToast('success', 'OTP sent to your email!');
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'A system error occurred. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send OTP';
+  }
+}
+
+async function verifyForgotPasswordOTP() {
+  const otp = document.getElementById('fpOTP').value.trim();
+  if (!otp || otp.length !== 6) {
+    showToast('warning', 'Please enter the 6-digit code.');
+    return;
+  }
+
+  const btn = document.getElementById('fpVerifyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+
+  try {
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: fpEmail, otp })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast('error', data.message || 'Invalid OTP.');
+      return;
+    }
+
+    document.getElementById('fpStep2').style.display = 'none';
+    document.getElementById('fpStep3').style.display = 'block';
+    showToast('success', 'OTP verified! Set your new password.');
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'A system error occurred. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verify Code';
+  }
+}
+
+async function resetForgotPassword() {
+  const newPassword = document.getElementById('fpNewPassword').value;
+  const confirmPassword = document.getElementById('fpConfirmPassword').value;
+
+  if (!newPassword || !confirmPassword) {
+    showToast('warning', 'Please fill in both password fields.');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showToast('warning', 'Passwords do not match.');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showToast('warning', 'Password must be at least 6 characters.');
+    return;
+  }
+
+  const btn = document.getElementById('fpResetBtn');
+  btn.disabled = true;
+  btn.textContent = 'Resetting...';
+
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: fpEmail, newPassword })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast('error', data.message || 'Failed to reset password.');
+      return;
+    }
+
+    showToast('success', 'Password reset successfully! You can now log in.');
+    closeForgotPasswordModal();
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'A system error occurred. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Reset Password';
+  }
+}
+
+async function resendOTP() {
+  showToast('info', 'Resending OTP...');
+  await sendForgotPasswordOTP();
+}
+
+// Close forgot password modal when clicking outside
+document.addEventListener('DOMContentLoaded', () => {
+  const fpModal = document.getElementById('forgotPasswordModal');
+  if (fpModal) {
+    fpModal.addEventListener('click', (e) => {
+      if (e.target === fpModal) closeForgotPasswordModal();
+    });
+  }
+});

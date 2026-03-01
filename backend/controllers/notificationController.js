@@ -1,16 +1,41 @@
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
+import { emitToUser } from "../config/socket.js";
+import { sendEmail } from "../config/email.js";
+import { notificationTemplate } from "../utils/emailTemplates.js";
 
 // ─── Helper: create a notification ───────────────────────────────────
 // Called internally by other controllers to generate notifications.
+// Creates in-app notification, emits via Socket.IO, and sends email.
 export const createNotification = async (recipientId, type, title, message, issueId = null) => {
     try {
-        await Notification.create({ recipient: recipientId, type, title, message, issueId });
+        const notification = await Notification.create({ recipient: recipientId, type, title, message, issueId });
+
+        // Emit real-time event via Socket.IO
+        emitToUser(recipientId.toString(), "new_notification", {
+            notification: notification.toObject()
+        });
+
+        // Send email notification (async, non-blocking)
+        sendEmailToUser(recipientId, title, message).catch(() => { });
     } catch (err) {
         // Log but don't throw — notifications should never break the main flow
         console.error("Failed to create notification:", err.message);
     }
 };
+
+// Helper: send email to a user by their ID
+async function sendEmailToUser(userId, title, message) {
+    try {
+        const user = await User.findById(userId, "email name");
+        if (user && user.email) {
+            const html = notificationTemplate(title, message);
+            await sendEmail(user.email, `CityPlus: ${title}`, html);
+        }
+    } catch (err) {
+        console.error("Failed to send email notification:", err.message);
+    }
+}
 
 // Helper: notify all admins
 export const notifyAllAdmins = async (type, title, message, issueId = null) => {

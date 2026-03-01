@@ -2,7 +2,7 @@ import Issue from "../models/Issue.js";
 import User from "../models/User.js";
 import { createNotification, notifyAllAdmins } from "./notificationController.js";
 
-// Citizen: create issue
+// ──── Citizen: create issue ──────────────────────────────────────────────
 export const createIssue = async (req, res, next) => {
   const { title, category, ward, location, priority, description, lat, lng } = req.body;
 
@@ -11,7 +11,6 @@ export const createIssue = async (req, res, next) => {
     error.statusCode = 400;
     return next(error);
   }
-  // Image is required
   if (!req.file) {
     const error = new Error("An image is required. Please upload a photo of the issue.");
     error.statusCode = 400;
@@ -29,7 +28,7 @@ export const createIssue = async (req, res, next) => {
     citizen: req.user.id,
     lat,
     lng,
-    image: imageUrl, // Save the image URL to the database
+    image: imageUrl,
   });
 
   // Notify all admins about the new issue
@@ -48,9 +47,9 @@ export const createIssue = async (req, res, next) => {
   });
 };
 
-// Citizen: my issues
+// ──── Citizen: my issues ─────────────────────────────────────────────────
 export const getMyIssues = async (req, res, next) => {
-  const issues = await Issue.find({ citizen: req.user.id })
+  const issues = await Issue.find({ citizen: req.user.id, deleted: { $ne: true } })
     .populate("assignedTo", "name")
     .sort({ createdAt: -1 });
 
@@ -62,12 +61,11 @@ export const getMyIssues = async (req, res, next) => {
   });
 };
 
-// Public: get issues for landing page
+// ──── Public: get issues for landing page ────────────────────────────────
 export const getPublicIssues = async (req, res, next) => {
-  // Fetch recent issues for the public homepage, without sensitive data.
-  const issues = await Issue.find()
+  const issues = await Issue.find({ deleted: { $ne: true } })
     .sort({ createdAt: -1 })
-    .limit(50); // Limit the number of issues shown on the public page
+    .limit(50);
 
   res.json({
     success: true,
@@ -77,9 +75,8 @@ export const getPublicIssues = async (req, res, next) => {
   });
 };
 
-// Staff/Admin/Citizen: all issues (requires authentication)
-// Staff/Admin see full details including citizen and assigned staff info
-// Citizens see all issues but without citizen names and assigned staff info
+// ──── Staff/Admin/Citizen: all issues with pagination & filtering ────────
+// Query params: ?page=1&limit=10&status=Pending&ward=5&category=Roads&search=pothole
 export const getAllIssues = async (req, res, next) => {
   if (req.user.role !== "staff" && req.user.role !== "admin" && req.user.role !== "citizen") {
     const error = new Error("Access denied");
@@ -87,13 +84,50 @@ export const getAllIssues = async (req, res, next) => {
     return next(error);
   }
 
-  let query = Issue.find().sort({ createdAt: -1 });
+  // Build filter object
+  const filter = { deleted: { $ne: true } };
 
-  // Staff and admin see full details with citizen and assigned staff info
+  if (req.query.status && req.query.status !== "all") {
+    filter.status = req.query.status;
+  }
+  if (req.query.ward) {
+    filter.ward = req.query.ward;
+  }
+  if (req.query.category) {
+    filter.category = req.query.category;
+  }
+  if (req.query.priority) {
+    filter.priority = req.query.priority;
+  }
+  if (req.query.search) {
+    const searchRegex = new RegExp(req.query.search, "i");
+    filter.$or = [
+      { title: searchRegex },
+      { description: searchRegex },
+      { location: searchRegex }
+    ];
+  }
+
+  // Pagination
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 0));
+  // limit=0 means no pagination (return all) — for backward compatibility
+  const skip = limit > 0 ? (page - 1) * limit : 0;
+
+  // Count total matching documents
+  const total = await Issue.countDocuments(filter);
+
+  // Build query
+  let query = Issue.find(filter).sort({ createdAt: -1 });
+
+  if (limit > 0) {
+    query = query.skip(skip).limit(limit);
+  }
+
+  // Populate based on role
   if (req.user.role === "staff" || req.user.role === "admin") {
     query = query.populate("citizen", "name email").populate("assignedTo", "name email");
   } else {
-    // Citizens see issues with assigned staff name
     query = query.populate("assignedTo", "name");
   }
 
@@ -103,11 +137,17 @@ export const getAllIssues = async (req, res, next) => {
     success: true,
     message: "Issues fetched successfully",
     data: { issues },
-    issues
+    issues,
+    pagination: {
+      total,
+      page,
+      limit: limit || total,
+      pages: limit > 0 ? Math.ceil(total / limit) : 1
+    }
   });
 };
 
-// Staff: my assigned issues
+// ──── Staff: my assigned issues ──────────────────────────────────────────
 export const getMyAssignedIssues = async (req, res, next) => {
   if (req.user.role !== "staff") {
     const error = new Error("Staff only");
@@ -115,7 +155,7 @@ export const getMyAssignedIssues = async (req, res, next) => {
     return next(error);
   }
 
-  const issues = await Issue.find({ assignedTo: req.user.id })
+  const issues = await Issue.find({ assignedTo: req.user.id, deleted: { $ne: true } })
     .populate("citizen", "name email")
     .sort({ createdAt: -1 });
 
@@ -127,7 +167,7 @@ export const getMyAssignedIssues = async (req, res, next) => {
   });
 };
 
-// Staff/Admin: change status
+// ──── Staff/Admin: change status ─────────────────────────────────────────
 export const updateStatus = async (req, res, next) => {
   if (req.user.role !== "staff" && req.user.role !== "admin") {
     const error = new Error("Access denied");
@@ -157,15 +197,13 @@ export const updateStatus = async (req, res, next) => {
     return next(error);
   }
 
-  // Allow backward transitions (e.g. In Progress -> Pending)
-  // Only block no-op (same status)
   if (existingIssue.status === status) {
     const error = new Error("Issue is already in this status.");
     error.statusCode = 400;
     return next(error);
   }
 
-  // Require image for changing to In Progress or Resolved (forward transitions only)
+  // Require image for forward transitions
   if (status === "In Progress" || status === "Resolved") {
     if (!req.file) {
       const error = new Error(`An image proof is required to change status to ${status}.`);
@@ -176,7 +214,6 @@ export const updateStatus = async (req, res, next) => {
 
   const imageUrl = req.file ? req.file.path : null;
 
-  // Prepare the update object
   const updateData = { status };
 
   if (status === "In Progress") {
@@ -188,7 +225,6 @@ export const updateStatus = async (req, res, next) => {
     updateData.resolvedImage = imageUrl;
     updateData.resolvedNote = note || null;
   } else if (status === "Pending") {
-    // Backward transition: clear in-progress data
     updateData.inProgressAt = null;
     updateData.inProgressImage = null;
     updateData.inProgressNote = null;
@@ -197,15 +233,13 @@ export const updateStatus = async (req, res, next) => {
     updateData.resolvedNote = null;
   }
 
-  // NOTE: Open status does not overwrite anything, it's the initial state. 
-
   const issue = await Issue.findByIdAndUpdate(
     req.params.id,
     updateData,
     { new: true }
   );
 
-  // Notify the citizen who reported this issue about the status change
+  // Notify the citizen
   if (existingIssue.citizen) {
     createNotification(
       existingIssue.citizen,
@@ -224,7 +258,7 @@ export const updateStatus = async (req, res, next) => {
   });
 };
 
-// Admin: assign staff to issue
+// ──── Admin: assign staff to issue ───────────────────────────────────────
 export const assignIssue = async (req, res, next) => {
   if (req.user.role !== "admin") {
     const error = new Error("Admin only");
@@ -247,7 +281,6 @@ export const assignIssue = async (req, res, next) => {
     return next(error);
   }
 
-  // Check if this is a reassignment
   const existingIssue = await Issue.findById(req.params.id);
   const previousStaffId = existingIssue ? existingIssue.assignedTo : null;
   const isReassignment = previousStaffId && previousStaffId.toString() !== staffId;
@@ -264,7 +297,6 @@ export const assignIssue = async (req, res, next) => {
     return next(error);
   }
 
-  // Notify the assigned staff member
   const notifType = isReassignment ? "issue_reassigned" : "issue_assigned";
   createNotification(
     staffId,
@@ -274,7 +306,6 @@ export const assignIssue = async (req, res, next) => {
     issue._id
   );
 
-  // Notify the citizen who reported the issue
   if (issue.citizen) {
     createNotification(
       issue.citizen,
@@ -285,7 +316,6 @@ export const assignIssue = async (req, res, next) => {
     );
   }
 
-  // If reassignment, notify the previous staff
   if (isReassignment && previousStaffId) {
     createNotification(
       previousStaffId,
@@ -304,13 +334,13 @@ export const assignIssue = async (req, res, next) => {
   });
 };
 
-// Get single issue
+// ──── Get single issue ───────────────────────────────────────────────────
 export const getIssueById = async (req, res, next) => {
   const issue = await Issue.findById(req.params.id)
     .populate("citizen", "name email")
     .populate("assignedTo", "name email");
 
-  if (!issue) {
+  if (!issue || issue.deleted) {
     const error = new Error("Issue not found");
     error.statusCode = 404;
     return next(error);
@@ -324,7 +354,7 @@ export const getIssueById = async (req, res, next) => {
   });
 };
 
-// Citizen: Add feedback to a resolved issue
+// ──── Citizen: Add feedback ──────────────────────────────────────────────
 export const addFeedback = async (req, res, next) => {
   const { rating, text } = req.body;
 
@@ -342,7 +372,6 @@ export const addFeedback = async (req, res, next) => {
     return next(error);
   }
 
-  // Ensure issuer is the citizen who reported it
   if (issue.citizen.toString() !== req.user.id) {
     const error = new Error("Not authorized to leave feedback on this issue");
     error.statusCode = 403;
@@ -369,7 +398,6 @@ export const addFeedback = async (req, res, next) => {
 
   await issue.save();
 
-  // Notify assigned staff about the feedback
   const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
   if (issue.assignedTo) {
     createNotification(
@@ -381,7 +409,6 @@ export const addFeedback = async (req, res, next) => {
     );
   }
 
-  // Notify all admins about the feedback
   notifyAllAdmins(
     "feedback_received",
     "Feedback Received",
@@ -397,3 +424,110 @@ export const addFeedback = async (req, res, next) => {
   });
 };
 
+// ──── Admin: soft delete issue ───────────────────────────────────────────
+export const deleteIssue = async (req, res, next) => {
+  if (req.user.role !== "admin") {
+    const error = new Error("Admin only");
+    error.statusCode = 403;
+    return next(error);
+  }
+
+  const issue = await Issue.findById(req.params.id);
+  if (!issue) {
+    const error = new Error("Issue not found");
+    error.statusCode = 404;
+    return next(error);
+  }
+
+  if (issue.deleted) {
+    const error = new Error("Issue is already deleted");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  issue.deleted = true;
+  await issue.save();
+
+  res.json({
+    success: true,
+    message: "Issue deleted successfully"
+  });
+};
+
+// ──── Admin: restore soft-deleted issue ──────────────────────────────────
+export const restoreIssue = async (req, res, next) => {
+  if (req.user.role !== "admin") {
+    const error = new Error("Admin only");
+    error.statusCode = 403;
+    return next(error);
+  }
+
+  const issue = await Issue.findById(req.params.id);
+  if (!issue) {
+    const error = new Error("Issue not found");
+    error.statusCode = 404;
+    return next(error);
+  }
+
+  if (!issue.deleted) {
+    const error = new Error("Issue is not deleted");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  issue.deleted = false;
+  await issue.save();
+
+  res.json({
+    success: true,
+    message: "Issue restored successfully"
+  });
+};
+
+// ──── Admin: export issues as CSV ────────────────────────────────────────
+export const exportIssues = async (req, res, next) => {
+  if (req.user.role !== "admin") {
+    const error = new Error("Admin only");
+    error.statusCode = 403;
+    return next(error);
+  }
+
+  // Build same filter as getAllIssues
+  const filter = { deleted: { $ne: true } };
+  if (req.query.status && req.query.status !== "all") filter.status = req.query.status;
+  if (req.query.ward) filter.ward = req.query.ward;
+  if (req.query.category) filter.category = req.query.category;
+  if (req.query.priority) filter.priority = req.query.priority;
+
+  const issues = await Issue.find(filter)
+    .populate("citizen", "name email")
+    .populate("assignedTo", "name email")
+    .sort({ createdAt: -1 });
+
+  // CSV header
+  const headers = [
+    "ID", "Title", "Category", "Ward", "Location", "Priority",
+    "Status", "Reported By", "Assigned To", "Created At", "Resolved At", "Rating"
+  ];
+
+  const rows = issues.map(issue => [
+    issue._id.toString(),
+    `"${(issue.title || "").replace(/"/g, '""')}"`,
+    issue.category,
+    issue.ward,
+    `"${(issue.location || "").replace(/"/g, '""')}"`,
+    issue.priority,
+    issue.status,
+    issue.citizen ? issue.citizen.name : "N/A",
+    issue.assignedTo ? issue.assignedTo.name : "Unassigned",
+    issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : "",
+    issue.resolvedAt ? new Date(issue.resolvedAt).toLocaleDateString() : "",
+    issue.feedback?.rating || ""
+  ]);
+
+  const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", `attachment; filename=issues_export_${Date.now()}.csv`);
+  res.send(csv);
+};

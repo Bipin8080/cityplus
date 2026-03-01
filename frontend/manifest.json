@@ -1,0 +1,23 @@
+{
+    "name": "CityPlus — Civic Issue Reporting",
+    "short_name": "CityPlus",
+    "description": "Smart civic issue reporting platform for citizens and municipalities",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a192f",
+    "theme_color": "#1e40af",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "/assets/icon-512.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "government",
+        "utilities"
+    ],
+    "lang": "en"
+}

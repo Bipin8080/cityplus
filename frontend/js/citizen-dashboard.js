@@ -16,10 +16,47 @@ let currentTab = 'dashboard'; // Track current tab
 document.addEventListener('DOMContentLoaded', async () => {
   checkAuth();
   loadCitizenProfile();
+  showDashboardSkeleton();
   await loadCitizenIssues();
+  hideDashboardSkeleton();
   setupEventListeners();
   updateActivityFeed();
+  if (window.loadLeafletApi) await window.loadLeafletApi();
 });
+
+// Show skeleton loading state
+function showDashboardSkeleton() {
+  // Stat card skeletons
+  ['statTotal', 'statOpen', 'statProgress', 'statResolved'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
+    }
+  });
+  // Table skeleton rows
+  const tbody = document.getElementById('issuesTableBody');
+  if (tbody) {
+    let rows = '';
+    for (let i = 0; i < 3; i++) {
+      rows += `<tr class="skeleton-row">
+        <td><div class="skeleton skeleton-cell" style="width:${60 + i * 15}%">&nbsp;</div></td>
+        <td><div class="skeleton skeleton-cell" style="width:70%">&nbsp;</div></td>
+        <td><div class="skeleton skeleton-cell" style="width:55%">&nbsp;</div></td>
+        <td><div class="skeleton skeleton-cell" style="width:50%">&nbsp;</div></td>
+        <td><div class="skeleton skeleton-cell" style="width:30%">&nbsp;</div></td>
+      </tr>`;
+    }
+    tbody.innerHTML = rows;
+  }
+}
+
+// Hide skeleton and show real content with fade-in
+function hideDashboardSkeleton() {
+  const statsGrid = document.querySelector('.stats-grid');
+  if (statsGrid) statsGrid.classList.add('fade-in');
+  const tableCard = document.querySelector('.table-card');
+  if (tableCard) tableCard.classList.add('fade-in');
+}
 
 // Tab switching functions
 function switchToDashboardTab() {
@@ -534,6 +571,35 @@ function openIssueDetails(issue) {
   }
 
   timelineContent.innerHTML = timelineHtml;
+
+  // Initialize Map if coordinates present
+  const mapContainer = document.getElementById('modalMapContainer');
+  const mapEl = document.getElementById('modalMap');
+
+  if (issue.lat && issue.lng && window.isLeafletLoaded) {
+    mapContainer.style.display = 'block';
+
+    // Slight delay to ensure modal is visible for proper map sizing
+    setTimeout(() => {
+      // Clear previous map instance if it exists
+      if (window.citizenIssueMap) {
+        window.citizenIssueMap.remove();
+      }
+
+      const pos = [issue.lat, issue.lng];
+      window.citizenIssueMap = L.map(mapEl).setView(pos, 15);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.citizenIssueMap);
+
+      L.marker(pos).addTo(window.citizenIssueMap);
+    }, 100);
+  } else {
+    mapContainer.style.display = 'none';
+  }
+
   // Hide main views and show details
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('allIssuesView').style.display = 'none';
@@ -677,11 +743,12 @@ window.toggleChangePasswordForm = function () {
 // Submit password change
 window.submitPasswordChange = async function () {
   const email = document.querySelector('#cpEmail').value.trim();
+  const otp = document.querySelector('#cpOtpCode').value.trim();
   const currentPassword = document.querySelector('#cpCurrentPassword').value;
   const newPassword = document.querySelector('#cpNewPassword').value;
 
-  if (!email || !currentPassword || !newPassword) {
-    showToast('error', 'All fields are required.');
+  if (!email || !otp || !currentPassword || !newPassword) {
+    showToast('error', 'All fields, including OTP, are required.');
     return;
   }
 
@@ -694,17 +761,57 @@ window.submitPasswordChange = async function () {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword })
+      body: JSON.stringify({ email, currentPassword, newPassword, otp })
     });
     const data = await res.json();
 
     if (res.ok) {
       showToast('success', 'Password changed successfully!');
       document.querySelector('#changePasswordForm').style.display = 'none';
+      document.querySelector('#cpOtpCode').value = '';
       document.querySelector('#cpCurrentPassword').value = '';
       document.querySelector('#cpNewPassword').value = '';
     } else {
       showToast('error', data.message || 'Failed to change password.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+};
+
+// Send OTP for Change Password
+window.sendChangePasswordOTP = async function () {
+  const email = document.querySelector('#cpEmail').value.trim();
+  if (!email) {
+    showToast('error', 'Email is required to send OTP.');
+    return;
+  }
+
+  const btn = document.querySelector('#sendCpOtpBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/auth/send-change-password-otp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token
+      },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast('success', 'OTP sent to your email.');
+    } else {
+      showToast('error', data.message || 'Failed to send OTP.');
     }
   } catch (err) {
     console.error(err);

@@ -5,9 +5,11 @@
   <meta charset="UTF-8" />
   <title>CityPlus - Login & Register</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100;300;400;500;700;900&display=swap" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css" />
+  <meta name="theme-color" content="#1e40af" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
 
 </head>
 
@@ -61,11 +63,15 @@
               <input id="password" type="password" class="form-input" placeholder="••••••••" required />
             </div>
 
-            <div class="form-group">
-              <label class="checkbox-group">
+            <div class="form-group"
+              style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+              <label class="checkbox-group" style="margin-bottom: 0;">
                 <input type="checkbox" id="rememberMe" />
                 Keep me signed in
               </label>
+              <a href="#" onclick="event.preventDefault(); openForgotPasswordModal();"
+                style="color:var(--primary-color, #2563eb);font-size:0.9rem;font-weight:500;text-decoration:none;cursor:pointer;">Forgot
+                Password?</a>
             </div>
 
             <button type="submit" class="btn-full btn-primary-large">
@@ -77,7 +83,7 @@
                 create one</a>
             </div>
 
-            <div class="auth-footer">
+            <div class="auth-footer" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
               After successful login, you'll be redirected to your role-specific dashboard
             </div>
           </form>
@@ -179,6 +185,75 @@
 
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgotPasswordModal" class="error-modal-backdrop" style="display:none;">
+    <div class="error-modal" style="max-width:440px;border-radius:16px;">
+      <!-- Step 1: Enter Email -->
+      <div id="fpStep1">
+        <div class="error-modal-header" style="border-bottom:none;padding-bottom:0;">
+          <span class="material-icons-round" style="color:var(--primary);font-size:32px;">lock_reset</span>
+          <h2 style="font-size:1.25rem;">Forgot Password</h2>
+          <button class="error-modal-close" onclick="closeForgotPasswordModal()">&times;</button>
+        </div>
+        <div class="error-modal-content" style="padding-top:8px;">
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">Enter your registered email
+            address and we'll send you a 6-digit verification code.</p>
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label class="form-label" for="fpEmail">Email Address</label>
+            <input id="fpEmail" type="email" class="form-input" placeholder="your@email.com" required />
+          </div>
+          <button class="btn-full btn-primary-large" onclick="sendForgotPasswordOTP()" id="fpSendBtn">Send OTP</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Enter OTP -->
+      <div id="fpStep2" style="display:none;">
+        <div class="error-modal-header" style="border-bottom:none;padding-bottom:0;">
+          <span class="material-icons-round" style="color:var(--primary);font-size:32px;">pin</span>
+          <h2 style="font-size:1.25rem;">Enter Verification Code</h2>
+          <button class="error-modal-close" onclick="closeForgotPasswordModal()">&times;</button>
+        </div>
+        <div class="error-modal-content" style="padding-top:8px;">
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">We sent a 6-digit code to
+            <strong id="fpEmailDisplay"></strong>. Check your inbox.
+          </p>
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label class="form-label" for="fpOTP">Verification Code</label>
+            <input id="fpOTP" type="text" class="form-input" placeholder="Enter 6-digit code" maxlength="6"
+              style="text-align:center;font-size:1.5rem;letter-spacing:8px;font-weight:700;" required />
+          </div>
+          <button class="btn-full btn-primary-large" onclick="verifyForgotPasswordOTP()" id="fpVerifyBtn">Verify
+            Code</button>
+          <p style="text-align:center;margin-top:12px;"><a href="#" onclick="event.preventDefault(); resendOTP();"
+              style="color:var(--primary);font-size:0.85rem;">Resend Code</a></p>
+        </div>
+      </div>
+
+      <!-- Step 3: New Password -->
+      <div id="fpStep3" style="display:none;">
+        <div class="error-modal-header" style="border-bottom:none;padding-bottom:0;">
+          <span class="material-icons-round" style="color:#22c55e;font-size:32px;">check_circle</span>
+          <h2 style="font-size:1.25rem;">Set New Password</h2>
+          <button class="error-modal-close" onclick="closeForgotPasswordModal()">&times;</button>
+        </div>
+        <div class="error-modal-content" style="padding-top:8px;">
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">OTP verified! Enter your new
+            password below.</p>
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label" for="fpNewPassword">New Password</label>
+            <input id="fpNewPassword" type="password" class="form-input" placeholder="••••••••" required />
+          </div>
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label class="form-label" for="fpConfirmPassword">Confirm New Password</label>
+            <input id="fpConfirmPassword" type="password" class="form-input" placeholder="••••••••" required />
+          </div>
+          <button class="btn-full btn-primary-large" onclick="resetForgotPassword()" id="fpResetBtn">Reset
+            Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <footer class="footer">
     © 2026 CityPlus. All rights reserved.

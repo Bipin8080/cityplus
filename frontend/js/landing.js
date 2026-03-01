@@ -12,13 +12,24 @@ async function loadRecentIssues() {
   const elResolved = document.getElementById("landing-resolved");
   const elProgress = document.getElementById("landing-progress");
 
-  if (elTotal) elTotal.textContent = "--";
-  if (elResolved) elResolved.textContent = "--";
-  if (elProgress) elProgress.textContent = "--";
+  if (elTotal) elTotal.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
+  if (elResolved) elResolved.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
+  if (elProgress) elProgress.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
 
   if (container) {
-    // Clear any static demo content immediately and show loading state
-    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">Loading reported issues...</div>';
+    // Show skeleton cards while loading
+    let skeletons = '';
+    for (let i = 0; i < 4; i++) {
+      skeletons += `<div class="skeleton-card">
+        <div class="skeleton skeleton-card__image"></div>
+        <div class="skeleton-card__body">
+          <div class="skeleton skeleton-text skeleton-text--short"></div>
+          <div class="skeleton skeleton-text skeleton-text--long"></div>
+          <div class="skeleton skeleton-text skeleton-text--medium"></div>
+        </div>
+      </div>`;
+    }
+    container.innerHTML = skeletons;
   }
 
   try {

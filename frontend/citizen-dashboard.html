@@ -8,9 +8,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100;300;400;500;700;900&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="css/styles.css" rel="stylesheet" />
+  <meta name="theme-color" content="#1e40af" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
 </head>
 
 <body>
@@ -26,8 +28,6 @@
         </a>
       </div>
       <div class="navbar-auth">
-        <a href="login.html" class="btn btn-outline"
-          onclick="event.preventDefault(); showLogoutConfirmation();">Logout</a>
       </div>
     </div>
   </header>
@@ -50,15 +50,15 @@
       <nav class="sidebar__nav">
         <a class="nav-link nav-link--active" href="citizen-dashboard.html" onclick="switchToDashboardTab()">
           <span class="material-icons">dashboard</span>
-          Dashboard
+          <span class="nav-text">Dashboard</span>
         </a>
         <a class="nav-link" href="#" onclick="event.preventDefault(); switchToAllIssuesTab();">
           <span class="material-icons">assignment</span>
-          All Issues
+          <span class="nav-text">All Issues</span>
         </a>
         <a class="nav-link" href="report-issue.html">
           <span class="material-icons">add_circle_outline</span>
-          Report New Issue
+          <span class="nav-text">Report New Issue</span>
         </a>
 
 
@@ -67,7 +67,7 @@
           <button class="nav-link" onclick="openProfileModal()"
             style="width: 100%; text-align: left; padding: 0.625rem 0.75rem;">
             <span class="material-icons">person</span>
-            Profile
+            <span class="nav-text">Profile</span>
           </button>
         </div>
       </nav>
@@ -86,7 +86,7 @@
         <button class="nav-link" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem; padding: 0.5rem;"
           onclick="showLogoutConfirmation()">
           <span class="material-icons">logout</span>
-          Logout
+          <span class="nav-text">Logout</span>
         </button>
       </div>
 
@@ -522,6 +522,16 @@
                   <span id="modalSubmitted">--</span>
                 </div>
               </div>
+              <div id="modalMapContainer"
+                style="background: var(--bg-tertiary); padding: 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color); display: none;">
+                <h3
+                  style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
+                  <span class="material-icons-round">map</span> Map View
+                </h3>
+                <div id="modalMap"
+                  style="width: 100%; height: 200px; border-radius: 0.5rem; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                  Loading Map...</div>
+              </div>
             </div>
           </div>
         </section>
@@ -616,7 +626,19 @@
                     <label class="form-label"
                       style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Email
                       Address</label>
-                    <input type="email" id="cpEmail" class="form-input" style="width: 100%; box-sizing:border-box;">
+                    <div style="display: flex; gap: 0.5rem;">
+                      <input type="email" id="cpEmail" class="form-input" style="flex: 1; box-sizing:border-box;"
+                        readonly>
+                      <button class="btn btn-outline" style="white-space: nowrap;" onclick="sendChangePasswordOTP()"
+                        id="sendCpOtpBtn">Send OTP</button>
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label"
+                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">OTP Verification
+                      Code</label>
+                    <input type="text" id="cpOtpCode" class="form-input" placeholder="Enter 6-digit OTP sent to email"
+                      style="width: 100%; box-sizing:border-box;">
                   </div>
                   <div class="form-group" style="margin-bottom: 1rem;">
                     <label class="form-label"
@@ -667,6 +689,7 @@
 
   <div id="toast-container" class="toast-container"></div>
   <script src="js/theme.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/notifications.js"></script>
   <script src="js/citizen-dashboard.js"></script>
 </body>

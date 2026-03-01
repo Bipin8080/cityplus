@@ -1,13 +1,15 @@
 // ─── CityPlus Notification System ────────────────────────────────────
-// Shared module for all dashboards. Handles polling, bell icon, dropdown panel.
-// Include this script on any dashboard page.
+// Shared module for all dashboards.
+// Uses Socket.IO for real-time push, with HTTP polling as fallback.
 
 (function () {
     const API_BASE = '/api/notifications';
-    const POLL_INTERVAL = 30000; // 30 seconds
+    const POLL_INTERVAL = 30000; // 30 seconds (fallback)
 
     let pollTimer = null;
     let notificationsOpen = false;
+    let socket = null;
+    let socketConnected = false;
 
     // ── Helpers ─────────────────────────────────────────────────────────
     function getToken() {
@@ -55,6 +57,160 @@
             account_status_changed: '#ef4444'
         };
         return colors[type] || '#64748b';
+    }
+
+    // ── Toast helper (show real-time notification toast) ────────────────
+    function showNotifToast(notification) {
+        // Use the global showToast if available, otherwise create our own
+        if (typeof showToast === 'function') {
+            showToast('info', `🔔 ${notification.title}: ${notification.message}`);
+            return;
+        }
+
+        // Fallback toast
+        const toast = document.createElement('div');
+        toast.className = 'notif-toast';
+        toast.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg-card,#fff);
+                border-left:4px solid ${getNotificationColor(notification.type)};border-radius:8px;
+                box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:360px;font-size:0.9rem;">
+                <span class="material-icons-round" style="color:${getNotificationColor(notification.type)};font-size:20px;">
+                    ${getNotificationIcon(notification.type)}
+                </span>
+                <div>
+                    <strong style="display:block;margin-bottom:2px;">${escapeHtml(notification.title)}</strong>
+                    <span style="color:var(--text-secondary,#64748b);">${escapeHtml(notification.message)}</span>
+                </div>
+            </div>
+        `;
+        toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;animation:slideInRight 0.3s ease;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
+
+    // ── Socket.IO Connection ───────────────────────────────────────────
+    function initSocketConnection() {
+        // Check if Socket.IO client is available
+        if (typeof io === 'undefined') {
+            console.warn('[Notifications] Socket.IO client not loaded, using polling only');
+            startPolling();
+            return;
+        }
+
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            socket = io({
+                transports: ['websocket', 'polling'],
+                timeout: 10000
+            });
+
+            socket.on('connect', () => {
+                console.log('[Notifications] Socket.IO connected');
+                socket.emit('authenticate', { token });
+            });
+
+            socket.on('authenticated', (data) => {
+                if (data.success) {
+                    socketConnected = true;
+                    console.log('[Notifications] Socket.IO authenticated — real-time active');
+                    // Stop polling since we have real-time
+                    stopPolling();
+                } else {
+                    console.warn('[Notifications] Socket.IO auth failed, using polling');
+                    socketConnected = false;
+                    startPolling();
+                }
+            });
+
+            // ── Listen for real-time notifications ──────────────────────
+            socket.on('new_notification', (data) => {
+                console.log('[Notifications] Real-time notification received:', data);
+
+                // Update badge count
+                const badge = document.getElementById('notif-badge');
+                if (badge) {
+                    const currentCount = parseInt(badge.textContent) || 0;
+                    updateBadge(currentCount + 1);
+                }
+
+                // Show toast notification
+                if (data.notification) {
+                    showNotifToast(data.notification);
+
+                    // If panel is open, prepend the new notification
+                    if (notificationsOpen) {
+                        prependNotification(data.notification);
+                    }
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('[Notifications] Socket.IO disconnected, falling back to polling');
+                socketConnected = false;
+                startPolling();
+            });
+
+            socket.on('connect_error', () => {
+                console.warn('[Notifications] Socket.IO connection error, using polling');
+                socketConnected = false;
+                startPolling();
+            });
+        } catch (err) {
+            console.error('[Notifications] Socket.IO init error:', err);
+            startPolling();
+        }
+    }
+
+    // ── Prepend a single notification to the open panel ────────────────
+    function prependNotification(n) {
+        const list = document.getElementById('notif-list');
+        if (!list) return;
+
+        // Remove "no notifications" placeholder if present
+        const empty = list.querySelector('.notif-empty');
+        if (empty) empty.remove();
+
+        const item = document.createElement('div');
+        item.className = 'notif-item notif-unread';
+        item.dataset.id = n._id;
+        item.dataset.issue = n.issueId || '';
+        item.innerHTML = `
+            <div class="notif-icon" style="background: ${getNotificationColor(n.type)}20; color: ${getNotificationColor(n.type)};">
+                <span class="material-icons-round">${getNotificationIcon(n.type)}</span>
+            </div>
+            <div class="notif-content">
+                <p class="notif-title">${escapeHtml(n.title)}</p>
+                <p class="notif-message">${escapeHtml(n.message)}</p>
+                <span class="notif-time">Just now</span>
+            </div>
+            <div class="notif-dot"></div>
+        `;
+
+        item.addEventListener('click', () => {
+            if (item.classList.contains('notif-unread')) {
+                markAsRead(n._id);
+                item.classList.remove('notif-unread');
+                const dot = item.querySelector('.notif-dot');
+                if (dot) dot.remove();
+            }
+        });
+
+        list.insertBefore(item, list.firstChild);
+    }
+
+    // ── Polling (fallback) ─────────────────────────────────────────────
+    function startPolling() {
+        if (pollTimer) return; // already polling
+        pollTimer = setInterval(fetchUnreadCount, POLL_INTERVAL);
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
     }
 
     // ── API Calls ──────────────────────────────────────────────────────
@@ -204,7 +360,12 @@
         panel.innerHTML = `
       <div class="notif-panel-header">
         <h3>Notifications</h3>
-        <button class="notif-mark-all" id="notif-mark-all">Mark all read</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="notif-realtime-indicator" id="notif-realtime-indicator" title="Real-time status">
+            <span class="material-icons-round" style="font-size:14px;">circle</span>
+          </span>
+          <button class="notif-mark-all" id="notif-mark-all">Mark all read</button>
+        </div>
       </div>
       <div class="notif-list" id="notif-list">
         <div class="notif-empty">
@@ -232,6 +393,19 @@
         document.addEventListener('click', handleOutsideClick);
     }
 
+    // Update real-time indicator
+    function updateRealtimeIndicator() {
+        const indicator = document.getElementById('notif-realtime-indicator');
+        if (!indicator) return;
+        if (socketConnected) {
+            indicator.style.color = '#22c55e';
+            indicator.title = 'Real-time: Connected';
+        } else {
+            indicator.style.color = '#94a3b8';
+            indicator.title = 'Real-time: Disconnected (using polling)';
+        }
+    }
+
     // ── Public Init ────────────────────────────────────────────────────
     function initNotifications() {
         if (!getToken()) return; // Not logged in
@@ -239,15 +413,23 @@
         injectNotificationUI();
         fetchUnreadCount();
 
-        // Start polling
-        pollTimer = setInterval(fetchUnreadCount, POLL_INTERVAL);
+        // Try Socket.IO first, fall back to polling
+        initSocketConnection();
+
+        // Update indicator periodically
+        setInterval(updateRealtimeIndicator, 2000);
+
+        // Always start polling initially; it will be stopped if Socket.IO connects
+        startPolling();
     }
 
     // ── Cleanup ────────────────────────────────────────────────────────
     function stopNotifications() {
-        if (pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
+        stopPolling();
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+            socketConnected = false;
         }
     }
 

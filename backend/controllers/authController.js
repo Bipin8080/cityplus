@@ -1,9 +1,12 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import OTP from "../models/OTP.js";
+import { sendEmail } from "../config/email.js";
+import { otpEmailTemplate } from "../utils/emailTemplates.js";
 
-// Citizen Registration form
-export const registerCitizen = async (req, res, next) => {
+// ──── Shared registration factory ────────────────────────────────────────
+const registerUser = (role) => async (req, res, next) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -25,7 +28,7 @@ export const registerCitizen = async (req, res, next) => {
     name,
     email,
     password: hashed,
-    role: "citizen"
+    role
   });
 
   const payload = {
@@ -37,96 +40,22 @@ export const registerCitizen = async (req, res, next) => {
 
   res.json({
     success: true,
-    message: "Citizen registered successfully",
-    data: { user: payload },
-    // keep legacy shape for frontend compatibility
-    user: payload
-  });
-};
-
-// Staff Registration
-export const registerStaff = async (req, res, next) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    const error = new Error("All fields are required");
-    error.statusCode = 400;
-    return next(error);
-  }
-
-  const existing = await User.findOne({ email });
-  if (existing) {
-    const error = new Error("Email already registered");
-    error.statusCode = 400;
-    return next(error);
-  }
-
-  const hashed = await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    name,
-    email,
-    password: hashed,
-    role: "staff"
-  });
-
-  const payload = {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-  };
-
-  res.json({
-    success: true,
-    message: "Staff registered successfully",
+    message: `${role.charAt(0).toUpperCase() + role.slice(1)} registered successfully`,
     data: { user: payload },
     user: payload
   });
 };
 
-// Admin Registration
-export const registerAdmin = async (req, res, next) => {
-  const { name, email, password } = req.body;
+// Citizen Registration (public)
+export const registerCitizen = registerUser("citizen");
 
-  if (!name || !email || !password) {
-    const error = new Error("All fields are required");
-    error.statusCode = 400;
-    return next(error);
-  }
+// Staff Registration (admin only)
+export const registerStaff = registerUser("staff");
 
-  const existing = await User.findOne({ email });
-  if (existing) {
-    const error = new Error("Email already registered");
-    error.statusCode = 400;
-    return next(error);
-  }
+// Admin Registration (admin only)
+export const registerAdmin = registerUser("admin");
 
-  const hashed = await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    name,
-    email,
-    password: hashed,
-    role: "admin"
-  });
-
-  const payload = {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-  };
-
-  res.json({
-    success: true,
-    message: "Admin registered successfully",
-    data: { user: payload },
-    user: payload
-  });
-};
-
-// Login (all roles)
+// ──── Login (all roles) ──────────────────────────────────────────────────
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -178,12 +107,12 @@ export const login = async (req, res, next) => {
   });
 };
 
-// Change Password
+// ──── Change Password ────────────────────────────────────────────────────
 export const changePassword = async (req, res, next) => {
-  const { email, currentPassword, newPassword } = req.body;
+  const { email, currentPassword, newPassword, otp } = req.body;
 
-  if (!email || !currentPassword || !newPassword) {
-    const error = new Error("Email, current password, and new password are required");
+  if (!email || !currentPassword || !newPassword || !otp) {
+    const error = new Error("Email, current password, new password, and OTP are required");
     error.statusCode = 400;
     return next(error);
   }
@@ -191,6 +120,14 @@ export const changePassword = async (req, res, next) => {
   const user = await User.findOne({ email });
   if (!user) {
     const error = new Error("Invalid email or password");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  // Verify OTP
+  const isValidOTP = await OTP.verifyOTP(email, otp);
+  if (!isValidOTP) {
+    const error = new Error("Invalid or expired OTP.");
     error.statusCode = 400;
     return next(error);
   }
@@ -213,3 +150,144 @@ export const changePassword = async (req, res, next) => {
   });
 };
 
+// ──── Send Change Password OTP ───────────────────────────────────────────
+export const sendChangePasswordOTP = async (req, res, next) => {
+  const { email } = req.body;
+
+  if (!email) {
+    const error = new Error("Email is required");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  // We check if the user requesting this is actually logged in and matches the email
+  if (req.user.email !== email) {
+    const error = new Error("Unauthorized to request OTP for this email");
+    error.statusCode = 403;
+    return next(error);
+  }
+
+  try {
+    const otp = await OTP.generateOTP(email);
+    const html = otpEmailTemplate(otp, req.user.name);
+    const sent = await sendEmail(email, "CityPlus: Change Password OTP", html);
+
+    if (!sent) {
+      const error = new Error("Failed to send OTP. Please try again later.");
+      error.statusCode = 500;
+      return next(error);
+    }
+
+    res.json({
+      success: true,
+      message: "OTP sent to your email. It will expire in 5 minutes."
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// ──── Forgot Password — Send OTP ─────────────────────────────────────────
+export const forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+
+  if (!email) {
+    const error = new Error("Email is required");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    // Don't reveal whether an email exists — always show success
+    return res.json({
+      success: true,
+      message: "If an account with this email exists, an OTP has been sent."
+    });
+  }
+
+  // Generate and send OTP
+  const otp = await OTP.generateOTP(email);
+  const html = otpEmailTemplate(otp, user.name);
+  const sent = await sendEmail(email, "CityPlus: Password Reset OTP", html);
+
+  if (!sent) {
+    const error = new Error("Failed to send OTP. Please try again later.");
+    error.statusCode = 500;
+    return next(error);
+  }
+
+  res.json({
+    success: true,
+    message: "OTP sent to your email. It will expire in 5 minutes."
+  });
+};
+
+// ──── Verify OTP ─────────────────────────────────────────────────────────
+export const verifyOTP = async (req, res, next) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    const error = new Error("Email and OTP are required");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const isValid = await OTP.verifyOTP(email, otp);
+
+  if (!isValid) {
+    const error = new Error("Invalid or expired OTP. Please request a new one.");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  res.json({
+    success: true,
+    message: "OTP verified successfully. You can now reset your password."
+  });
+};
+
+// ──── Reset Password (after OTP verification) ────────────────────────────
+export const resetPassword = async (req, res, next) => {
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    const error = new Error("Email and new password are required");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  if (newPassword.length < 6) {
+    const error = new Error("Password must be at least 6 characters long");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  // Check that OTP was verified for this email
+  const hasVerified = await OTP.hasVerifiedOTP(email);
+  if (!hasVerified) {
+    const error = new Error("OTP not verified. Please verify your OTP first.");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    return next(error);
+  }
+
+  // Hash and update password
+  user.password = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  // Clean up OTP records for this email
+  await OTP.deleteMany({ email });
+
+  res.json({
+    success: true,
+    message: "Password reset successfully. You can now log in with your new password."
+  });
+};

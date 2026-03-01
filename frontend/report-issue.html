@@ -13,14 +13,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,wght@0..1,100..700&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Material+Icons+Round:wght@100..700&display=swap" />
   <link rel="stylesheet" href="css/styles.css" />
+  <meta name="theme-color" content="#1e40af" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
   <style>
     .navbar-inner {
       align-items: center;
+    }
+
+    .report-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group {
+      margin-bottom: 0;
+      /* Override default margin since grid gap handles it */
+    }
+
+    @media (max-width: 768px) {
+      .report-form {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hide-mobile {
+      display: inline;
+    }
+
+    @media (max-width: 480px) {
+      .hide-mobile {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -52,7 +84,8 @@
 
         <!-- Form -->
         <form onsubmit="submitIssue(event)" enctype="multipart/form-data" class="report-form">
-          <!-- Issue Title -->
+
+          <!-- Issue Title (Left) -->
           <div class="form-group">
             <label class="form-label" for="title">
               <i class="fas fa-heading"></i>
@@ -62,58 +95,69 @@
               placeholder="e.g., Large pothole on Main Street" required />
           </div>
 
-          <!-- Category and Ward (2 columns) -->
-          <div class="form-row-two-col">
-            <div class="form-group">
-              <label class="form-label" for="category">
-                <i class="fas fa-tag"></i>
-                Category
-              </label>
-              <select id="category" name="category" class="form-select" required>
-                <option value="">Select a category</option>
-
-                <option value="Road & Potholes">Road & Potholes</option>
-                <option value="Street Lights">Street Lights</option>
-                <option value="Garbage & Waste">Garbage & Waste</option>
-                <option value="Water Supply / Leakage">Water Supply / Leakage</option>
-                <option value="Drainage / Sewage">Drainage / Sewage</option>
-                <option value="Electricity Issues">Electricity Issues</option>
-                <option value="Public Property Damage">Public Property Damage</option>
-                <option value="Encroachment / Illegal Activity">Encroachment / Illegal Activity</option>
-
-                <option value="Other">Other</option>
-              </select>
-
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="ward">
-                <i class="fas fa-map-pin"></i>
-                Ward / Area
-              </label>
-              <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5, Downtown"
-                required />
-            </div>
+          <!-- Ward / Area (Right) -->
+          <div class="form-group">
+            <label class="form-label" for="ward">
+              <i class="fas fa-map-pin"></i>
+              Ward / Area
+            </label>
+            <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5, Downtown" required />
           </div>
 
-          <!-- Location Details -->
+          <!-- Category (Left) -->
+          <div class="form-group">
+            <label class="form-label" for="category">
+              <i class="fas fa-tag"></i>
+              Category
+            </label>
+            <select id="category" name="category" class="form-select" required>
+              <option value="">Select a category</option>
+              <option value="Road & Potholes">Road & Potholes</option>
+              <option value="Street Lights">Street Lights</option>
+              <option value="Garbage & Waste">Garbage & Waste</option>
+              <option value="Water Supply / Leakage">Water Supply / Leakage</option>
+              <option value="Drainage / Sewage">Drainage / Sewage</option>
+              <option value="Electricity Issues">Electricity Issues</option>
+              <option value="Public Property Damage">Public Property Damage</option>
+              <option value="Encroachment / Illegal Activity">Encroachment / Illegal Activity</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <!-- Location Details (Right) -->
           <div class="form-group">
             <label class="form-label" for="location">
               <i class="fas fa-location-dot"></i>
               Location Details
             </label>
             <input id="location" name="location" type="text" class="form-input"
-              placeholder="Enter specific location details such as landmark, street name, or nearby building"
-              required />
+              placeholder="Enter specific location details" required style="margin-bottom: 8px;" />
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <button type="button" class="btn btn-outline" id="useMyLocationBtn" onclick="getCurrentLocation()"
+                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem;">
+                <i class="fas fa-crosshairs"></i> <span class="hide-mobile">Use My Location</span>
+              </button>
+              <button type="button" class="btn btn-outline" id="toggleMapBtn" onclick="toggleMap()"
+                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem;">
+                <i class="fas fa-map"></i> <span class="hide-mobile">Choose on Map</span>
+              </button>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map"
+              style="width: 100%; height: 200px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; background-color: #f1f5f9; display: none; align-items: center; justify-content: center;">
+              <span style="color: var(--text-secondary);" id="mapStatus">Loading Map...</span>
+            </div>
+            <input type="hidden" id="lat" name="lat">
+            <input type="hidden" id="lng" name="lng">
+
             <p class="form-helper">
               <i class="fas fa-info-circle"></i>
-              Provide precise location information to help municipal staff locate the issue.
+              Type the address manually, use current location, or mark the map.
             </p>
           </div>
 
-
-
-          <!-- Priority -->
+          <!-- Priority (Left) -->
           <div class="form-group">
             <label class="form-label">
               <i class="fas fa-flag"></i>
@@ -141,24 +185,13 @@
                 <label for="priority-high">
                   <i class="fas fa-exclamation-circle"></i>
                   <span class="priority-name">High</span>
-                  <span class="priority-desc">Urgent/Safety risk</span>
+                  <span class="priority-desc">Urgent risk</span>
                 </label>
               </div>
             </div>
           </div>
 
-          <!-- Description -->
-          <div class="form-group">
-            <label class="form-label" for="description">
-              <i class="fas fa-align-left"></i>
-              Issue Description
-            </label>
-            <textarea id="description" name="description" rows="5" class="form-input"
-              placeholder="Provide a detailed description of the issue, including duration and impact on the community"
-              required></textarea>
-          </div>
-
-          <!-- Photo Upload -->
+          <!-- Photo Upload (Right) -->
           <div class="form-group">
             <label class="form-label">
               <i class="fas fa-camera"></i>
@@ -172,24 +205,31 @@
               <div class="file-name" id="fileName">No file chosen</div>
               <input type="file" id="image" name="image" accept="image/*">
             </div>
-            <p class="form-helper">
-              <i class="fas fa-info-circle"></i>
-              Upload a photograph of the issue to assist municipal staff in assessment and resolution.
-            </p>
           </div>
 
-          <!-- Submit Button -->
-          <div class="form-footer">
-            <button type="submit" class="btn btn-primary">
+          <!-- Description (Full Width) -->
+          <div class="form-group full-width">
+            <label class="form-label" for="description">
+              <i class="fas fa-align-left"></i>
+              Issue Description
+            </label>
+            <textarea id="description" name="description" rows="4" class="form-input"
+              placeholder="Provide a detailed description of the issue, including duration and impact on the community"
+              required></textarea>
+          </div>
+
+          <!-- Submit Button (Full Width) -->
+          <div class="form-footer full-width">
+            <button type="submit" class="btn btn-primary"
+              style="width: 100%; max-width: 400px; margin: 0 auto; display: block;">
               <i class="fas fa-paper-plane"></i>
               Submit Report
             </button>
+            <p class="form-helper" style="text-align: center; margin-top: 1rem;">
+              Upon submission, your complaint will be registered in the system and you will be redirected to track its
+              status.
+            </p>
           </div>
-
-          <p class="form-helper" style="text-align: center; margin-top: 1rem;">
-            Upon submission, your complaint will be registered in the system and you will be redirected to track its
-            status.
-          </p>
         </form>
       </div>
     </div>

@@ -14,6 +14,9 @@ import {
   assignIssue,
   getIssueById,
   addFeedback,
+  deleteIssue,
+  restoreIssue,
+  exportIssues,
 } from "../controllers/issueController.js";
 
 const router = express.Router();
@@ -29,37 +32,39 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
-// ----- Public Routes -----
-// These routes are accessible without authentication for the public-facing landing page.
-
-// Provides a list of all issues for the public homepage grid.
+// ──── Public Routes ─────────────────────────────────────────────────────
 router.get("/", asyncHandler(getPublicIssues));
 
-// all issue routes require login
+// All routes below require authentication
 router.use(protect);
 
-// ----- Citizen: create issue -----
+// ──── Citizen ───────────────────────────────────────────────────────────
 router.post("/", upload.single("image"), asyncHandler(createIssue));
-
-// ----- Citizen: my issues (for dashboard, filters done in frontend) -----
 router.get("/my", asyncHandler(getMyIssues));
 
-// ----- Staff/Admin: all issues (for dashboards) -----
+// ──── Staff/Admin: all issues (with pagination & filtering) ─────────────
 router.get("/all", asyncHandler(getAllIssues));
 
-// ----- Staff: my assigned issues -----
+// ──── Admin: export issues as CSV ───────────────────────────────────────
+router.get("/export", asyncHandler(exportIssues));
+
+// ──── Staff: my assigned issues ─────────────────────────────────────────
 router.get("/assigned/mine", asyncHandler(getMyAssignedIssues));
 
-// ----- Staff/Admin: change status -----
+// ──── Staff/Admin: change status ────────────────────────────────────────
 router.patch("/:id/status", upload.single("image"), asyncHandler(updateStatus));
 
-// ----- Admin: assign staff to issue -----
+// ──── Admin: assign staff to issue ──────────────────────────────────────
 router.patch("/:id/assign", asyncHandler(assignIssue));
 
-// ----- Get single issue (for details modal if you want backend fetch) -----
+// ──── Admin: soft delete / restore ──────────────────────────────────────
+router.delete("/:id", asyncHandler(deleteIssue));
+router.patch("/:id/restore", asyncHandler(restoreIssue));
+
+// ──── Get single issue ──────────────────────────────────────────────────
 router.get("/:id", asyncHandler(getIssueById));
 
-// ----- Citizen: Add feedback -----
+// ──── Citizen: Add feedback ─────────────────────────────────────────────
 router.post("/:id/feedback", asyncHandler(addFeedback));
 
 export default router;
