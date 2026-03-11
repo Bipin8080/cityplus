@@ -142,6 +142,26 @@ export function newIssueTemplate(issueTitle, ward, citizenName) {
     return baseTemplate("New Issue Report", body);
 }
 
+// ── Welcome Email ───────────────────────────────────────────────────────
+export function welcomeEmailTemplate(name) {
+    const body = `
+        <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Welcome to ${BRAND_NAME}!</h2>
+        <p style="color:#64748b;margin:0 0 24px;font-size:15px;">Hi ${name}, we're thrilled to have you.</p>
+
+        <p style="color:#64748b;font-size:15px;margin:0 0 16px;line-height:1.5;">
+            Thank you for creating an account with ${BRAND_NAME}. Our platform enables you to easily report and track civic issues in your community.
+        </p>
+        <p style="color:#64748b;font-size:15px;margin:0 0 24px;line-height:1.5;">
+            You can now log in to your dashboard to start making a difference.
+        </p>
+
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:16px;border-radius:4px;">
+            <p style="margin:0;color:#1e40af;font-size:14px;">🌟 <strong>Ready to start?</strong> Head over to your dashboard and submit your first issue report.</p>
+        </div>
+    `;
+    return baseTemplate("Welcome to " + BRAND_NAME, body);
+}
+
 // ── Generic Notification Email ──────────────────────────────────────────
 export function notificationTemplate(title, message) {
     const body = `

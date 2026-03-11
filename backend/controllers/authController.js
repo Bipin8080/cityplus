@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import OTP from "../models/OTP.js";
 import { sendEmail } from "../config/email.js";
-import { otpEmailTemplate } from "../utils/emailTemplates.js";
+import { otpEmailTemplate, welcomeEmailTemplate } from "../utils/emailTemplates.js";
 
 // ──── Shared registration factory ────────────────────────────────────────
 const registerUser = (role) => async (req, res, next) => {
@@ -30,6 +30,14 @@ const registerUser = (role) => async (req, res, next) => {
     password: hashed,
     role
   });
+
+  // Send Welcome Email
+  try {
+    const html = welcomeEmailTemplate(user.name);
+    await sendEmail(user.email, "Welcome to CityPlus!", html);
+  } catch (err) {
+    console.error("Failed to send welcome email:", err);
+  }
 
   const payload = {
     id: user._id,
