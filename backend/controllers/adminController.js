@@ -43,7 +43,8 @@ export const getSummary = async (req, res, next) => {
 
 // GET /api/admin/users
 export const getUsers = async (req, res, next) => {
-  const users = await User.find({}, "name email role status createdAt")
+  const users = await User.find({}, "name email role status createdAt department")
+    .populate("department", "name")
     .sort({ createdAt: -1 });
 
   res.json({
@@ -56,7 +57,7 @@ export const getUsers = async (req, res, next) => {
 
 // GET /api/admin/staff
 export const getStaff = async (req, res, next) => {
-  const staff = await User.find({ role: "staff" }, "name email");
+  const staff = await User.find({ role: "staff" }, "name email department staffId status").populate("department", "name");
   res.json({
     success: true,
     message: "Staff fetched successfully",
@@ -98,4 +99,27 @@ export const updateUserStatus = async (req, res, next) => {
   );
 
   res.json({ success: true, message: `User status updated to ${status}.`, user });
+};
+
+// PATCH /api/admin/staff/:staffId/department
+export const assignStaffDepartment = async (req, res, next) => {
+  const { staffId } = req.params;
+  const { departmentId } = req.body;
+
+  const staff = await User.findOne({ _id: staffId, role: "staff" });
+  if (!staff) {
+    return res.status(404).json({ success: false, message: "Staff member not found." });
+  }
+
+  // If departmentId is null/empty string, it means unassign
+  let departmentObj = null;
+  if (departmentId) {
+    // We could optionally verify the department exists here
+    departmentObj = departmentId;
+  }
+
+  staff.department = departmentObj;
+  await staff.save();
+
+  res.json({ success: true, message: "Staff department updated successfully.", staff });
 };

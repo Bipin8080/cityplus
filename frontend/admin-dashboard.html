@@ -59,6 +59,16 @@
           <span class="material-icons-round">group</span>
           <span class="nav-text">User Management</span>
         </a>
+
+        <a class="nav-link admin-nav-tab" data-tab="departments" href="#" onclick="event.preventDefault();">
+          <span class="material-icons-round">domain</span>
+          <span class="nav-text">Departments</span>
+        </a>
+
+        <a class="nav-link admin-nav-tab" data-tab="register-staff" href="#" onclick="event.preventDefault();">
+          <span class="material-icons-round">person_add_alt</span>
+          <span class="nav-text">Register a Staff</span>
+        </a>
       </nav>
 
       <!-- User -->
@@ -321,6 +331,7 @@
                   <tr>
                     <th>Issue ID</th>
                     <th>Category</th>
+                    <th>Department</th>
                     <th>Location</th>
                     <th>Reported By</th>
                     <th>Assigned To</th>
@@ -443,6 +454,115 @@
         </section>
       </div>
 
+      <!-- Register Staff Tab Content -->
+      <div class="content-container admin-tab-content" id="register-staff-tab">
+        <header class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div class="tag">Staff Registration</div>
+            <h1 class="section-title" style="margin-top:8px;">
+              Register New Staff
+            </h1>
+            <p class="section-subtitle" style="margin-bottom:0;">
+              Create new staff accounts and assign them to departments. They will receive their credentials via email.
+            </p>
+          </div>
+        </header>
+
+        <section class="admin-section" style="max-width: 800px;">
+          <form id="adminRegisterStaffForm"
+            style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+
+            <div
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="staffFullName">Full Name <span style="color: #ef4444">*</span></label>
+                <input type="text" id="staffFullName" class="form-input" required placeholder="e.g. John Doe">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="staffIdInput">Staff ID <span style="color: #ef4444">*</span></label>
+                <input type="text" id="staffIdInput" class="form-input" required placeholder="e.g. EMP-2024-001">
+              </div>
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="staffEmail">Email Address <span style="color: #ef4444">*</span></label>
+                <input type="email" id="staffEmail" class="form-input" required placeholder="john.doe@cityplus.com">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="staffDepartment">Department <span style="color: #ef4444">*</span></label>
+                <select id="staffDepartment" class="form-select" required>
+                  <option value="" disabled selected>Select a Department...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label class="form-label" for="staffPassword">Password <span style="color: #ef4444">*</span></label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="staffPassword" class="form-input" required
+                  placeholder="Enter or generate password" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="generateStaffPassword()"
+                  style="white-space: nowrap;">Auto-Generate</button>
+              </div>
+              <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">The staff member will be
+                required to change this upon first login.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;" id="registerStaffSubmitBtn">
+              Register Staff Member
+            </button>
+            <div id="registerStaffMessage"
+              style="margin-top: 1rem; text-align: center; display: none; padding: 0.75rem; border-radius: 0.5rem; font-weight: 500;">
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- Departments Tab Content -->
+      <div class="content-container admin-tab-content" id="departments-tab">
+        <header class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div class="tag">System Organization</div>
+            <h1 class="section-title" style="margin-top:8px;">
+              Department Management
+            </h1>
+            <p class="section-subtitle" style="margin-bottom:0;">
+              Create, edit, and manage civic departments and their associated staff.
+            </p>
+          </div>
+          <button class="btn btn-primary" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
+            onclick="openCreateDepartmentModal()">
+            <span class="material-icons-round">add</span>
+            New Department
+          </button>
+        </header>
+
+        <section class="admin-section">
+          <div class="table-card" style="margin-top: 1rem;">
+            <div class="table-wrapper">
+              <table class="table admin-table">
+                <thead>
+                  <tr>
+                    <th>Dept Name</th>
+                    <th>Description</th>
+                    <th>Supported Categories</th>
+                    <th>Created On</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminDepartmentsBody">
+                  <!-- Filled by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
       <!-- User Details Tab Content -->
       <div class="content-container admin-tab-content" id="user-details-tab">
         <header class="panel-header"
@@ -481,6 +601,10 @@
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Role:</span>
                   <span id="adminUserDetailRole">--</span>
+                </div>
+                <div id="adminUserDetailDeptContainer" style="display: none; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Department:</span>
+                  <span id="adminUserDetailDepartment" style="font-weight: 600;">--</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Joined:</span>
@@ -623,6 +747,14 @@
                   <span id="adminModalWard">--</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Category:</span>
+                  <span id="adminModalCategory">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Department:</span>
+                  <span id="adminModalDepartment">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Priority:</span>
                   <span id="adminModalPriority">--</span>
                 </div>
@@ -664,6 +796,12 @@
                   style="font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
                   <span class="material-icons-round">assignment_ind</span> Assign & Manage
                 </h3>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label class="form-label">Select Department</label>
+                  <select id="adminModalDepartmentSelect" class="form-select" onchange="filterStaffByDepartment()">
+                    <option value="">Select Department...</option>
+                  </select>
+                </div>
                 <div class="form-group" style="margin-bottom: 1rem;">
                   <label class="form-label">Assign To Staff Member</label>
                   <select id="adminModalStaffSelect" class="form-select">
@@ -810,20 +948,8 @@
                   style="display: none; background: var(--bg-secondary); padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
                   <div class="form-group" style="margin-bottom: 1rem;">
                     <label class="form-label"
-                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Email
-                      Address</label>
-                    <div class="otp-input-group">
-                      <input type="email" id="cpEmail" class="form-input" readonly>
-                      <button class="btn btn-outline" onclick="sendChangePasswordOTP()" id="sendCpOtpBtn">Send
-                        OTP</button>
-                    </div>
-                  </div>
-                  <div class="form-group" style="margin-bottom: 1rem;">
-                    <label class="form-label"
-                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">OTP Verification
-                      Code</label>
-                    <input type="text" id="cpOtpCode" class="form-input" placeholder="Enter 6-digit OTP sent to email"
-                      style="width: 100%; box-sizing:border-box;">
+                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Email Address</label>
+                    <input type="email" id="cpEmail" class="form-input" style="width: 100%; box-sizing:border-box;" readonly>
                   </div>
                   <div class="form-group" style="margin-bottom: 1rem;">
                     <label class="form-label"
@@ -856,6 +982,177 @@
   </footer>
 
 
+
+  <!-- Department Modal (Create/Edit) -->
+  <div id="departmentModal" class="confirm-modal-backdrop" style="display: none;">
+    <div class="confirm-modal" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 class="confirm-modal-title" id="departmentModalTitle" style="margin: 0;">Create Department</h3>
+        <button class="btn-clear-search" onclick="closeDepartmentModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <form id="departmentForm" onsubmit="event.preventDefault(); submitDepartment();">
+        <input type="hidden" id="deptId">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="text-align: left; display: block;">Department Name <span
+              style="color: #ef4444">*</span></label>
+          <input type="text" id="deptName" class="form-input" required placeholder="e.g. Public Works">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="text-align: left; display: block;">Description</label>
+          <textarea id="deptDescription" class="form-input" placeholder="Department responsibilities..."
+            style="width: 100%; box-sizing: border-box; min-height: 80px; resize: vertical;"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" style="text-align: left; display: block;">Supported Categories</label>
+          <div id="deptCategoriesContainer"
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; max-height: 400px; overflow-y: auto; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-primary);">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Potholes / Damaged Road"> Potholes / Damaged Road</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Broken Footpath"> Broken Footpath</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Road Crack / Sinkhole"> Road Crack / Sinkhole</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Damaged Divider"> Damaged Divider</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Road Sign Missing"> Road Sign Missing</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Speed Breaker Damage"> Speed Breaker Damage</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Dangerous Open Construction"> Dangerous Open
+              Construction</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Damaged Public Infrastructure"> Damaged Public
+              Infrastructure</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Streetlight Not Working"> Streetlight Not Working</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Flickering Streetlight"> Flickering Streetlight</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Broken Streetlight Pole"> Broken Streetlight Pole</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Exposed Electrical Wires"> Exposed Electrical Wires</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Dark Area / No Streetlights"> Dark Area / No
+              Streetlights</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Garbage Not Collected"> Garbage Not Collected</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Overflowing Garbage Bin"> Overflowing Garbage Bin</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Illegal Garbage Dump"> Illegal Garbage Dump</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Construction Waste Dump"> Construction Waste Dump</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Dead Animal on Road"> Dead Animal on Road</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Dirty Street / Public Area"> Dirty Street / Public
+              Area</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Waste Burning"> Waste Burning</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="No Water Supply"> No Water Supply</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Low Water Pressure"> Low Water Pressure</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Water Leakage"> Water Leakage</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Contaminated Water"> Contaminated Water</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Broken Water Pipeline"> Broken Water Pipeline</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Blocked Drain"> Blocked Drain</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Sewage Overflow"> Sewage Overflow</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Open Manhole"> Open Manhole</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Broken Drain Cover"> Broken Drain Cover</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Waterlogging / Flooded Road"> Waterlogging / Flooded
+              Road</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Mosquito Breeding Area"> Mosquito Breeding Area</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Stray Animal Issue"> Stray Animal Issue</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Food Hygiene Complaint"> Food Hygiene Complaint</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Unhygienic Public Toilet"> Unhygienic Public Toilet</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Public Health Hazard"> Public Health Hazard</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Park Maintenance Issue"> Park Maintenance Issue</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Broken Park Equipment"> Broken Park Equipment</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Unclean Garden"> Unclean Garden</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Tree Fallen"> Tree Fallen</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Overgrown Trees / Branches"> Overgrown Trees /
+              Branches</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Illegal Street Vendor"> Illegal Street Vendor</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Footpath Encroachment"> Footpath Encroachment</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Illegal Construction"> Illegal Construction</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Roadside Obstruction"> Roadside Obstruction</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Broken Traffic Signal"> Broken Traffic Signal</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Missing Road Signs"> Missing Road Signs</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Illegal Parking"> Illegal Parking</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; cursor: pointer;"><input
+                type="checkbox" name="deptCategories" value="Dangerous Intersection"> Dangerous Intersection</label>
+          </div>
+        </div>
+        <div class="confirm-modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeDepartmentModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveDeptBtn">Save Department</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Manage Department Staff Modal -->
+  <div id="manageDeptStaffModal" class="confirm-modal-backdrop" style="display: none;">
+    <div class="confirm-modal" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 class="confirm-modal-title" style="margin: 0;">Manage Staff: <span id="manageStaffDeptName"></span></h3>
+        <button class="btn-clear-search" onclick="closeManageDeptStaffModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+
+      <div
+        style="background: var(--bg-tertiary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Assign Staff to this Department</h4>
+        <div style="display: flex; gap: 0.5rem;">
+          <select id="unassignedStaffSelect" class="form-select" style="flex-grow: 1;">
+            <option value="">Select Staff Member...</option>
+          </select>
+          <button class="btn btn-primary" onclick="assignStaffToCurrentDept()">Assign</button>
+        </div>
+      </div>
+
+      <h4
+        style="margin: 0 0 0.75rem 0; font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        Current Department Staff</h4>
+      <div id="currentDeptStaffList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div class="confirm-modal-actions" style="margin-top: 1.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeManageDeptStaffModal()">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Logout Confirmation Modal -->
   <div id="logoutConfirmModal" class="confirm-modal-backdrop">

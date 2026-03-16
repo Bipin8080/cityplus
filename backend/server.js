@@ -12,6 +12,7 @@ import issueRoutes from "./routes/issueRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import configRoutes from "./routes/configRoutes.js";
+import departmentRoutes from "./routes/departmentRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { initSocket } from "./config/socket.js";
 
@@ -27,7 +28,7 @@ const app = express();
 // CORS: restrict to allowed origins (set FRONTEND_URL in .env for production)
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",")
-  : ["http://localhost:5000", "http://localhost:3000", "http://127.0.0.1:5000"];
+  : ["http://localhost:5000", "http://localhost:3000", "http://127.0.0.1:5000", "http://localhost:5500", "http://127.0.0.1:5501"];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -57,6 +58,14 @@ const authLimiter = rateLimit({
 });
 
 // ──── Static Files ──────────────────────────────────────────────────────
+// Disable caching to prevent UI staleness during development
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
+
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -69,6 +78,7 @@ app.use("/api/issues", issueRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/config", configRoutes);
+app.use("/api/departments", departmentRoutes);
 
 // Serve frontend for all other routes
 app.get("*", (req, res) => {

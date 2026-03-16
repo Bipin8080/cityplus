@@ -16,23 +16,19 @@ function showSuccessModal(title, message, redirectUrl) {
   document.getElementById('successModal').style.display = 'flex';
 
   const progressBar = document.getElementById('successProgressBar');
-  const countdownEl = document.getElementById('successCountdown');
-  let countdown = 3;
+  const redirectText = document.querySelector('.success-modal-redirect');
+  if (redirectText) redirectText.textContent = "Redirecting...";
 
   // Start progress bar animation
   setTimeout(() => {
+    progressBar.style.transition = 'width 1.5s linear';
     progressBar.style.width = '0%';
   }, 50);
 
-  // Countdown timer
-  const timer = setInterval(() => {
-    countdown--;
-    countdownEl.textContent = countdown;
-    if (countdown <= 0) {
-      clearInterval(timer);
-      window.location.href = redirectUrl;
-    }
-  }, 1000);
+  // Short delay before redirect
+  setTimeout(() => {
+    window.location.href = redirectUrl;
+  }, 1500);
 }
 
 // Close modal when clicking outside of it
@@ -98,12 +94,15 @@ async function loginUser() {
       return;
     }
 
-    // Save token + role + email + name
+    // Save token + role + email + name + department Name if present
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.role);
     localStorage.setItem("userEmail", email);
     if (data.name) {
       localStorage.setItem("userName", data.name);
+    }
+    if (data.departmentName) {
+      localStorage.setItem("departmentName", data.departmentName);
     }
 
     // Redirect based on role with success modal

@@ -1,6 +1,6 @@
 let staffAllIssues = [];
 let staffAssignedIssues = [];
-let currentStaffView = "all"; // "all" or "assigned"
+let currentStaffView = "dashboard"; // "dashboard", "all" or "assigned"
 
 // Search and pagination variables
 let currentStaffIssueSearchTerm = '';
@@ -35,7 +35,53 @@ async function loadStaffData() {
   staffAllIssues = allData.issues || [];
   staffAssignedIssues = assignedData.issues || [];
 
+  renderStaffAnalytics();
   renderStaffIssues();
+}
+
+function renderStaffAnalytics() {
+  const total = staffAssignedIssues.length;
+  let pending = 0;
+  let inProgress = 0;
+  let resolved = 0;
+  let departmentName = "-";
+
+  staffAssignedIssues.forEach(issue => {
+    if (issue.status === "Pending") pending++;
+    else if (issue.status === "In Progress") inProgress++;
+    else if (issue.status === "Resolved") resolved++;
+
+    if (departmentName === "-" && issue.department && issue.department.name) {
+      departmentName = issue.department.name;
+    }
+  });
+
+  if (departmentName !== "-") {
+    localStorage.setItem('departmentName', departmentName);
+  }
+
+  const userName_stored = localStorage.getItem('userName') || 'Staff';
+  const staffDashboardTitle = document.getElementById("staffDashboardTitle");
+  const staffDashboardSubtitle = document.getElementById("staffDashboardSubtitle");
+
+  if (staffDashboardTitle) {
+      staffDashboardTitle.textContent = `Welcome, ${userName_stored}`;
+  }
+  if (staffDashboardSubtitle) {
+      staffDashboardSubtitle.textContent = departmentName !== "-" 
+          ? `Here is an overview of your assigned issues for the ${departmentName} department.`
+          : `Here is an overview of your assigned issues.`;
+  }
+
+  const statTotalAssigned = document.getElementById("statTotalAssigned");
+  const statPending = document.getElementById("statPending");
+  const statInProgress = document.getElementById("statInProgress");
+  const statResolved = document.getElementById("statResolved");
+
+  if (statTotalAssigned) statTotalAssigned.textContent = total;
+  if (statPending) statPending.textContent = pending;
+  if (statInProgress) statInProgress.textContent = inProgress;
+  if (statResolved) statResolved.textContent = resolved;
 }
 
 function renderStaffIssues() {
@@ -99,6 +145,7 @@ function renderStaffIssues() {
     });
 
     const citizenName = issue.citizen ? issue.citizen.name : "-";
+    const departmentName = issue.department ? issue.department.name : "-";
 
     const imageCell = issue.image
       ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
@@ -126,6 +173,7 @@ function renderStaffIssues() {
         ${issue.category}
         ${issue.feedback ? `<div style="color:#eab308;display:flex;align-items:center;font-size:0.875rem;margin-top:0.25rem;"><span class="material-icons-round" style="font-size:1rem;">star</span> ${issue.feedback.rating}</div>` : ''}
       </td>
+      <td>${departmentName}</td>
       <td>${issue.location}</td>
       <td>${issue.priority}</td>
       <td>${citizenName}</td>
@@ -226,6 +274,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const staffIssuesBody = document.querySelector("#staffIssuesBody");
+  const tabDashboardLink = document.querySelector("#tab-dashboard");
   const tabAllIssuesLink = document.querySelector("#tab-all-issues");
   const tabMyAssignedLink = document.querySelector("#tab-my-assigned");
 
@@ -236,39 +285,75 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (window.loadLeafletApi) await window.loadLeafletApi();
 
+  // Handle browser back/forward buttons and initial load
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '') || 'dashboard';
+    activateStaffTab(hash);
+  });
+
+  // initial load
+  const initialHash = window.location.hash.replace('#', '') || 'dashboard';
+  activateStaffTab(initialHash);
+
+  // Handle Dashboard click
+  if (tabDashboardLink) {
+    tabDashboardLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      history.pushState(null, null, '#dashboard');
+      activateStaffTab('dashboard');
+    });
+  }
+
   // Handle All Issues click
   tabAllIssuesLink.addEventListener("click", (e) => {
     e.preventDefault();
-    currentStaffView = "all";
-    tabAllIssuesLink.classList.add("active", "nav-link--active");
-    tabMyAssignedLink.classList.remove("active", "nav-link--active");
-
-    // Ensure details view is closed when switching tabs
-    const detailsTab = document.getElementById("staff-issue-details-container");
-    const mainTab = document.getElementById("staff-main-container");
-    if (detailsTab) detailsTab.style.display = "none";
-    if (mainTab) mainTab.style.display = "block";
-
-    renderStaffIssues();
-
-    // Auto-close sidebar on mobile
-    if (window.innerWidth <= 1024) {
-      document.querySelector('.sidebar').classList.remove('active');
-    }
+    history.pushState(null, null, '#all');
+    activateStaffTab('all');
   });
 
   // Handle My Assigned Issues click
   tabMyAssignedLink.addEventListener("click", (e) => {
     e.preventDefault();
-    currentStaffView = "assigned";
-    tabMyAssignedLink.classList.add("active", "nav-link--active");
-    tabAllIssuesLink.classList.remove("active", "nav-link--active");
+    history.pushState(null, null, '#assigned');
+    activateStaffTab('assigned');
+  });
+
+  // Main activate tab logic
+  function activateStaffTab(hash) {
+    if (hash === 'profile') {
+      window.openProfileModal(true);
+      return;
+    }
+
+    // hide profile container if active
+    const profileContainer = document.getElementById('profile-view-container');
+    if (profileContainer) profileContainer.style.display = 'none';
+
+    if (hash === 'assigned') {
+      currentStaffView = "assigned";
+      tabMyAssignedLink.classList.add("active", "nav-link--active");
+      tabAllIssuesLink.classList.remove("active", "nav-link--active");
+      if (tabDashboardLink) tabDashboardLink.classList.remove("active", "nav-link--active");
+    } else if (hash === 'all') {
+      currentStaffView = "all";
+      tabAllIssuesLink.classList.add("active", "nav-link--active");
+      tabMyAssignedLink.classList.remove("active", "nav-link--active");
+      if (tabDashboardLink) tabDashboardLink.classList.remove("active", "nav-link--active");
+    } else {
+      currentStaffView = "dashboard";
+      if (tabDashboardLink) tabDashboardLink.classList.add("active", "nav-link--active");
+      tabAllIssuesLink.classList.remove("active", "nav-link--active");
+      tabMyAssignedLink.classList.remove("active", "nav-link--active");
+    }
 
     // Ensure details view is closed when switching tabs
     const detailsTab = document.getElementById("staff-issue-details-container");
     const mainTab = document.getElementById("staff-main-container");
+    const dashboardTab = document.getElementById("staff-dashboard-container");
+    
     if (detailsTab) detailsTab.style.display = "none";
-    if (mainTab) mainTab.style.display = "block";
+    if (dashboardTab) dashboardTab.style.display = currentStaffView === "dashboard" ? "block" : "none";
+    if (mainTab) mainTab.style.display = currentStaffView === "dashboard" ? "none" : "";
 
     renderStaffIssues();
 
@@ -276,7 +361,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (window.innerWidth <= 1024) {
       document.querySelector('.sidebar').classList.remove('active');
     }
-  });
+  }
 
   // Mobile menu toggle
   const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
@@ -343,7 +428,7 @@ function openStaffIssueDetails(issue) {
   if (issue.status === "Resolved") statusClass = "resolved";
 
   // Set title
-  document.getElementById("staffDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}`;
+  document.getElementById("staffDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}: ${issue.title || 'Untitled'}`;
 
   // Set image
   const imageContainer = document.getElementById("staffModalImageContainer");
@@ -372,6 +457,8 @@ function openStaffIssueDetails(issue) {
   document.getElementById("staffModalComplaintId").textContent = issue._id ? `#${issue._id.slice(-6)}` : "---";
   document.getElementById("staffModalLocation").textContent = issue.location || "--";
   document.getElementById("staffModalWard").textContent = issue.ward || "--";
+  document.getElementById("staffModalCategory").textContent = issue.category ? (issue.category.name || issue.category) : "--";
+  document.getElementById("staffModalDepartment").textContent = issue.department ? issue.department.name : "Unassigned";
   document.getElementById("staffModalPriority").textContent = issue.priority || "--";
   document.getElementById("staffModalDate").textContent = created;
   document.getElementById("staffModalCitizen").textContent = issue.citizen ? issue.citizen.name : "Anonymous";
@@ -522,7 +609,9 @@ function openStaffIssueDetails(issue) {
   // Show details view
   const detailsTab = document.getElementById("staff-issue-details-container");
   const mainTab = document.getElementById("staff-main-container");
+  const dashboardTab = document.getElementById("staff-dashboard-container");
   if (mainTab) mainTab.style.display = "none";
+  if (dashboardTab) dashboardTab.style.display = "none";
   if (detailsTab) detailsTab.style.display = "block";
   window.scrollTo(0, 0);
 }
@@ -530,8 +619,14 @@ function openStaffIssueDetails(issue) {
 function closeStaffIssueDetails() {
   const detailsTab = document.getElementById("staff-issue-details-container");
   const mainTab = document.getElementById("staff-main-container");
+  const dashboardTab = document.getElementById("staff-dashboard-container");
   if (detailsTab) detailsTab.style.display = "none";
-  if (mainTab) mainTab.style.display = "block";
+  
+  if (currentStaffView === "dashboard") {
+    if (dashboardTab) dashboardTab.style.display = "block";
+  } else {
+    if (mainTab) mainTab.style.display = "block";
+  }
 }
 
 async function updateStaffIssueStatus() {
@@ -647,14 +742,33 @@ async function refreshStaffData(btn) {
 window.refreshStaffData = refreshStaffData;
 
 // Open profile view
-window.openProfileModal = function () {
+window.openProfileModal = function (fromHash = false) {
+  if (!fromHash) {
+    history.pushState(null, null, '#profile');
+  }
+
   // Populate profile data
   const userName_stored = localStorage.getItem('userName');
   const userEmail_stored = localStorage.getItem('userEmail');
 
+  let profileDepartmentName = "-";
+  
+  if (typeof staffAssignedIssues !== 'undefined' && staffAssignedIssues.length > 0) {
+    const issueWithDept = staffAssignedIssues.find(i => i.department && i.department.name);
+    if (issueWithDept) {
+      profileDepartmentName = issueWithDept.department.name;
+    }
+  }
+
   document.querySelector('#profileName').textContent = userName_stored || 'Staff User';
   document.querySelector('#profileFullName').textContent = userName_stored || '-';
   document.querySelector('#profileEmail').textContent = userEmail_stored || '-';
+  
+  const deptEl = document.querySelector('#profileDepartment');
+  if (deptEl) {
+    deptEl.textContent = profileDepartmentName !== "-" ? profileDepartmentName : (localStorage.getItem('departmentName') || "Loading...");
+    // Let's also check if renderStaffAnalytics calculated something we can use, but the above is safer.
+  }
 
   // Setup change password form
   const cpEmail = document.querySelector('#cpEmail');
@@ -668,6 +782,8 @@ window.openProfileModal = function () {
   // Hide other views and show profile view
   const mainTab = document.getElementById("staff-main-container");
   if (mainTab) mainTab.style.display = "none";
+  const dashboardTab = document.getElementById("staff-dashboard-container");
+  if (dashboardTab) dashboardTab.style.display = "none";
   const detailsTab = document.getElementById("staff-issue-details-container");
   if (detailsTab) detailsTab.style.display = "none";
 
@@ -677,9 +793,13 @@ window.openProfileModal = function () {
 
 // Close profile view
 window.closeProfileView = function () {
-  document.getElementById('profile-view-container').style.display = 'none';
-  const mainTab = document.getElementById("staff-main-container");
-  if (mainTab) mainTab.style.display = "block";
+  const hash = window.location.hash.replace('#', '') || 'dashboard';
+  if (hash === 'profile') {
+    history.pushState(null, null, '#dashboard');
+    window.dispatchEvent(new Event('hashchange'));
+  } else {
+    window.dispatchEvent(new Event('hashchange'));
+  }
 };
 
 // Toggle change password form
@@ -693,12 +813,11 @@ window.toggleChangePasswordForm = function () {
 // Submit password change
 window.submitPasswordChange = async function () {
   const email = document.querySelector('#cpEmail').value.trim();
-  const otp = document.querySelector('#cpOtpCode').value.trim();
   const currentPassword = document.querySelector('#cpCurrentPassword').value;
   const newPassword = document.querySelector('#cpNewPassword').value;
 
-  if (!email || !otp || !currentPassword || !newPassword) {
-    showToast('error', 'All fields, including OTP, are required.');
+  if (!email || !currentPassword || !newPassword) {
+    showToast('error', 'All fields are required.');
     return;
   }
 
@@ -711,57 +830,17 @@ window.submitPasswordChange = async function () {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword, otp })
+      body: JSON.stringify({ email, currentPassword, newPassword })
     });
     const data = await res.json();
 
     if (res.ok) {
       showToast('success', 'Password changed successfully!');
-      document.querySelector('#changePasswordForm').style.display = 'none';
-      document.querySelector('#cpOtpCode').value = '';
       document.querySelector('#cpCurrentPassword').value = '';
       document.querySelector('#cpNewPassword').value = '';
+      toggleChangePasswordForm();
     } else {
       showToast('error', data.message || 'Failed to change password.');
-    }
-  } catch (err) {
-    console.error(err);
-    showToast('error', 'Network error. Please try again.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-};
-
-// Send OTP for Change Password
-window.sendChangePasswordOTP = async function () {
-  const email = document.querySelector('#cpEmail').value.trim();
-  if (!email) {
-    showToast('error', 'Email is required to send OTP.');
-    return;
-  }
-
-  const btn = document.querySelector('#sendCpOtpBtn');
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/auth/send-change-password-otp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token
-      },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      showToast('success', 'OTP sent to your email.');
-    } else {
-      showToast('error', data.message || 'Failed to send OTP.');
     }
   } catch (err) {
     console.error(err);

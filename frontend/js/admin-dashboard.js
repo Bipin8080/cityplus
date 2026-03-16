@@ -25,8 +25,8 @@ async function loadAdminData() {
   }
 
   try {
-    // 1) Summary + users + staff + issues in parallel
-    const [summaryRes, usersRes, staffRes, issuesRes] = await Promise.all([
+    // 1) Summary + users + staff + issues + departments in parallel
+    const [summaryRes, usersRes, staffRes, issuesRes, departmentsRes] = await Promise.all([
       fetch("/api/admin/summary", {
         headers: { Authorization: "Bearer " + token }
       }),
@@ -38,6 +38,9 @@ async function loadAdminData() {
       }),
       fetch("/api/issues/all", {
         headers: { Authorization: "Bearer " + token }
+      }),
+      fetch("/api/departments", {
+        headers: { Authorization: "Bearer " + token }
       })
     ]);
 
@@ -45,6 +48,7 @@ async function loadAdminData() {
     const usersData = await usersRes.json();
     const staffData = await staffRes.json();
     const issuesData = await issuesRes.json();
+    const departmentsData = await departmentsRes.json();
 
     if (!summaryRes.ok) throw new Error(summaryData.message || "Unable to retrieve system summary. Please refresh the page or try again later.");
     if (!usersRes.ok) throw new Error(usersData.message || "Unable to retrieve user data. Please refresh the page or try again later.");
@@ -79,6 +83,11 @@ async function loadAdminData() {
     // ----- Assign Issues table -----
     window.adminIssuesList = issuesData.issues || [];
     displayIssues(window.adminIssuesList);
+
+    // ----- Populate Departments Dropdown & Table -----
+    window.adminDepartmentsList = departmentsData.data || [];
+    populateDepartmentsDropdown(window.adminDepartmentsList);
+    displayDepartments(window.adminDepartmentsList);
 
   } catch (err) {
     console.error(err);
@@ -348,7 +357,7 @@ function openAdminIssueDetails(issue, staffList) {
   if (issue.status === "Resolved") statusClass = "resolved";
 
   // Set title
-  document.getElementById("adminDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}`;
+  document.getElementById("adminDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}: ${issue.title || 'Untitled'}`;
 
   // Set image
   const imageContainer = document.getElementById("adminModalImageContainer");
@@ -377,24 +386,30 @@ function openAdminIssueDetails(issue, staffList) {
   document.getElementById("adminModalComplaintId").textContent = issue._id ? `#${issue._id.slice(-6)}` : "---";
   document.getElementById("adminModalLocation").textContent = issue.location || "--";
   document.getElementById("adminModalWard").textContent = issue.ward || "--";
+  document.getElementById("adminModalCategory").textContent = issue.category ? (issue.category.name || issue.category) : "--";
+  document.getElementById("adminModalDepartment").textContent = issue.department ? issue.department.name : "Unassigned";
   document.getElementById("adminModalPriority").textContent = issue.priority || "--";
   document.getElementById("adminModalDate").textContent = created;
   document.getElementById("adminModalReporter").textContent = issue.citizen ? issue.citizen.name : "Anonymous";
   document.getElementById("adminModalEmail").textContent = issue.citizen ? issue.citizen.email : "--";
 
-  // Set staff dropdown
-  const staffSelect = document.getElementById("adminModalStaffSelect");
-  staffSelect.innerHTML = '<option value="">Select Staff Member...</option>';
-  (staffList || []).forEach(staff => {
+  // Set department dropdown
+  const deptSelect = document.getElementById("adminModalDepartmentSelect");
+  deptSelect.innerHTML = '<option value="">Select Department...</option>';
+  (window.adminDepartmentsList || []).forEach(dept => {
     const option = document.createElement("option");
-    option.value = staff._id;
-    option.textContent = staff.name;
-    if (issue.assignedTo && issue.assignedTo._id === staff._id) {
+    option.value = dept._id;
+    option.textContent = dept.name;
+    // Default to the issue's department if it has one
+    if (issue.department && issue.department._id === dept._id) {
       option.selected = true;
     }
-    staffSelect.appendChild(option);
+    deptSelect.appendChild(option);
   });
-  staffSelect.dataset.issueId = issue._id;
+  deptSelect.dataset.issueId = issue._id;
+
+  // Initial call to filter staff based on the selected department
+  filterStaffByDepartment(issue.assignedTo);
 
   // Dynamic assign/reassign button text
   const assignBtn = document.getElementById("adminAssignIssueBtn");
@@ -559,6 +574,31 @@ function closeAdminIssueDetails() {
   } else {
     document.getElementById("issues-tab").classList.add("active");
   }
+}
+
+function filterStaffByDepartment(assignedToObj = null) {
+  const deptSelect = document.getElementById("adminModalDepartmentSelect");
+  const staffSelect = document.getElementById("adminModalStaffSelect");
+  const selectedDeptId = deptSelect.value;
+  const issueId = deptSelect.dataset.issueId;
+
+  staffSelect.innerHTML = '<option value="">Select Staff Member...</option>';
+  staffSelect.dataset.issueId = issueId;
+
+  if (!selectedDeptId) return;
+
+  const staffList = window.adminStaffList || [];
+  const filteredStaff = staffList.filter(staff => staff.department && staff.department._id === selectedDeptId);
+
+  filteredStaff.forEach(staff => {
+    const option = document.createElement("option");
+    option.value = staff._id;
+    option.textContent = staff.name;
+    if (assignedToObj && assignedToObj._id === staff._id) {
+      option.selected = true;
+    }
+    staffSelect.appendChild(option);
+  });
 }
 
 async function assignIssueToStaffModal() {
@@ -730,6 +770,7 @@ function displayIssues(issues) {
     const tr = document.createElement("tr");
     const assignedName = issue.assignedTo ? issue.assignedTo.name : "";
     const citizenName = issue.citizen ? issue.citizen.name : "-";
+    const departmentName = issue.department ? issue.department.name : "-";
 
     const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
     const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
@@ -746,6 +787,7 @@ function displayIssues(issues) {
         <strong>${issue.category}</strong>
         ${issue.feedback ? `<div style="color:#eab308;display:flex;align-items:center;font-size:0.875rem;margin-top:0.25rem;"><span class="material-icons-round" style="font-size:1rem;">star</span> ${issue.feedback.rating}</div>` : ''}
       </td>
+      <td>${departmentName}</td>
       <td>${issue.location}</td>
       <td>${citizenName}</td>
       <td>${assignedName || "<span style='color:#999'>Unassigned</span>"}</td>
@@ -863,37 +905,66 @@ function setupTabNavigation() {
   const tabButtons = document.querySelectorAll('.admin-nav-tab');
 
   tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
       const tabName = button.getAttribute('data-tab');
 
-      // Remove active class from all buttons and content
-      tabButtons.forEach(btn => {
-        btn.classList.remove('active');
-        btn.classList.remove('nav-link--active');
-      });
-      document.querySelectorAll('.admin-tab-content').forEach(content => {
-        content.classList.remove('active');
-      });
-      // Ensure details tab is hidden
-      const detailsTab = document.getElementById("issue-details-tab");
-      if (detailsTab) detailsTab.classList.remove('active');
+      // Update URL hash without jumping
+      history.pushState(null, null, `#${tabName}`);
 
-      // Add active class to clicked button and corresponding content
-      button.classList.add('active');
-      button.classList.add('nav-link--active');
-      const tabContent = document.getElementById(tabName + '-tab');
-      if (tabContent) {
-        tabContent.classList.add('active');
-      }
-
-
-      // Close sidebar on mobile
-      const sidebar = document.querySelector('.sidebar');
-      if (sidebar && window.innerWidth <= 768) {
-        sidebar.classList.remove('active');
-      }
+      activateTab(tabName);
     });
   });
+
+  // Handle browser back/forward buttons
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '') || 'dashboard';
+    activateTab(hash);
+  });
+}
+
+function activateTab(tabName) {
+  if (tabName === 'profile') {
+    window.openProfileModal(true);
+    return;
+  }
+
+  // Hide profile view if active
+  const profileContainer = document.getElementById('profile-view-container');
+  if (profileContainer) profileContainer.style.display = 'none';
+
+  const tabButtons = document.querySelectorAll('.admin-nav-tab');
+  
+  // Remove active class from all buttons and content
+  tabButtons.forEach(btn => {
+    btn.classList.remove('active', 'nav-link--active');
+  });
+  document.querySelectorAll('.admin-tab-content').forEach(content => {
+    content.classList.remove('active');
+    content.style.display = ''; // Clear inline styles that might hide content
+  });
+  
+  // Ensure details tab is hidden
+  const detailsTab = document.getElementById("issue-details-tab");
+  if (detailsTab) detailsTab.classList.remove('active');
+  const userDetailsTab = document.getElementById("user-details-tab");
+  if (userDetailsTab) userDetailsTab.classList.remove('active');
+
+  // Add active class to target button and corresponding content
+  const targetBtn = document.querySelector(`.admin-nav-tab[data-tab="${tabName}"]`);
+  if (targetBtn) {
+    targetBtn.classList.add('active', 'nav-link--active');
+  }
+  const tabContent = document.getElementById(tabName + '-tab');
+  if (tabContent) {
+    tabContent.classList.add('active');
+  }
+
+  // Close sidebar on mobile
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar && window.innerWidth <= 768) {
+    sidebar.classList.remove('active');
+  }
 }
 
 // Setup search and filter listeners
@@ -1004,6 +1075,14 @@ function openAdminUserDetails(user) {
   const roleDisplay = user.role.charAt(0).toUpperCase() + user.role.slice(1);
   document.getElementById("adminUserDetailRole").innerHTML = `<span class="role-badge ${user.role}">${roleDisplay}</span>`;
   document.getElementById("adminUserDetailJoined").textContent = joined;
+
+  const deptContainer = document.getElementById("adminUserDetailDeptContainer");
+  if (user.role === 'staff') {
+    document.getElementById("adminUserDetailDepartment").textContent = user.department ? (user.department.name || user.department) : "Unassigned";
+    deptContainer.style.display = "grid";
+  } else {
+    deptContainer.style.display = "none";
+  }
 
   // Status Badge
   const statusStr = user.status || 'active';
@@ -1166,6 +1245,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup tab navigation
   setupTabNavigation();
 
+  // Read initial hash or default to 'dashboard'
+  const initialHash = window.location.hash.replace('#', '') || 'dashboard';
+  setTimeout(() => activateTab(initialHash), 0);
+
   // Setup search and filters
   setupSearchAndFilters();
   setupIssueSearchAndFilters();
@@ -1230,6 +1313,124 @@ window.openAdminUserDetailsFromTableEncoded = openAdminUserDetailsFromTableEncod
 window.closeAdminUserDetails = closeAdminUserDetails;
 window.updateUserDetailsStatus = updateUserDetailsStatus;
 
+// --- Staff Registration Logic ---
+window.populateDepartmentsDropdown = function(departments) {
+  const select = document.getElementById("staffDepartment");
+  if (!select) return;
+  
+  select.innerHTML = '<option value="" disabled selected>Select a Department...</option>';
+  departments.forEach(dept => {
+    const opt = document.createElement("option");
+    opt.value = dept._id;
+    opt.textContent = dept.name;
+    select.appendChild(opt);
+  });
+};
+
+window.generateStaffPassword = function() {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let pwd = "";
+  for(let i=0; i<12; i++){
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById("staffPassword").value = pwd;
+};
+
+window.handleStaffRegistration = async function(e) {
+  e.preventDefault();
+  
+  const name = document.getElementById("staffFullName").value.trim();
+  const email = document.getElementById("staffEmail").value.trim();
+  const staffId = document.getElementById("staffIdInput").value.trim();
+  const department = document.getElementById("staffDepartment").value;
+  const password = document.getElementById("staffPassword").value;
+  
+  const msgEl = document.getElementById("registerStaffMessage");
+  const btn = document.getElementById("registerStaffSubmitBtn");
+  
+  // Basic validation
+  if(!name || !email || !staffId || !department || !password) {
+    msgEl.textContent = "All fields are required.";
+    msgEl.className = "error-message";
+    msgEl.style.display = "block";
+    msgEl.style.color = "#ef4444";
+    msgEl.style.backgroundColor = "#fee2e2";
+    return;
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    msgEl.textContent = "Please enter a valid email address.";
+    msgEl.className = "error-message";
+    msgEl.style.display = "block";
+    msgEl.style.color = "#ef4444";
+    msgEl.style.backgroundColor = "#fee2e2";
+    return;
+  }
+
+  // Password validation (min 6 characters)
+  if (password.length < 6) {
+    msgEl.textContent = "Password must be at least 6 characters long.";
+    msgEl.className = "error-message";
+    msgEl.style.display = "block";
+    msgEl.style.color = "#ef4444";
+    msgEl.style.backgroundColor = "#fee2e2";
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = "Registering Staff...";
+  msgEl.style.display = "none";
+  
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch("/api/auth/register-staff", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ name, email, staffId, department, password })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      msgEl.textContent = "Staff member successfully registered! Credentials sent to email.";
+      msgEl.className = "success-message";
+      msgEl.style.display = "block";
+      msgEl.style.color = "#16a34a";
+      msgEl.style.backgroundColor = "#dcfce7";
+      
+      // reset form
+      document.getElementById("adminRegisterStaffForm").reset();
+      
+      // Refresh background data
+      loadAdminData();
+    } else {
+      throw new Error(data.message || "Failed to register staff member.");
+    }
+  } catch (err) {
+    console.error(err);
+    msgEl.textContent = err.message || "Network error. Please try again.";
+    msgEl.className = "error-message";
+    msgEl.style.display = "block";
+    msgEl.style.color = "#ef4444";
+    msgEl.style.backgroundColor = "#fee2e2";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Register Staff Member";
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const registerForm = document.getElementById("adminRegisterStaffForm");
+  if(registerForm) {
+    registerForm.addEventListener('submit', window.handleStaffRegistration);
+  }
+});
+
 async function refreshAdminData(btn) {
   const icon = btn.querySelector('.material-icons-round');
   const originalHtml = btn.innerHTML;
@@ -1259,7 +1460,11 @@ window.openAdminIssueModalFromHtml = function (issueObj) {
 }
 
 // Open profile view
-window.openProfileModal = function () {
+window.openProfileModal = function (fromHash = false) {
+  if (!fromHash) {
+    history.pushState(null, null, '#profile');
+  }
+
   // Populate profile data
   const userName_stored = localStorage.getItem('userName');
   const userEmail_stored = localStorage.getItem('userEmail');
@@ -1288,22 +1493,8 @@ window.openProfileModal = function () {
 // Close profile view
 window.closeProfileView = function () {
   document.getElementById('profile-view-container').style.display = 'none';
-  // Return to the tab highlighted in sidebar
-  const activeSidebarLink = document.querySelector('.sidebar__nav-link.active');
-  if (activeSidebarLink && activeSidebarLink.getAttribute('onclick')) {
-    const match = activeSidebarLink.getAttribute('onclick').match(/'([^']+)'/);
-    if (match && match[1]) {
-      const tabId = match[1];
-      const targetTab = document.getElementById(`${tabId}-tab`);
-      if (targetTab) {
-        targetTab.style.display = 'block';
-        return;
-      }
-    }
-  }
-  if (document.getElementById('dashboard-tab')) {
-    document.getElementById('dashboard-tab').style.display = 'block';
-  }
+  const hash = window.location.hash.replace('#', '') || 'dashboard';
+  activateTab(hash);
 };
 
 // Toggle change password form
@@ -1317,12 +1508,11 @@ window.toggleChangePasswordForm = function () {
 // Submit password change
 window.submitPasswordChange = async function () {
   const email = document.querySelector('#cpEmail').value.trim();
-  const otp = document.querySelector('#cpOtpCode').value.trim();
   const currentPassword = document.querySelector('#cpCurrentPassword').value;
   const newPassword = document.querySelector('#cpNewPassword').value;
 
-  if (!email || !otp || !currentPassword || !newPassword) {
-    showToast('error', 'All fields, including OTP, are required.');
+  if (!email || !currentPassword || !newPassword) {
+    showToast('error', 'All fields are required.');
     return;
   }
 
@@ -1335,16 +1525,16 @@ window.submitPasswordChange = async function () {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword, otp })
+      body: JSON.stringify({ email, currentPassword, newPassword })
     });
     const data = await res.json();
 
     if (res.ok) {
       showToast('success', 'Password changed successfully!');
-      document.querySelector('#changePasswordForm').style.display = 'none';
-      document.querySelector('#cpOtpCode').value = '';
+      btn.disabled = false;
       document.querySelector('#cpCurrentPassword').value = '';
       document.querySelector('#cpNewPassword').value = '';
+      toggleChangePasswordForm();
     } else {
       showToast('error', data.message || 'Failed to change password.');
     }
@@ -1357,41 +1547,207 @@ window.submitPasswordChange = async function () {
   }
 };
 
-// Send OTP for Change Password
-window.sendChangePasswordOTP = async function () {
-  const email = document.querySelector('#cpEmail').value.trim();
-  if (!email) {
-    showToast('error', 'Email is required to send OTP.');
+// ==========================================
+// Department Management
+// ==========================================
+
+function displayDepartments(departments) {
+  const tbody = document.getElementById('adminDepartmentsBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (departments.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No departments found. Create one to get started.</td></tr>`;
     return;
   }
 
-  const btn = document.querySelector('#sendCpOtpBtn');
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
+  departments.forEach(dept => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${dept.name}</strong></td>
+      <td>${dept.description || '-'}</td>
+      <td>${(dept.supportedCategories || []).join(', ') || '-'}</td>
+      <td>${new Date(dept.createdAt).toLocaleDateString()}</td>
+      <td class="action-buttons">
+        <button class="btn btn-secondary btn-small" onclick="openEditDepartmentModal('${encodeURIComponent(JSON.stringify(dept))}')">Edit</button>
+        <button class="btn btn-primary btn-small" onclick="openManageDeptStaffModal('${dept._id}', '${dept.name.replace(/'/g, "\\'")}')">Manage Staff</button>
+        <button class="btn btn-danger btn-small" onclick="softDeleteDepartment('${dept._id}')"><span class="material-icons-round" style="font-size: 1rem;">delete</span></button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openCreateDepartmentModal() {
+  document.getElementById('departmentModalTitle').textContent = 'Create Department';
+  document.getElementById('deptId').value = '';
+  document.getElementById('deptName').value = '';
+  document.getElementById('deptDescription').value = '';
+  document.querySelectorAll('input[name="deptCategories"]').forEach(cb => cb.checked = false);
+  document.getElementById('departmentModal').style.display = 'flex';
+}
+
+function openEditDepartmentModal(encodedDept) {
+  const dept = JSON.parse(decodeURIComponent(encodedDept));
+  document.getElementById('departmentModalTitle').textContent = 'Edit Department';
+  document.getElementById('deptId').value = dept._id;
+  document.getElementById('deptName').value = dept.name;
+  document.getElementById('deptDescription').value = dept.description || '';
+  
+  const supportedCategories = dept.supportedCategories || [];
+  document.querySelectorAll('input[name="deptCategories"]').forEach(cb => {
+    cb.checked = supportedCategories.includes(cb.value);
+  });
+  
+  document.getElementById('departmentModal').style.display = 'flex';
+}
+
+function closeDepartmentModal() {
+  document.getElementById('departmentModal').style.display = 'none';
+}
+
+async function submitDepartment() {
+  const id = document.getElementById('deptId').value;
+  const name = document.getElementById('deptName').value.trim();
+  const description = document.getElementById('deptDescription').value.trim();
+  
+  const checkedBoxes = Array.from(document.querySelectorAll('input[name="deptCategories"]:checked'));
+  const supportedCategories = checkedBoxes.map(cb => cb.value);
+
+  if (!name) return showToast('error', 'Department name is required');
+
+  const token = localStorage.getItem('token');
+  const method = id ? 'PUT' : 'POST';
+  const url = id ? '/api/departments/' + id : '/api/departments';
 
   try {
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/auth/send-change-password-otp', {
-      method: 'POST',
+    const res = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         Authorization: 'Bearer ' + token
       },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ name, description, supportedCategories })
     });
+    
     const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to save department');
+    
+    showToast('success', 'Department saved successfully');
+    closeDepartmentModal();
+    loadAdminData(); // Refresh UI
+  } catch (err) {
+    showToast('error', err.message);
+  }
+}
 
-    if (res.ok) {
-      showToast('success', 'OTP sent to your email.');
-    } else {
-      showToast('error', data.message || 'Failed to send OTP.');
+async function softDeleteDepartment(id) {
+  if (!confirm('Are you sure you want to delete this department?')) return;
+  
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch('/api/departments/' + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to delete department');
+    
+    showToast('success', 'Department deleted successfully');
+    loadAdminData(); // Refresh UI
+  } catch (err) {
+    showToast('error', err.message);
+  }
+}
+
+// Manage Staff Modal
+let currentManageDeptId = null;
+
+function openManageDeptStaffModal(deptId, deptName) {
+  currentManageDeptId = deptId;
+  document.getElementById('manageStaffDeptName').textContent = deptName;
+  
+  // Filter staff that belong to this department
+  const deptStaff = window.adminStaffList.filter(s => s.department && s.department._id === deptId);
+  
+  // Staff available to be assigned to THIS department (not currently in THIS department)
+  const availableStaff = window.adminStaffList.filter(s => !s.department || s.department._id !== deptId);
+  
+  const list = document.getElementById('currentDeptStaffList');
+  list.innerHTML = '';
+  
+  if (deptStaff.length === 0) {
+    list.innerHTML = '<div style="color: var(--text-secondary); padding: 0.5rem 0;">No staff assigned to this department yet.</div>';
+  } else {
+    deptStaff.forEach(staff => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem; border: 1px solid var(--border-color);';
+      div.innerHTML = `
+        <div>
+          <strong style="display: block; color: var(--text-primary);">${staff.name}</strong>
+          <small style="color: var(--text-secondary);">${staff.email}</small>
+        </div>
+        <button class="btn btn-outline btn-small" onclick="removeStaffFromDept('${staff._id}')" style="color: #ef4444; border-color: #fca5a5; padding: 0.25rem 0.5rem;">Remove</button>
+      `;
+      list.appendChild(div);
+    });
+  }
+  
+  const select = document.getElementById('unassignedStaffSelect');
+  select.innerHTML = '<option value="">Select Staff Member...</option>';
+  availableStaff.forEach(staff => {
+    // Show current dept if they are in another one
+    const currDept = staff.department ? ` (currently in ${staff.department.name})` : '';
+    select.innerHTML += `<option value="${staff._id}">${staff.name} ${staff.email}${currDept}</option>`;
+  });
+  
+  document.getElementById('manageDeptStaffModal').style.display = 'flex';
+}
+
+function closeManageDeptStaffModal() {
+  document.getElementById('manageDeptStaffModal').style.display = 'none';
+  currentManageDeptId = null;
+}
+
+async function assignStaffToCurrentDept() {
+  const select = document.getElementById('unassignedStaffSelect');
+  const staffId = select.value;
+  if (!staffId || !currentManageDeptId) return;
+  
+  await updateStaffDepartment(staffId, currentManageDeptId);
+}
+
+window.removeStaffFromDept = async function(staffId) {
+  if (!confirm('Remove this staff member from the department?')) return;
+  await updateStaffDepartment(staffId, null);
+};
+
+async function updateStaffDepartment(staffId, departmentId) {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch(`/api/admin/staff/${staffId}/department`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token
+      },
+      body: JSON.stringify({ departmentId })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update user department');
+    
+    showToast('success', 'Staff assignment updated');
+    const currentDeptId = currentManageDeptId;
+    const currentDeptName = document.getElementById('manageStaffDeptName').textContent;
+    
+    await loadAdminData();
+    
+    if (document.getElementById('manageDeptStaffModal').style.display === 'flex') {
+       openManageDeptStaffModal(currentDeptId, currentDeptName);
     }
   } catch (err) {
-    console.error(err);
-    showToast('error', 'Network error. Please try again.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
+    showToast('error', err.message);
   }
-};
+}

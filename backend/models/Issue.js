@@ -32,6 +32,12 @@ const IssueSchema = new mongoose.Schema(
       default: null
     },
 
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null
+    },
+
     // G: optional coordinates (not required)
     lat: { type: Number },
     lng: { type: Number },

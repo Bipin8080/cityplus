@@ -48,7 +48,12 @@
 
       <!-- Nav -->
       <nav class="sidebar__nav">
-        <a class="nav-link nav-link--active staff-nav-tab active" id="tab-all-issues" href="#"
+        <a class="nav-link nav-link--active staff-nav-tab active" id="tab-dashboard" href="#"
+          onclick="event.preventDefault();">
+          <span class="material-icons-round">dashboard</span>
+          <span class="nav-text">Dashboard</span>
+        </a>
+        <a class="nav-link staff-nav-tab" id="tab-all-issues" href="#"
           onclick="event.preventDefault();">
           <span class="material-icons-round">assignment</span>
           <span class="nav-text">All Issues</span>
@@ -85,7 +90,49 @@
 
     <!-- ===== Main ===== -->
     <main class="main" style="flex:1;">
-      <div class="content-container" id="staff-main-container">
+      <!-- Dashboard Tab Content -->
+      <div class="content-container" id="staff-dashboard-container" style="display: block;">
+        <header class="panel-header"
+          style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+          <div>
+            <div class="tag">Overview</div>
+            <h1 class="section-title" style="margin-top: 0.4rem;" id="staffDashboardTitle">
+              Welcome, Staff
+            </h1>
+            <p class="section-subtitle" style="margin-bottom: 0;" id="staffDashboardSubtitle">
+              Here is an overview of your assigned issues.
+            </p>
+          </div>
+          <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
+            onclick="refreshStaffData(this)">
+            <span class="material-icons-round">refresh</span>
+            Refresh Data
+          </button>
+        </header>
+
+        <section class="admin-section" style="margin-bottom: 2rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                <div class="stat-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem;">
+                    <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Total Assigned</span>
+                    <span id="statTotalAssigned" style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</span>
+                </div>
+                <div class="stat-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem; border-left: 4px solid var(--primary-color);">
+                    <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Pending Issues</span>
+                    <span id="statPending" style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</span>
+                </div>
+                <div class="stat-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem; border-left: 4px solid #eab308;">
+                    <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">In Progress</span>
+                    <span id="statInProgress" style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</span>
+                </div>
+                <div class="stat-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem; border-left: 4px solid #22c55e;">
+                    <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Resolved</span>
+                    <span id="statResolved" style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</span>
+                </div>
+            </div>
+        </section>
+      </div><!-- /staff-dashboard-container -->
+
+      <div class="content-container" id="staff-main-container" style="display: none;">
         <header class="panel-header"
           style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
           <div>
@@ -150,6 +197,7 @@
                   <tr>
                     <th>ID</th>
                     <th>Category</th>
+                    <th>Department</th>
                     <th>Location</th>
                     <th>Priority</th>
                     <th>Citizen</th>
@@ -255,6 +303,14 @@
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Ward:</span>
                   <span id="staffModalWard">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Category:</span>
+                  <span id="staffModalCategory">--</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Department:</span>
+                  <span id="staffModalDepartment">--</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Priority:</span>
@@ -402,6 +458,11 @@
                   <span id="profileEmail" style="color: var(--text-primary);">-</span>
                 </div>
 
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <span style="color: var(--text-secondary); font-weight: 500;">Department:</span>
+                  <span id="profileDepartment" style="color: var(--text-primary);">-</span>
+                </div>
+
                 <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Account Type:</span>
                   <span><span class="role-badge staff">Staff</span></span>
@@ -433,18 +494,7 @@
                     <label class="form-label"
                       style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">Email
                       Address</label>
-                    <div class="otp-input-group">
-                      <input type="email" id="cpEmail" class="form-input" readonly>
-                      <button class="btn btn-outline" onclick="sendChangePasswordOTP()" id="sendCpOtpBtn">Send
-                        OTP</button>
-                    </div>
-                  </div>
-                  <div class="form-group" style="margin-bottom: 1rem;">
-                    <label class="form-label"
-                      style="display:block; margin-bottom:0.5rem; font-size:0.875rem; font-weight:500;">OTP Verification
-                      Code</label>
-                    <input type="text" id="cpOtpCode" class="form-input" placeholder="Enter 6-digit OTP sent to email"
-                      style="width: 100%; box-sizing:border-box;">
+                    <input type="email" id="cpEmail" class="form-input" style="width: 100%; box-sizing:border-box;" readonly>
                   </div>
                   <div class="form-group" style="margin-bottom: 1rem;">
                     <label class="form-label"

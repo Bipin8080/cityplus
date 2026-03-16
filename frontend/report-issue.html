@@ -104,6 +104,17 @@
             <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5, Downtown" required />
           </div>
 
+          <!-- Department (Left) -->
+          <div class="form-group">
+            <label class="form-label" for="department">
+              <i class="fas fa-building"></i>
+              Department
+            </label>
+            <select id="department" name="department" class="form-select" required onchange="handleDepartmentChange()">
+              <option value="">Loading departments...</option>
+            </select>
+          </div>
+
           <!-- Category (Left) -->
           <div class="form-group">
             <label class="form-label" for="category">
@@ -111,16 +122,7 @@
               Category
             </label>
             <select id="category" name="category" class="form-select" required>
-              <option value="">Select a category</option>
-              <option value="Road & Potholes">Road & Potholes</option>
-              <option value="Street Lights">Street Lights</option>
-              <option value="Garbage & Waste">Garbage & Waste</option>
-              <option value="Water Supply / Leakage">Water Supply / Leakage</option>
-              <option value="Drainage / Sewage">Drainage / Sewage</option>
-              <option value="Electricity Issues">Electricity Issues</option>
-              <option value="Public Property Damage">Public Property Damage</option>
-              <option value="Encroachment / Illegal Activity">Encroachment / Illegal Activity</option>
-              <option value="Other">Other</option>
+              <option value="">Select a department first</option>
             </select>
           </div>
 

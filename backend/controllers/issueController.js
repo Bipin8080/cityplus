@@ -1,5 +1,6 @@
 import Issue from "../models/Issue.js";
 import User from "../models/User.js";
+import Department from "../models/Department.js";
 import { createNotification, notifyAllAdmins } from "./notificationController.js";
 
 // ──── Citizen: create issue ──────────────────────────────────────────────
@@ -18,6 +19,28 @@ export const createIssue = async (req, res, next) => {
   }
   const imageUrl = req.file.path;
 
+  // Resolve Department using Category
+  const departmentDoc = await Department.findOne({ supportedCategories: category, deleted: false });
+  const departmentId = departmentDoc ? departmentDoc._id : null;
+
+  // Automated Assignment Logic
+  let assignedStaffId = null;
+  if (departmentId) {
+    const staffMembers = await User.find({ role: "staff", department: departmentId, status: "active" });
+    if (staffMembers.length > 0) {
+      const workloads = await Promise.all(staffMembers.map(async (staff) => {
+        const count = await Issue.countDocuments({
+          assignedTo: staff._id,
+          status: { $in: ["Pending", "In Progress"] },
+          deleted: { $ne: true }
+        });
+        return { id: staff._id, count };
+      }));
+      workloads.sort((a, b) => a.count - b.count);
+      assignedStaffId = workloads[0].id;
+    }
+  }
+
   const issue = await Issue.create({
     title,
     category,
@@ -26,10 +49,22 @@ export const createIssue = async (req, res, next) => {
     priority,
     description,
     citizen: req.user.id,
+    department: departmentId,
+    assignedTo: assignedStaffId,
     lat,
     lng,
     image: imageUrl,
   });
+
+  if (assignedStaffId) {
+    createNotification(
+      assignedStaffId,
+      "issue_assigned",
+      "New Issue Assigned",
+      `An issue in your department has been automatically assigned to you: "${issue.title}"`,
+      issue._id
+    );
+  }
 
   // Notify all admins about the new issue
   notifyAllAdmins(
@@ -51,6 +86,7 @@ export const createIssue = async (req, res, next) => {
 export const getMyIssues = async (req, res, next) => {
   const issues = await Issue.find({ citizen: req.user.id, deleted: { $ne: true } })
     .populate("assignedTo", "name")
+    .populate("department", "name")
     .sort({ createdAt: -1 });
 
   res.json({
@@ -64,6 +100,7 @@ export const getMyIssues = async (req, res, next) => {
 // ──── Public: get issues for landing page ────────────────────────────────
 export const getPublicIssues = async (req, res, next) => {
   const issues = await Issue.find({ deleted: { $ne: true } })
+    .populate("department", "name")
     .sort({ createdAt: -1 })
     .limit(50);
 
@@ -110,7 +147,13 @@ export const getAllIssues = async (req, res, next) => {
 
   // Pagination
   const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 0));
+  let limit = 0; // Default to 0 (no pagination) if not provided
+  if (req.query.limit !== undefined) {
+    const parsedLimit = parseInt(req.query.limit);
+    if (!isNaN(parsedLimit)) {
+      limit = Math.min(100, Math.max(0, parsedLimit));
+    }
+  }
   // limit=0 means no pagination (return all) — for backward compatibility
   const skip = limit > 0 ? (page - 1) * limit : 0;
 
@@ -126,9 +169,9 @@ export const getAllIssues = async (req, res, next) => {
 
   // Populate based on role
   if (req.user.role === "staff" || req.user.role === "admin") {
-    query = query.populate("citizen", "name email").populate("assignedTo", "name email");
+    query = query.populate("citizen", "name email").populate("assignedTo", "name email").populate("department", "name");
   } else {
-    query = query.populate("assignedTo", "name");
+    query = query.populate("assignedTo", "name").populate("department", "name");
   }
 
   const issues = await query;
@@ -157,6 +200,7 @@ export const getMyAssignedIssues = async (req, res, next) => {
 
   const issues = await Issue.find({ assignedTo: req.user.id, deleted: { $ne: true } })
     .populate("citizen", "name email")
+    .populate("department", "name")
     .sort({ createdAt: -1 });
 
   res.json({
@@ -289,7 +333,8 @@ export const assignIssue = async (req, res, next) => {
     req.params.id,
     { assignedTo: staffId },
     { new: true }
-  ).populate("assignedTo", "name email");
+  ).populate("assignedTo", "name email")
+   .populate("department", "name");
 
   if (!issue) {
     const error = new Error("Issue not found");
@@ -338,7 +383,8 @@ export const assignIssue = async (req, res, next) => {
 export const getIssueById = async (req, res, next) => {
   const issue = await Issue.findById(req.params.id)
     .populate("citizen", "name email")
-    .populate("assignedTo", "name email");
+    .populate("assignedTo", "name email")
+    .populate("department", "name");
 
   if (!issue || issue.deleted) {
     const error = new Error("Issue not found");
@@ -502,6 +548,7 @@ export const exportIssues = async (req, res, next) => {
   const issues = await Issue.find(filter)
     .populate("citizen", "name email")
     .populate("assignedTo", "name email")
+    .populate("department", "name")
     .sort({ createdAt: -1 });
 
   // CSV header

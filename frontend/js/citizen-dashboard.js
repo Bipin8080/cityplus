@@ -2,7 +2,7 @@
 let allIssues = [];
 let filteredIssues = [];
 let currentPage = 1;
-const pageSize = 4;
+const pageSize = 10;
 let userName = 'Citizen';
 let userEmail = 'user@example.com';
 
@@ -17,12 +17,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkAuth();
   loadCitizenProfile();
   showDashboardSkeleton();
+
+  window.addEventListener('hashchange', handleHashChange);
+  
   await loadCitizenIssues();
   hideDashboardSkeleton();
   setupEventListeners();
   updateActivityFeed();
   if (window.loadLeafletApi) await window.loadLeafletApi();
+
+  handleHashChange(); // initial routing
 });
+
+function handleHashChange() {
+  const hash = window.location.hash.replace('#', '') || 'dashboard';
+  if (hash === 'profile') {
+    openProfileModal(true);
+  } else if (hash === 'allIssues') {
+    switchToAllIssuesTab(true);
+  } else {
+    switchToDashboardTab(true);
+  }
+}
 
 // Show skeleton loading state
 function showDashboardSkeleton() {
@@ -59,21 +75,37 @@ function hideDashboardSkeleton() {
 }
 
 // Tab switching functions
-function switchToDashboardTab() {
+function switchToDashboardTab(fromHash = false) {
+  if (fromHash !== true) {
+    history.pushState(null, null, '#dashboard');
+  }
+  
+  // hide profile if active
+  const profileContainer = document.getElementById('profile-view-container');
+  if (profileContainer) profileContainer.style.display = 'none';
+
   currentTab = 'dashboard';
   const detailsContainer = document.getElementById('citizen-issue-details-container');
   if (detailsContainer) detailsContainer.style.display = 'none';
-  document.getElementById('dashboardView').style.display = 'block';
+  document.getElementById('dashboardView').style.display = ''; // Clear inline styles
   document.getElementById('allIssuesView').style.display = 'none';
   updateSidebarActive('dashboard');
 }
 
-function switchToAllIssuesTab() {
+function switchToAllIssuesTab(fromHash = false) {
+  if (fromHash !== true) {
+    history.pushState(null, null, '#allIssues');
+  }
+
+  // hide profile if active
+  const profileContainer = document.getElementById('profile-view-container');
+  if (profileContainer) profileContainer.style.display = 'none';
+
   currentTab = 'allIssues';
   const detailsContainer = document.getElementById('citizen-issue-details-container');
   if (detailsContainer) detailsContainer.style.display = 'none';
   document.getElementById('dashboardView').style.display = 'none';
-  document.getElementById('allIssuesView').style.display = 'block';
+  document.getElementById('allIssuesView').style.display = ''; // Clear inline styles
   updateSidebarActive('allIssues');
   loadAllCommunityIssues();
 }
@@ -283,6 +315,11 @@ function renderTable() {
         </span>
       </td>
       <td>
+        <span style="font-size: 0.875rem; color: var(--text-secondary);">
+          ${issue.department ? issue.department.name : '-'}
+        </span>
+      </td>
+      <td>
         <span class="badge badge--${statusClass}">
           <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : 'blue'}"></span>
           ${statusLabel}
@@ -407,6 +444,11 @@ function renderAllIssuesTable() {
         </span>
       </td>
       <td>
+        <span style="font-size: 0.875rem; color: var(--text-secondary);">
+          ${issue.department ? issue.department.name : '-'}
+        </span>
+      </td>
+      <td>
         <span class="badge badge--${statusClass}">
           <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : 'blue'}"></span>
           ${statusLabel}
@@ -442,8 +484,9 @@ function updateAllIssuesPaginationControls() {
 function openIssueDetails(issue) {
   // (Wait to show container at the end)
   document.querySelector('#modalTitle').textContent = issue.title;
-  document.querySelector('#modalCategory').textContent = issue.category;
-  document.querySelector('#modalWard').textContent = issue.ward;
+  document.querySelector('#modalCategory').textContent = issue.category ? (issue.category.name || issue.category) : "--";
+  document.querySelector('#modalWard').textContent = issue.ward || "--";
+  document.querySelector('#modalDepartment').textContent = issue.department ? issue.department.name : "Unassigned";
   document.querySelector('#modalLocation').textContent = issue.location;
   document.querySelector('#modalPriority').textContent = issue.priority;
   document.querySelector('#modalStatus').textContent = issue.status;
@@ -693,7 +736,11 @@ function closeIssueDetails() {
 }
 
 // Open profile view
-function openProfileModal() {
+window.openProfileModal = function (fromHash = false) {
+  if (fromHash !== true) {
+    history.pushState(null, null, '#profile');
+  }
+
   // Populate profile data
   const userName_stored = localStorage.getItem('userName');
   const userEmail_stored = localStorage.getItem('userEmail');
@@ -722,12 +769,13 @@ function openProfileModal() {
 }
 
 // Close profile view
-function closeProfileView() {
-  document.getElementById('profile-view-container').style.display = 'none';
-  if (currentTab === 'dashboard') {
-    document.getElementById('dashboardView').style.display = 'block';
+window.closeProfileView = function () {
+  const hash = window.location.hash.replace('#', '') || 'dashboard';
+  if (hash === 'profile') {
+    history.pushState(null, null, currentTab === 'allIssues' ? '#allIssues' : '#dashboard');
+    window.dispatchEvent(new Event('hashchange'));
   } else {
-    document.getElementById('allIssuesView').style.display = 'block';
+    window.dispatchEvent(new Event('hashchange'));
   }
 }
 
@@ -743,12 +791,11 @@ window.toggleChangePasswordForm = function () {
 // Submit password change
 window.submitPasswordChange = async function () {
   const email = document.querySelector('#cpEmail').value.trim();
-  const otp = document.querySelector('#cpOtpCode').value.trim();
   const currentPassword = document.querySelector('#cpCurrentPassword').value;
   const newPassword = document.querySelector('#cpNewPassword').value;
 
-  if (!email || !otp || !currentPassword || !newPassword) {
-    showToast('error', 'All fields, including OTP, are required.');
+  if (!email || !currentPassword || !newPassword) {
+    showToast('error', 'All fields are required.');
     return;
   }
 
@@ -761,57 +808,18 @@ window.submitPasswordChange = async function () {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword, otp })
+      body: JSON.stringify({ email, currentPassword, newPassword })
     });
     const data = await res.json();
 
     if (res.ok) {
       showToast('success', 'Password changed successfully!');
       document.querySelector('#changePasswordForm').style.display = 'none';
-      document.querySelector('#cpOtpCode').value = '';
       document.querySelector('#cpCurrentPassword').value = '';
       document.querySelector('#cpNewPassword').value = '';
+      toggleChangePasswordForm();
     } else {
       showToast('error', data.message || 'Failed to change password.');
-    }
-  } catch (err) {
-    console.error(err);
-    showToast('error', 'Network error. Please try again.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-};
-
-// Send OTP for Change Password
-window.sendChangePasswordOTP = async function () {
-  const email = document.querySelector('#cpEmail').value.trim();
-  if (!email) {
-    showToast('error', 'Email is required to send OTP.');
-    return;
-  }
-
-  const btn = document.querySelector('#sendCpOtpBtn');
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/auth/send-change-password-otp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token
-      },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      showToast('success', 'OTP sent to your email.');
-    } else {
-      showToast('error', data.message || 'Failed to send OTP.');
     }
   } catch (err) {
     console.error(err);

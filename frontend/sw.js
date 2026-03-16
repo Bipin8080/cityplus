@@ -1,5 +1,5 @@
 // CityPlus Service Worker
-const CACHE_NAME = "cityplus-v1";
+const CACHE_NAME = "cityplus-v2";
 const STATIC_ASSETS = [
     "/",
     "/index.html",
@@ -31,33 +31,29 @@ self.addEventListener("activate", (event) => {
     self.clients.claim();
 });
 
-// Fetch — network-first for API, cache-first for static assets
+// Fetch — Network-first for everything to ensure latest UI updates
 self.addEventListener("fetch", (event) => {
     const { request } = event;
 
     // Skip non-GET requests
     if (request.method !== "GET") return;
 
-    // API calls: network-first (never serve stale data)
-    if (request.url.includes("/api/")) {
-        event.respondWith(
-            fetch(request).catch(() => caches.match(request))
-        );
-        return;
-    }
-
-    // Static assets: cache-first, then network
+    // Network-first approach: Try to get from network, fallback to cache
     event.respondWith(
-        caches.match(request).then((cached) => {
-            if (cached) return cached;
-            return fetch(request).then((response) => {
-                // Cache successful responses
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        fetch(request)
+            .then((response) => {
+                // If it's a valid response, cache it for future offline use
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, responseClone);
+                    });
                 }
                 return response;
-            });
-        })
+            })
+            .catch(() => {
+                // If network fails (offline), try the cache
+                return caches.match(request);
+            })
     );
 });

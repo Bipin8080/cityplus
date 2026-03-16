@@ -7,12 +7,14 @@ async function submitIssue(event) {
 
   const form = event.target;
   const title = form.querySelector("#title").value.trim();
+  const departmentNode = form.querySelector("#department");
+  const department = departmentNode ? departmentNode.value.trim() : "";
   const category = form.querySelector("#category").value.trim();
   const ward = form.querySelector("#ward").value.trim();
   const location = form.querySelector("#location").value.trim();
   const description = form.querySelector("#description").value.trim();
 
-  if (!title || !category || !ward || !location || !description) {
+  if (!title || !department || !category || !ward || !location || !description) {
     showToast('warning', "Please complete all required fields before submitting your complaint.");
     return;
   }
@@ -185,8 +187,104 @@ document.addEventListener("DOMContentLoaded", () => {
   // Only run if we are on the report-issue page (where #map exists)
   if (document.getElementById("map")) {
     initIssueMap();
+    fetchDepartments();
   }
 });
+
+let allDepartments = [];
+
+async function fetchDepartments() {
+  try {
+    const res = await fetch("/api/departments");
+    const data = await res.json();
+    if (res.ok) {
+      const responseData = data.data || data; // Handle both wrapper styles just in case
+      allDepartments = responseData;
+      const deptSelect = document.getElementById("department");
+      if (deptSelect) {
+        deptSelect.innerHTML = '<option value="">Select a department</option>';
+        
+        const unknownOption = document.createElement("option");
+        unknownOption.value = "unknown";
+        unknownOption.textContent = "I Don't Know";
+        deptSelect.appendChild(unknownOption);
+
+        responseData.forEach(dept => {
+          const option = document.createElement("option");
+          option.value = dept._id;
+          option.textContent = dept.name;
+          deptSelect.appendChild(option);
+        });
+      }
+    } else {
+      console.error("Failed to fetch departments", data);
+    }
+  } catch (err) {
+    console.error("Error fetching departments:", err);
+  }
+}
+
+window.handleDepartmentChange = function() {
+  const deptSelect = document.getElementById("department");
+  const catSelect = document.getElementById("category");
+  
+  if (!deptSelect || !catSelect) return;
+  
+  const selectedDeptId = deptSelect.value;
+  catSelect.innerHTML = '<option value="">Select a category</option>';
+  
+  if (!selectedDeptId) {
+    catSelect.innerHTML = '<option value="">Select a department first</option>';
+    return;
+  }
+  
+  if (selectedDeptId === "unknown") {
+    const allValidCategories = new Set();
+    allDepartments.forEach(dept => {
+      if (dept.supportedCategories) {
+        dept.supportedCategories.forEach(cat => allValidCategories.add(cat));
+      }
+    });
+
+    if (allValidCategories.size === 0) {
+      const defaultCats = [
+        "Potholes / Damaged Road", "Broken Footpath", "Road Crack / Sinkhole", "Damaged Divider", "Road Sign Missing",
+        "Speed Breaker Damage", "Dangerous Open Construction", "Damaged Public Infrastructure",
+        "Streetlight Not Working", "Flickering Streetlight", "Broken Streetlight Pole", "Exposed Electrical Wires", "Dark Area / No Streetlights",
+        "Garbage Not Collected", "Overflowing Garbage Bin", "Illegal Garbage Dump", "Construction Waste Dump", "Dead Animal on Road",
+        "Dirty Street / Public Area", "Waste Burning",
+        "No Water Supply", "Low Water Pressure", "Water Leakage", "Contaminated Water", "Broken Water Pipeline",
+        "Blocked Drain", "Sewage Overflow", "Open Manhole", "Broken Drain Cover", "Waterlogging / Flooded Road",
+        "Mosquito Breeding Area", "Stray Animal Issue", "Food Hygiene Complaint", "Unhygienic Public Toilet", "Public Health Hazard",
+        "Park Maintenance Issue", "Broken Park Equipment", "Unclean Garden", "Tree Fallen", "Overgrown Trees / Branches",
+        "Illegal Street Vendor", "Footpath Encroachment", "Illegal Construction", "Roadside Obstruction",
+        "Broken Traffic Signal", "Missing Road Signs", "Illegal Parking", "Dangerous Intersection"
+      ];
+      defaultCats.forEach(c => allValidCategories.add(c));
+    }
+    
+    Array.from(allValidCategories).sort().forEach(cat => {
+      const option = document.createElement("option");
+      option.value = cat;
+      option.textContent = cat;
+      catSelect.appendChild(option);
+    });
+    return;
+  }
+  
+  const selectedDept = allDepartments.find(d => d._id === selectedDeptId);
+  if (selectedDept && selectedDept.supportedCategories && selectedDept.supportedCategories.length > 0) {
+    selectedDept.supportedCategories.forEach(cat => {
+      const option = document.createElement("option");
+      option.value = cat;
+      option.textContent = cat;
+      catSelect.appendChild(option);
+    });
+  } else {
+    // Fallback if no specific categories are found
+    catSelect.innerHTML = '<option value="">No categories available for this department</option>';
+  }
+};
 
 function updateHiddenCoordinates(lat, lng) {
   document.getElementById("lat").value = lat;

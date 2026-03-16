@@ -162,6 +162,29 @@ export function welcomeEmailTemplate(name) {
     return baseTemplate("Welcome to " + BRAND_NAME, body);
 }
 
+// ── Staff Credential Email ──────────────────────────────────────────────
+export function staffCredentialEmailTemplate(name, email, password) {
+    const body = `
+        <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Welcome to the Team, ${name}!</h2>
+        <p style="color:#64748b;margin:0 0 24px;font-size:15px;">An administrator has created a Staff account for you on ${BRAND_NAME}.</p>
+
+        <div style="background:#f8fafc;padding:20px;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0 0 12px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Login Credentials</p>
+            <p style="margin:0 0 8px;color:#1e293b;font-size:15px;"><strong>Email:</strong> ${email}</p>
+            <p style="margin:0;color:#1e293b;font-size:15px;"><strong>Password:</strong> ${password}</p>
+        </div>
+
+        <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:4px;margin-bottom:24px;">
+            <p style="margin:0;color:#92400e;font-size:13px;">🔒 <strong>Security Action Required:</strong> Please login and change your password immediately.</p>
+        </div>
+
+        <p style="color:#64748b;font-size:14px;margin:0;">
+            Log in to the staff dashboard to view your assigned issues and begin work.
+        </p>
+    `;
+    return baseTemplate("CityPlus: Staff Account Credentials", body);
+}
+
 // ── Generic Notification Email ──────────────────────────────────────────
 export function notificationTemplate(title, message) {
     const body = `

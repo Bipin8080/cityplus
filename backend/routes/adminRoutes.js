@@ -6,7 +6,8 @@ import {
   getSummary,
   getUsers,
   getStaff,
-  updateUserStatus
+  updateUserStatus,
+  assignStaffDepartment
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -33,5 +34,8 @@ router.get("/staff", asyncHandler(getStaff));
 
 // PATCH /api/admin/users/:userId/status  -> update a user's status (active/blocked/terminated)
 router.patch("/users/:userId/status", asyncHandler(updateUserStatus));
+
+// PATCH /api/admin/staff/:staffId/department -> update a staff's department
+router.patch("/staff/:staffId/department", asyncHandler(assignStaffDepartment));
 
 export default router;

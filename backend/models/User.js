@@ -13,6 +13,16 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ["active", "blocked", "terminated"],
     default: "active"
+  },
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Department",
+    default: null
+  },
+  staffId: {
+    type: String,
+    unique: true,
+    sparse: true
   }
 }, { timestamps: true });
 

@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import OTP from "../models/OTP.js";
 import { sendEmail } from "../config/email.js";
-import { otpEmailTemplate, welcomeEmailTemplate } from "../utils/emailTemplates.js";
+import { otpEmailTemplate, welcomeEmailTemplate, staffCredentialEmailTemplate } from "../utils/emailTemplates.js";
 
 // ──── Shared registration factory ────────────────────────────────────────
 const registerUser = (role) => async (req, res, next) => {
@@ -57,8 +57,59 @@ const registerUser = (role) => async (req, res, next) => {
 // Citizen Registration (public)
 export const registerCitizen = registerUser("citizen");
 
-// Staff Registration (admin only)
-export const registerStaff = registerUser("staff");
+export const registerStaff = async (req, res, next) => {
+  const { name, email, password, department, staffId } = req.body;
+
+  if (!name || !email || !password || !department || !staffId) {
+    const error = new Error("All fields are required");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const existing = await User.findOne({ 
+    $or: [{ email }, { staffId }] 
+  });
+  if (existing) {
+    const error = new Error("Email or Staff ID already registered");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    role: "staff",
+    department,
+    staffId
+  });
+
+  // Send credentials email
+  try {
+    const html = staffCredentialEmailTemplate(user.name, email, password);
+    await sendEmail(user.email, "CityPlus: Staff Account Credentials", html);
+  } catch (err) {
+    console.error("Failed to send staff credential email:", err);
+  }
+
+  const payload = {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    department: user.department,
+    staffId: user.staffId
+  };
+
+  res.json({
+    success: true,
+    message: "Staff registered successfully",
+    data: { user: payload },
+    user: payload
+  });
+};
 
 // Admin Registration (admin only)
 export const registerAdmin = registerUser("admin");
@@ -67,7 +118,7 @@ export const registerAdmin = registerUser("admin");
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).populate("department", "name");
   if (!user) {
     const error = new Error("Invalid email or password");
     error.statusCode = 400;
@@ -100,27 +151,28 @@ export const login = async (req, res, next) => {
     { expiresIn: "7d" }
   );
 
+  const responseData = {
+    token,
+    role: user.role,
+    name: user.name,
+    departmentName: user.department ? user.department.name : undefined
+  };
+
   res.json({
     success: true,
     message: "Login successful",
-    data: {
-      token,
-      role: user.role,
-      name: user.name
-    },
+    data: responseData,
     // legacy top-level fields used by frontend
-    token,
-    role: user.role,
-    name: user.name
+    ...responseData
   });
 };
 
 // ──── Change Password ────────────────────────────────────────────────────
 export const changePassword = async (req, res, next) => {
-  const { email, currentPassword, newPassword, otp } = req.body;
+  const { email, currentPassword, newPassword } = req.body;
 
-  if (!email || !currentPassword || !newPassword || !otp) {
-    const error = new Error("Email, current password, new password, and OTP are required");
+  if (!email || !currentPassword || !newPassword) {
+    const error = new Error("Email, current password, and new password are required");
     error.statusCode = 400;
     return next(error);
   }
@@ -128,14 +180,6 @@ export const changePassword = async (req, res, next) => {
   const user = await User.findOne({ email });
   if (!user) {
     const error = new Error("Invalid email or password");
-    error.statusCode = 400;
-    return next(error);
-  }
-
-  // Verify OTP
-  const isValidOTP = await OTP.verifyOTP(email, otp);
-  if (!isValidOTP) {
-    const error = new Error("Invalid or expired OTP.");
     error.statusCode = 400;
     return next(error);
   }
