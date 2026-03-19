@@ -201,6 +201,7 @@ async function loadAllCommunityIssues() {
 
     const data = await res.json();
     allCommunityIssues = data.issues || [];
+    setupCitizenMapFilters(allCommunityIssues);
     allIssuesCurrentPage = 1;
     applyAllIssuesFiltersAndRender();
   } catch (error) {
@@ -214,13 +215,13 @@ function applyFiltersAndRender() {
   const search = document.querySelector('#searchInput').value.toLowerCase();
   const statusFilter = document.querySelector('#statusFilter').value;
   const categoryFilter = document.querySelector('#categoryFilter').value;
-  const wardFilter = document.querySelector('#wardFilter').value.toLowerCase();
+
 
   // Filter issues
   filteredIssues = allIssues.filter(issue => {
     if (statusFilter && issue.status !== statusFilter) return false;
     if (categoryFilter && issue.category !== categoryFilter) return false;
-    if (wardFilter && !issue.ward.toLowerCase().includes(wardFilter)) return false;
+
 
     if (search) {
       const haystack = (
@@ -356,13 +357,13 @@ function applyAllIssuesFiltersAndRender() {
   const search = document.querySelector('#allIssuesSearchInput').value.toLowerCase();
   const statusFilter = document.querySelector('#allIssuesStatusFilter').value;
   const categoryFilter = document.querySelector('#allIssuesCategoryFilter').value;
-  const wardFilter = document.querySelector('#allIssuesWardFilter').value.toLowerCase();
+
 
   // Filter issues
   filteredCommunityIssues = allCommunityIssues.filter(issue => {
     if (statusFilter && issue.status !== statusFilter) return false;
     if (categoryFilter && issue.category !== categoryFilter) return false;
-    if (wardFilter && !issue.ward.toLowerCase().includes(wardFilter)) return false;
+
 
     if (search) {
       const haystack = (
@@ -464,6 +465,108 @@ function renderAllIssuesTable() {
   });
 
   updateAllIssuesPaginationControls();
+
+  // If map tab is active, re-render
+  const mapTab = document.getElementById('mapViewTab');
+  if (mapTab && mapTab.style.display !== 'none') {
+    let mapFilteredIssues = filteredCommunityIssues;
+    if (citizenMapStateFilter || citizenMapCityFilter) {
+       mapFilteredIssues = mapFilteredIssues.filter(issue => {
+         const loc = parseLocationForMap(issue.location);
+         const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
+         const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
+         return matchState && matchCity;
+       });
+    }
+    renderCitizenAllIssuesMap(mapFilteredIssues);
+  } else {
+    // initialize but don't show
+    renderCitizenAllIssuesMap(filteredCommunityIssues);
+  }
+}
+
+// Map View Logic for Community Issues
+window.switchToMapTab = function() {
+  document.getElementById('dashboardView').style.display = 'none';
+  document.getElementById('allIssuesView').style.display = 'none';
+  const detailsView = document.getElementById('issueDetailsView');
+  if(detailsView) detailsView.style.display = 'none';
+  const profileView = document.getElementById('profile-view-container');
+  if(profileView) profileView.style.display = 'none';
+
+  document.getElementById('mapViewTab').style.display = 'block';
+
+  // Update nav active state (assuming the map link doesn't have an ID, we'll just remove from others)
+  document.querySelectorAll('.sidebar__nav .nav-link').forEach(l => l.classList.remove('nav-link--active'));
+  // Note: we might want to add an ID to the map nav link to highlight it properly, but this removes it from Dashboard.
+  
+  if (typeof filteredCommunityIssues !== 'undefined') {
+    let mapFilteredIssues = filteredCommunityIssues;
+    if (citizenMapStateFilter || citizenMapCityFilter) {
+       mapFilteredIssues = mapFilteredIssues.filter(issue => {
+         const loc = parseLocationForMap(issue.location);
+         const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
+         const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
+         return matchState && matchCity;
+       });
+    }
+    setTimeout(() => renderCitizenAllIssuesMap(mapFilteredIssues), 100);
+  }
+};
+
+function renderCitizenAllIssuesMap(issues) {
+  if (!window.isLeafletLoaded || typeof L === 'undefined') return;
+  
+  const mapEl = document.getElementById('citizenAllIssuesMap');
+  if (!mapEl) return;
+  
+  if (!window.citizenAllIssuesMapInstance) {
+    window.citizenAllIssuesMapInstance = L.map(mapEl).setView([19.2952, 73.0544], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(window.citizenAllIssuesMapInstance);
+
+    if (L.Control && L.Control.geocoder) {
+      L.Control.geocoder({
+        defaultMarkGeocode: false
+      }).on('markgeocode', function(e) {
+        var bbox = e.geocode.bbox;
+        window.citizenAllIssuesMapInstance.fitBounds(bbox);
+      }).addTo(window.citizenAllIssuesMapInstance);
+    }
+  }
+  
+  if (window.citizenAllIssuesMarkers) {
+    window.citizenAllIssuesMapInstance.removeLayer(window.citizenAllIssuesMarkers);
+  }
+  
+  window.citizenAllIssuesMarkers = L.layerGroup().addTo(window.citizenAllIssuesMapInstance);
+  
+  issues.forEach(issue => {
+    if (issue.lat && issue.lng) {
+      let markerColor = '#ef4444'; 
+      if (issue.status === 'In Progress') markerColor = '#eab308';
+      else if (issue.status === 'Resolved') markerColor = '#22c55e'; 
+      
+      const svgIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="${markerColor}" stroke="white" stroke-width="2">
+                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+               </svg>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+      
+      const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
+      marker.bindTooltip(`<strong>${issue.category}</strong><br>${issue.status}`);
+      marker.on('click', () => openIssueDetails(issue));
+      window.citizenAllIssuesMarkers.addLayer(marker);
+    }
+  });
+
+  setTimeout(() => window.citizenAllIssuesMapInstance.invalidateSize(), 100);
 }
 
 // Update all issues pagination controls
@@ -485,7 +588,7 @@ function openIssueDetails(issue) {
   // (Wait to show container at the end)
   document.querySelector('#modalTitle').textContent = issue.title;
   document.querySelector('#modalCategory').textContent = issue.category ? (issue.category.name || issue.category) : "--";
-  document.querySelector('#modalWard').textContent = issue.ward || "--";
+
   document.querySelector('#modalDepartment').textContent = issue.department ? issue.department.name : "Unassigned";
   document.querySelector('#modalLocation').textContent = issue.location;
   document.querySelector('#modalPriority').textContent = issue.priority;
@@ -901,7 +1004,7 @@ function setupEventListeners() {
   // Filter selects
   document.querySelector('#statusFilter').addEventListener('change', applyFiltersAndRender);
   document.querySelector('#categoryFilter').addEventListener('change', applyFiltersAndRender);
-  document.querySelector('#wardFilter').addEventListener('input', applyFiltersAndRender);
+
 
   // Pagination
   document.querySelector('#prevBtn').addEventListener('click', () => {
@@ -933,7 +1036,7 @@ function setupEventListeners() {
   // All Issues Filter selects
   document.querySelector('#allIssuesStatusFilter').addEventListener('change', applyAllIssuesFiltersAndRender);
   document.querySelector('#allIssuesCategoryFilter').addEventListener('change', applyAllIssuesFiltersAndRender);
-  document.querySelector('#allIssuesWardFilter').addEventListener('input', applyAllIssuesFiltersAndRender);
+
 
   // All Issues Pagination
   document.querySelector('#allIssuesPrevBtn').addEventListener('click', () => {
@@ -1082,3 +1185,61 @@ async function refreshAllCommunityData(btn) {
 
 window.refreshCitizenData = refreshCitizenData;
 window.refreshAllCommunityData = refreshAllCommunityData;
+// Map Filters Logic
+let citizenMapStateFilter = "";
+let citizenMapCityFilter = "";
+
+function parseLocationForMap(locationStr) {
+  if (!locationStr) return { city: '', state: '' };
+  const parts = locationStr.split(',').map(p => p.trim());
+  if (parts.length >= 3) {
+    return {
+      state: parts[parts.length - 2].replace(/[0-9]/g, '').trim(),
+      city: parts[parts.length - 3]
+    };
+  } else if (parts.length === 2) {
+    return {
+      state: parts[1].replace(/[0-9]/g, '').trim(),
+      city: parts[0]
+    };
+  }
+  return { city: locationStr, state: '' };
+}
+
+function getUniqueLocationsForMap(issues) {
+  const states = new Set();
+  const cities = new Set();
+  
+  issues.forEach(issue => {
+    const loc = parseLocationForMap(issue.location);
+    if(loc.state) states.add(loc.state);
+    if(loc.city) cities.add(loc.city);
+  });
+  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
+}
+
+function setupCitizenMapFilters(issues) {
+  const stateSelect = document.getElementById('citizenMapStateFilter');
+  const citySelect = document.getElementById('citizenMapCityFilter');
+  if(!stateSelect || !citySelect) return;
+  
+  const { states, cities } = getUniqueLocationsForMap(issues);
+  
+  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
+  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  const newStateSelect = stateSelect.cloneNode(true);
+  const newCitySelect = citySelect.cloneNode(true);
+  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
+  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+
+  newStateSelect.addEventListener('change', (e) => {
+    citizenMapStateFilter = e.target.value;
+    applyAllIssuesFiltersAndRender(); 
+  });
+  
+  newCitySelect.addEventListener('change', (e) => {
+    citizenMapCityFilter = e.target.value;
+    applyAllIssuesFiltersAndRender(); 
+  });
+}

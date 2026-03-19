@@ -7,7 +7,9 @@ let currentStatusFilter = '';
 
 let currentIssueSearchTerm = '';
 let currentIssueStatusFilter = '';
+let currentIssueViewMode = 'list';
 window.adminIssuesList = [];
+window.adminAllIssuesMapInstance = null;
 
 // Pagination variables
 let currentPage = 1;
@@ -83,6 +85,7 @@ async function loadAdminData() {
     // ----- Assign Issues table -----
     window.adminIssuesList = issuesData.issues || [];
     displayIssues(window.adminIssuesList);
+    setupAdminMapFilters(window.adminIssuesList);
 
     // ----- Populate Departments Dropdown & Table -----
     window.adminDepartmentsList = departmentsData.data || [];
@@ -385,7 +388,7 @@ function openAdminIssueDetails(issue, staffList) {
   // Set details
   document.getElementById("adminModalComplaintId").textContent = issue._id ? `#${issue._id.slice(-6)}` : "---";
   document.getElementById("adminModalLocation").textContent = issue.location || "--";
-  document.getElementById("adminModalWard").textContent = issue.ward || "--";
+
   document.getElementById("adminModalCategory").textContent = issue.category ? (issue.category.name || issue.category) : "--";
   document.getElementById("adminModalDepartment").textContent = issue.department ? issue.department.name : "Unassigned";
   document.getElementById("adminModalPriority").textContent = issue.priority || "--";
@@ -749,9 +752,18 @@ function displayIssues(issues) {
   tbodyIssues.innerHTML = "";
 
   if (issues.length === 0) {
-    tbodyIssues.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No issues found matching your search criteria.</td></tr>`;
+    tbodyIssues.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No issues found matching your search.</td></tr>`;
     renderPagination(0);
     return;
+  }
+  
+  // Re-render map if we are currently looking at it, or just initialize it stealthily
+  const mapTab = document.getElementById('map-view-tab');
+  if (mapTab && mapTab.classList.contains('active')) { // Check if the map-view tab is active
+    renderAdminAllIssuesMap(issues);
+  } else {
+    // just init but don't show
+    renderAdminAllIssuesMap(issues);
   }
 
   // Calculate pagination
@@ -861,8 +873,97 @@ function applyIssueSearchAndFilters() {
     filteredIssues = filteredIssues.filter(issue => issue.status === currentIssueStatusFilter);
   }
 
-  displayIssues(filteredIssues);
+  // Only display issues in the table if the list view is active
+  const listContainer = document.getElementById('issues-tab');
+  const mapContainer = document.getElementById('map-view-tab');
+  const paginationContainer = document.getElementById('issuePagination');
+
+  if (listContainer && listContainer.classList.contains('active')) {
+    displayIssues(filteredIssues);
+    if(paginationContainer && filteredIssues.length > issuesPerPage) paginationContainer.style.display = 'flex';
+  } else if (mapContainer && mapContainer.classList.contains('active')) {
+    let mapFilteredIssues = filteredIssues;
+    if (adminMapStateFilter || adminMapCityFilter) {
+       mapFilteredIssues = mapFilteredIssues.filter(issue => {
+         const loc = parseLocationForMap(issue.location);
+         const matchState = !adminMapStateFilter || loc.state === adminMapStateFilter;
+         const matchCity = !adminMapCityFilter || loc.city === adminMapCityFilter;
+         return matchState && matchCity;
+       });
+    }
+    renderAdminAllIssuesMap(mapFilteredIssues);
+    if(paginationContainer) paginationContainer.style.display = 'none';
+  }
+
   updateIssueSearchResultsInfo(filteredIssues);
+}
+
+// --- Map View Logic ---
+function renderAdminAllIssuesMap(issues) {
+  if (!window.isLeafletLoaded || typeof L === 'undefined') return;
+  
+  const mapEl = document.getElementById('adminAllIssuesMap');
+  if (!mapEl) return;
+  
+  // Initialize map if it doesn't exist
+  if (!window.adminAllIssuesMapInstance) {
+    // Centered on Bhiwandi
+    window.adminAllIssuesMapInstance = L.map(mapEl).setView([19.2952, 73.0544], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(window.adminAllIssuesMapInstance);
+
+    if (L.Control && L.Control.geocoder) {
+      L.Control.geocoder({
+        defaultMarkGeocode: false
+      }).on('markgeocode', function(e) {
+        var bbox = e.geocode.bbox;
+        window.adminAllIssuesMapInstance.fitBounds(bbox);
+      }).addTo(window.adminAllIssuesMapInstance);
+    }
+  }
+  
+  // Clear existing markers
+  if (window.adminAllIssuesMarkers) {
+    window.adminAllIssuesMapInstance.removeLayer(window.adminAllIssuesMarkers);
+  }
+  
+  window.adminAllIssuesMarkers = L.layerGroup().addTo(window.adminAllIssuesMapInstance);
+  
+  const bounds = [];
+  
+  issues.forEach(issue => {
+    if (issue.lat && issue.lng) {
+      const pos = [issue.lat, issue.lng];
+      bounds.push(pos);
+      
+      let markerColor = '#ef4444'; // Pending (red)
+      if (issue.status === 'In Progress') markerColor = '#eab308'; // yellow
+      if (issue.status === 'Resolved') markerColor = '#22c55e'; // green
+      
+      const svgIcon = L.divIcon({
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="${markerColor}" stroke="#ffffff" stroke-width="1.5"/></svg>`,
+        className: "",
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        tooltipAnchor: [0, -32]
+      });
+      
+      const marker = L.marker(pos, { icon: svgIcon }).addTo(window.adminAllIssuesMarkers);
+      
+      marker.bindTooltip(`<b>${issue.category || 'Issue'}</b><br/>Status: ${issue.status}`);
+      marker.on('click', () => {
+        openAdminIssueDetails(issue, window.adminStaffList);
+      });
+    }
+  });
+  
+  // Fix map sizing glitch when initially hidden
+  setTimeout(() => { 
+    window.adminAllIssuesMapInstance.invalidateSize();
+  }, 100);
 }
 
 function updateIssueSearchResultsInfo(filteredIssues) {
@@ -958,6 +1059,21 @@ function activateTab(tabName) {
   const tabContent = document.getElementById(tabName + '-tab');
   if (tabContent) {
     tabContent.classList.add('active');
+  }
+
+  // Trigger specific actions based on the activated tab
+  if (tabName === 'issues') {
+    applyIssueSearchAndFilters();
+  } else if (tabName === 'users') {
+    applySearchAndFilters(); // This is for users, previously named applyUserSearchAndFilters
+  } else if (tabName === 'departments') {
+    // Assuming refreshDepartments() exists or displayDepartments(window.adminDepartmentsList)
+    displayDepartments(window.adminDepartmentsList);
+  } else if (tabName === 'map-view') {
+    // Ensure map is rendered when switching to map-view tab
+    if (window.adminIssuesList) {
+      setTimeout(() => renderAdminAllIssuesMap(window.adminIssuesList), 100);
+    }
   }
 
   // Close sidebar on mobile
@@ -1311,6 +1427,66 @@ window.changeIssuePage = changeIssuePage;
 window.changeUserPage = changeUserPage;
 window.openAdminUserDetailsFromTableEncoded = openAdminUserDetailsFromTableEncoded;
 window.closeAdminUserDetails = closeAdminUserDetails;
+
+// --- Map Filters Logic ---
+let adminMapStateFilter = "";
+let adminMapCityFilter = "";
+
+function parseLocationForMap(locationStr) {
+  if (!locationStr) return { city: '', state: '' };
+  const parts = locationStr.split(',').map(p => p.trim());
+  if (parts.length >= 3) {
+    return {
+      state: parts[parts.length - 2].replace(/[0-9]/g, '').trim(),
+      city: parts[parts.length - 3]
+    };
+  } else if (parts.length === 2) {
+    return {
+      state: parts[1].replace(/[0-9]/g, '').trim(),
+      city: parts[0]
+    };
+  }
+  return { city: locationStr, state: '' };
+}
+
+function getUniqueLocationsForMap(issues) {
+  const states = new Set();
+  const cities = new Set();
+  
+  issues.forEach(issue => {
+    const loc = parseLocationForMap(issue.location);
+    if(loc.state) states.add(loc.state);
+    if(loc.city) cities.add(loc.city);
+  });
+  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
+}
+
+function setupAdminMapFilters(issues) {
+  const stateSelect = document.getElementById('adminMapStateFilter');
+  const citySelect = document.getElementById('adminMapCityFilter');
+  if(!stateSelect || !citySelect) return;
+  
+  const { states, cities } = getUniqueLocationsForMap(issues);
+  
+  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
+  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  const newStateSelect = stateSelect.cloneNode(true);
+  const newCitySelect = citySelect.cloneNode(true);
+  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
+  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+
+  newStateSelect.addEventListener('change', (e) => {
+    adminMapStateFilter = e.target.value;
+    applyIssueSearchAndFilters(); 
+  });
+  
+  newCitySelect.addEventListener('change', (e) => {
+    adminMapCityFilter = e.target.value;
+    applyIssueSearchAndFilters(); 
+  });
+}
+
 window.updateUserDetailsStatus = updateUserDetailsStatus;
 
 // --- Staff Registration Logic ---

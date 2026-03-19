@@ -36,6 +36,7 @@ async function loadStaffData() {
   staffAssignedIssues = assignedData.issues || [];
 
   renderStaffAnalytics();
+  setupStaffMapFilters(staffAllIssues);
   renderStaffIssues();
 }
 
@@ -46,10 +47,18 @@ function renderStaffAnalytics() {
   let resolved = 0;
   let departmentName = "-";
 
+  let highPriority = 0;
+  let mediumPriority = 0;
+  let lowPriority = 0;
+
   staffAssignedIssues.forEach(issue => {
     if (issue.status === "Pending") pending++;
     else if (issue.status === "In Progress") inProgress++;
     else if (issue.status === "Resolved") resolved++;
+
+    if (issue.priority === "High") highPriority++;
+    else if (issue.priority === "Medium") mediumPriority++;
+    else if (issue.priority === "Low") lowPriority++;
 
     if (departmentName === "-" && issue.department && issue.department.name) {
       departmentName = issue.department.name;
@@ -82,14 +91,156 @@ function renderStaffAnalytics() {
   if (statPending) statPending.textContent = pending;
   if (statInProgress) statInProgress.textContent = inProgress;
   if (statResolved) statResolved.textContent = resolved;
+
+  // Render Priority Breakdown
+  const statHigh = document.getElementById("statHighPriority");
+  const statMedium = document.getElementById("statMediumPriority");
+  const statLow = document.getElementById("statLowPriority");
+  const barHigh = document.getElementById("barHighPriority");
+  const barMedium = document.getElementById("barMediumPriority");
+  const barLow = document.getElementById("barLowPriority");
+
+  if (statHigh) statHigh.textContent = highPriority;
+  if (statMedium) statMedium.textContent = mediumPriority;
+  if (statLow) statLow.textContent = lowPriority;
+
+  if (total > 0) {
+    if (barHigh) barHigh.style.width = `${(highPriority / total) * 100}%`;
+    if (barMedium) barMedium.style.width = `${(mediumPriority / total) * 100}%`;
+    if (barLow) barLow.style.width = `${(lowPriority / total) * 100}%`;
+  } else {
+    if (barHigh) barHigh.style.width = '0%';
+    if (barMedium) barMedium.style.width = '0%';
+    if (barLow) barLow.style.width = '0%';
+  }
+
+  // Render Widgets
+  renderStaffDashboardWidgets();
 }
+
+function renderStaffDashboardWidgets() {
+  // Render Recent Assigned Issues
+  const recentIssuesBody = document.getElementById('staffRecentIssuesBody');
+  if (recentIssuesBody) {
+    // Sort by createdAt desc
+    const sortedIssues = [...staffAssignedIssues].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const topIssues = sortedIssues.slice(0, 5);
+    
+    recentIssuesBody.innerHTML = '';
+    
+    if (topIssues.length === 0) {
+      recentIssuesBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-secondary);">No issues assigned yet.</td></tr>`;
+    } else {
+      topIssues.forEach(issue => {
+        const catName = issue.category ? (issue.category.name || issue.category) : '--';
+        
+        const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
+        const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.15rem 0.5rem; border-radius: 9999px; font-weight: 500; font-size: 0.75rem;">${issue.status}</span>`;
+        
+        let priorityColor = 'var(--text-secondary)';
+        if (issue.priority === 'High') priorityColor = '#ef4444';
+        else if (issue.priority === 'Medium') priorityColor = '#eab308';
+        else if (issue.priority === 'Low') priorityColor = '#22c55e';
+        
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.className = 'hover-bg-slate-50';
+        tr.innerHTML = `
+          <td style="padding: 0.75rem 1.5rem;">${issue._id.slice(-6)}</td>
+          <td style="padding: 0.75rem 1.5rem;">${catName}</td>
+          <td style="padding: 0.75rem 1.5rem;"><span style="color: ${priorityColor}; font-weight: 500;">${issue.priority || '--'}</span></td>
+          <td style="padding: 0.75rem 1.5rem;">${statusBadge}</td>
+        `;
+        // Hover effect helper style if not existing: tr:hover { background: var(--bg-primary); }
+        tr.onmouseover = () => { tr.style.background = 'var(--bg-primary)'; };
+        tr.onmouseleave = () => { tr.style.background = 'transparent'; };
+        tr.onclick = () => openStaffIssueDetails(issue);
+        recentIssuesBody.appendChild(tr);
+      });
+    }
+  }
+
+  // Render Recent Activity Timeline
+  const activityTimeline = document.getElementById('staffRecentActivityTimeline');
+  if (activityTimeline) {
+    // Collect all updates: inProgress and resolved
+    let activities = [];
+    staffAssignedIssues.forEach(issue => {
+      if (issue.inProgressAt) {
+        activities.push({
+          type: 'in_progress',
+          issue: issue,
+          date: new Date(issue.inProgressAt),
+          title: `Marked #${issue._id.slice(-6)} In Progress`
+        });
+      }
+      if (issue.resolvedAt) {
+        activities.push({
+          type: 'resolved',
+          issue: issue,
+          date: new Date(issue.resolvedAt),
+          title: `Resolved #${issue._id.slice(-6)}`
+        });
+      }
+    });
+    
+    // Sort by date desc
+    activities.sort((a, b) => b.date - a.date);
+    const topActivities = activities.slice(0, 5);
+    
+    activityTimeline.innerHTML = '';
+    
+    if (topActivities.length === 0) {
+      activityTimeline.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.875rem;">No recent updates found.</div>';
+    } else {
+      const bulletStyle = 'position: absolute; left: -1.35rem; top: 0.25rem; width: 0.7rem; height: 0.7rem; border-radius: 50%; border: 2px solid white;';
+      
+      topActivities.forEach(act => {
+        const timeAgo = getTimeAgo(act.date);
+        const color = act.type === 'resolved' ? '#22c55e' : '#eab308';
+        
+        const div = document.createElement('div');
+        div.style.position = 'relative';
+        div.style.paddingBottom = '0.5rem';
+        div.innerHTML = `
+          <div style="${bulletStyle} background: ${color}; box-shadow: 0 0 0 2px ${color};"></div>
+          <div style="font-weight: 500; color: var(--text-primary); cursor: pointer; display: inline-block; font-size: 0.9375rem; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s ease;" onmouseover="this.style.textDecorationColor='var(--text-primary)'" onmouseout="this.style.textDecorationColor='transparent'" onclick="openStaffActivityIssue('${act.issue._id}')">${act.title}</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary);">${timeAgo}</div>
+        `;
+        activityTimeline.appendChild(div);
+      });
+    }
+  }
+}
+
+// Add helper function for time ago
+function getTimeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " years ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " months ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " days ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hours ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " minutes ago";
+  if (seconds < 10) return "Just now";
+  return Math.floor(seconds) + " seconds ago";
+}
+
+window.openStaffActivityIssue = function(issueId) {
+  const issue = staffAssignedIssues.find(i => i._id === issueId);
+  if (issue) openStaffIssueDetails(issue);
+};
 
 function renderStaffIssues() {
   const tbody = document.querySelector("#staffIssuesBody");
-  tbody.innerHTML = "";
+  if (tbody) tbody.innerHTML = "";
 
-  const source = currentStaffView === "all" ? staffAllIssues : staffAssignedIssues;
-  const isViewOnly = currentStaffView === "all";
+  const source = (currentStaffView === "all" || currentStaffView === "map") ? staffAllIssues : staffAssignedIssues;
+  const isViewOnly = currentStaffView === "all" || currentStaffView === "map";
 
   // Update page title and subtitle
   const pageTitle = document.querySelector("#pageTitle");
@@ -121,8 +272,23 @@ function renderStaffIssues() {
 
   updateStaffIssueSearchResultsInfo(filteredIssues, source.length);
 
+  // If map tab is active, re-render map before early returns
+  const mapTab = document.getElementById('staff-map-view-container');
+  if (mapTab && mapTab.style.display !== 'none') {
+    let mapFilteredIssues = filteredIssues;
+    if (staffMapStateFilter || staffMapCityFilter) {
+       mapFilteredIssues = mapFilteredIssues.filter(issue => {
+         const loc = parseLocationForMap(issue.location);
+         const matchState = !staffMapStateFilter || loc.state === staffMapStateFilter;
+         const matchCity = !staffMapCityFilter || loc.city === staffMapCityFilter;
+         return matchState && matchCity;
+       });
+    }
+    renderStaffAllIssuesMap(mapFilteredIssues);
+  }
+
   if (filteredIssues.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No issues found matching your search criteria.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No issues found matching your search criteria.</td></tr>`;
     renderStaffPagination(0);
     return;
   }
@@ -190,7 +356,65 @@ function renderStaffIssues() {
     tbody.appendChild(tr);
   });
 
-  renderStaffPagination(totalItems, totalPages);
+    renderStaffPagination(totalItems, totalPages);
+}
+
+// Map View Logic
+let currentStaffIssueViewMode = 'list';
+
+window.renderStaffAllIssuesMap = function(issues) {
+  if (!window.isLeafletLoaded || typeof L === 'undefined') return;
+  
+  const mapEl = document.getElementById('staffAllIssuesMap');
+  if (!mapEl) return;
+  
+  if (!window.staffAllIssuesMapInstance) {
+    window.staffAllIssuesMapInstance = L.map(mapEl).setView([19.2952, 73.0544], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(window.staffAllIssuesMapInstance);
+
+    if (L.Control && L.Control.geocoder) {
+      L.Control.geocoder({
+        defaultMarkGeocode: false
+      }).on('markgeocode', function(e) {
+        var bbox = e.geocode.bbox;
+        window.staffAllIssuesMapInstance.fitBounds(bbox);
+      }).addTo(window.staffAllIssuesMapInstance);
+    }
+  }
+  
+  if (window.staffAllIssuesMarkers) {
+    window.staffAllIssuesMapInstance.removeLayer(window.staffAllIssuesMarkers);
+  }
+  
+  window.staffAllIssuesMarkers = L.layerGroup().addTo(window.staffAllIssuesMapInstance);
+  
+  issues.forEach(issue => {
+    if (issue.lat && issue.lng) {
+      let markerColor = '#ef4444'; 
+      if (issue.status === 'In Progress') markerColor = '#eab308';
+      else if (issue.status === 'Resolved') markerColor = '#22c55e'; 
+      
+      const svgIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="${markerColor}" stroke="white" stroke-width="2">
+                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+               </svg>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+      
+      const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
+      marker.bindTooltip(`<strong>${issue.category}</strong><br>${issue.status}`);
+      marker.on('click', () => openStaffIssueDetails(issue));
+      window.staffAllIssuesMarkers.addLayer(marker);
+    }
+  });
+
+  setTimeout(() => window.staffAllIssuesMapInstance.invalidateSize(), 100);
 }
 
 function renderStaffPagination(totalItems, totalPages = 0) {
@@ -318,6 +542,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     activateStaffTab('assigned');
   });
 
+  // Handle Map View click
+  const tabMapViewLink = document.getElementById("tab-map-view");
+  if (tabMapViewLink) {
+    tabMapViewLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      history.pushState(null, null, '#map');
+      activateStaffTab('map');
+    });
+  }
+
   // Main activate tab logic
   function activateStaffTab(hash) {
     if (hash === 'profile') {
@@ -334,9 +568,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       tabMyAssignedLink.classList.add("active", "nav-link--active");
       tabAllIssuesLink.classList.remove("active", "nav-link--active");
       if (tabDashboardLink) tabDashboardLink.classList.remove("active", "nav-link--active");
+      const mapTabLink = document.getElementById('tab-map-view');
+      if (mapTabLink) mapTabLink.classList.remove("active", "nav-link--active");
     } else if (hash === 'all') {
       currentStaffView = "all";
       tabAllIssuesLink.classList.add("active", "nav-link--active");
+      tabMyAssignedLink.classList.remove("active", "nav-link--active");
+      if (tabDashboardLink) tabDashboardLink.classList.remove("active", "nav-link--active");
+      const mapTabLink = document.getElementById('tab-map-view');
+      if (mapTabLink) mapTabLink.classList.remove("active", "nav-link--active");
+    } else if (hash === 'map') {
+      currentStaffView = "map";
+      const mapTabLink = document.getElementById('tab-map-view');
+      if (mapTabLink) mapTabLink.classList.add("active", "nav-link--active");
+      tabAllIssuesLink.classList.remove("active", "nav-link--active");
       tabMyAssignedLink.classList.remove("active", "nav-link--active");
       if (tabDashboardLink) tabDashboardLink.classList.remove("active", "nav-link--active");
     } else {
@@ -344,16 +589,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (tabDashboardLink) tabDashboardLink.classList.add("active", "nav-link--active");
       tabAllIssuesLink.classList.remove("active", "nav-link--active");
       tabMyAssignedLink.classList.remove("active", "nav-link--active");
+      const mapTabLink = document.getElementById('tab-map-view');
+      if (mapTabLink) mapTabLink.classList.remove("active", "nav-link--active");
     }
 
     // Ensure details view is closed when switching tabs
     const detailsTab = document.getElementById("staff-issue-details-container");
     const mainTab = document.getElementById("staff-main-container");
     const dashboardTab = document.getElementById("staff-dashboard-container");
+    const assignedTab = document.getElementById("staff-my-assigned-container");
+    const mapViewTab = document.getElementById("staff-map-view-container");
     
     if (detailsTab) detailsTab.style.display = "none";
-    if (dashboardTab) dashboardTab.style.display = currentStaffView === "dashboard" ? "block" : "none";
-    if (mainTab) mainTab.style.display = currentStaffView === "dashboard" ? "none" : "";
+    
+    if (currentStaffView === 'dashboard') {
+      if (dashboardTab) dashboardTab.style.display = "block";
+      if (mainTab) mainTab.style.display = "none";
+      if (assignedTab) assignedTab.style.display = "none";
+      if (mapViewTab) mapViewTab.style.display = "none";
+    } else if (currentStaffView === 'all') {
+      if (dashboardTab) dashboardTab.style.display = "none";
+      if (mainTab) mainTab.style.display = "block";
+      if (assignedTab) assignedTab.style.display = "none";
+      if (mapViewTab) mapViewTab.style.display = "none";
+    } else if (currentStaffView === 'assigned') {
+      if (dashboardTab) dashboardTab.style.display = "none";
+      if (mainTab) mainTab.style.display = "block";
+      if (assignedTab) assignedTab.style.display = "none";
+      if (mapViewTab) mapViewTab.style.display = "none";
+    } else if (currentStaffView === 'map') {
+      if (dashboardTab) dashboardTab.style.display = "none";
+      if (mainTab) mainTab.style.display = "none";
+      if (assignedTab) assignedTab.style.display = "none";
+      if (mapViewTab) mapViewTab.style.display = "block";
+    }
 
     renderStaffIssues();
 
@@ -456,7 +725,7 @@ function openStaffIssueDetails(issue) {
   // Set details
   document.getElementById("staffModalComplaintId").textContent = issue._id ? `#${issue._id.slice(-6)}` : "---";
   document.getElementById("staffModalLocation").textContent = issue.location || "--";
-  document.getElementById("staffModalWard").textContent = issue.ward || "--";
+
   document.getElementById("staffModalCategory").textContent = issue.category ? (issue.category.name || issue.category) : "--";
   document.getElementById("staffModalDepartment").textContent = issue.department ? issue.department.name : "Unassigned";
   document.getElementById("staffModalPriority").textContent = issue.priority || "--";
@@ -850,3 +1119,61 @@ window.submitPasswordChange = async function () {
     btn.textContent = originalText;
   }
 };
+// Map Filters Logic
+let staffMapStateFilter = "";
+let staffMapCityFilter = "";
+
+function parseLocationForMap(locationStr) {
+  if (!locationStr) return { city: '', state: '' };
+  const parts = locationStr.split(',').map(p => p.trim());
+  if (parts.length >= 3) {
+    return {
+      state: parts[parts.length - 2].replace(/[0-9]/g, '').trim(),
+      city: parts[parts.length - 3]
+    };
+  } else if (parts.length === 2) {
+    return {
+      state: parts[1].replace(/[0-9]/g, '').trim(),
+      city: parts[0]
+    };
+  }
+  return { city: locationStr, state: '' };
+}
+
+function getUniqueLocationsForMap(issues) {
+  const states = new Set();
+  const cities = new Set();
+  
+  issues.forEach(issue => {
+    const loc = parseLocationForMap(issue.location);
+    if(loc.state) states.add(loc.state);
+    if(loc.city) cities.add(loc.city);
+  });
+  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
+}
+
+function setupStaffMapFilters(issues) {
+  const stateSelect = document.getElementById('staffMapStateFilter');
+  const citySelect = document.getElementById('staffMapCityFilter');
+  if(!stateSelect || !citySelect) return;
+  
+  const { states, cities } = getUniqueLocationsForMap(issues);
+  
+  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
+  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  const newStateSelect = stateSelect.cloneNode(true);
+  const newCitySelect = citySelect.cloneNode(true);
+  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
+  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+
+  newStateSelect.addEventListener('change', (e) => {
+    staffMapStateFilter = e.target.value;
+    renderStaffIssues(); 
+  });
+  
+  newCitySelect.addEventListener('change', (e) => {
+    staffMapCityFilter = e.target.value;
+    renderStaffIssues(); 
+  });
+}

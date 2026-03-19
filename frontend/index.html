@@ -16,6 +16,9 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/styles.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <style>
     .navbar-inner {
       align-items: center;
@@ -51,6 +54,7 @@
         <a href="javascript:void(0);" onclick="switchView('home')" class="navbar-link active" id="nav-home">Home</a>
         <a href="javascript:void(0);" onclick="switchView('recent-issues')" class="navbar-link" id="nav-recent">Recent
           Issues</a>
+        <a href="javascript:void(0);" onclick="switchView('map')" class="navbar-link" id="nav-map">Map View</a>
         <a href="javascript:void(0);" onclick="switchView('about')" class="navbar-link" id="nav-about">About</a>
       </nav>
       <div class="navbar-auth">
@@ -126,13 +130,6 @@
               </div>
               <div class="hero-card-label">In Progress</div>
               <div class="hero-card-value" id="landing-progress">--</div>
-            </div>
-            <div class="hero-card-item">
-              <div class="hero-card-icon">
-                <span class="material-icons-round">location_on</span>
-              </div>
-              <div class="hero-card-label">Total Wards Covered</div>
-              <div class="hero-card-value" id="landing-wards">All</div>
             </div>
           </div>
         </aside>
@@ -431,8 +428,38 @@
         <p class="section-subtitle">
           Live feed of civic issues reported by citizens across the city. Issues marked with images show field evidence.
         </p>
-        <div class="issue-cards-container">
+
+        <div class="issue-cards-container" id="publicIssuesListContainer">
           <!-- Complaint cards will be dynamically injected here by landing.js -->
+        </div>
+      </section>
+    </div>
+
+    <!-- MAP VIEW -->
+    <div id="map-view" style="display: none; padding-top: 2rem; padding-bottom: 4rem;">
+      <section class="container">
+        <h2 class="section-title">City Map View</h2>
+        <p class="section-subtitle">
+          Explore civic issues geographically across the city.
+        </p>
+        <!-- ADD FILTERS HERE -->
+        <div id="publicMapFilters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <div class="filter-item">
+            <label class="filter-label">State</label>
+            <select id="publicMapStateFilter" class="filter-select">
+              <option value="">All States</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">City</label>
+            <select id="publicMapCityFilter" class="filter-select">
+              <option value="">All Cities</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="publicIssuesMapContainer" style="width: 100%; height: 500px; border-radius: 1rem; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); z-index: 1;">
+          <div id="publicIssuesMap" style="width: 100%; height: 100%;"></div>
         </div>
       </section>
     </div>
@@ -561,10 +588,7 @@
                   <span style="color: var(--text-secondary); font-weight: 500;">Location:</span>
                   <span id="pageLocation">--</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-                  <span style="color: var(--text-secondary); font-weight: 500;">Ward:</span>
-                  <span id="pageWard">--</span>
-                </div>
+
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Status:</span>
                   <span id="pageStatus">--</span>
@@ -789,6 +813,7 @@
           ⚡ This platform is a student-developed academic prototype and is not connected to any government or municipal
           body.
         </div>
+
         <div class="bottom-right">
           <a href="javascript:void(0);" onclick="openPrivacyPolicyModal()">Privacy Policy</a>
           <a href="javascript:void(0);" onclick="openTermsOfUseModal()">Terms of Use</a>
@@ -809,6 +834,12 @@
   </button>
 
   <script src="js/theme.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script>
+    window.isLeafletLoaded = true;
+  </script>
   <script src="js/landing.js"></script>
   <script>
     // Modal functions for Privacy Policy and Terms of Use
@@ -853,16 +884,41 @@
     });
 
     // View Switching Logic
-    function switchView(viewName) {
+    function switchView(viewName, fromHistory = false) {
       // Hide all views
       document.getElementById('home-view').style.display = 'none';
-      document.getElementById('recent-issues-view').style.display = 'none';
       document.getElementById('about-view').style.display = 'none';
-      document.getElementById('issue-details-view').style.display = 'none';
+      document.getElementById('recent-issues-view').style.display = 'none';
+      document.getElementById('map-view').style.display = 'none';
+
+      // Show selected view
+      if (viewName === 'home') {
+        document.getElementById('home-view').style.display = 'block';
+        if (!fromHistory) window.history.pushState(null, '', '/');
+      } else if (viewName === 'about') {
+        document.getElementById('about-view').style.display = 'block';
+        if (!fromHistory) window.history.pushState(null, '', '#about');
+      } else if (viewName === 'recent-issues') {
+        document.getElementById('recent-issues-view').style.display = 'block';
+        if (!fromHistory) window.history.pushState(null, '', '#recent-issues');
+        if (window.loadRecentIssues) {
+          window.loadRecentIssues();
+        }
+      } else if (viewName === 'map') {
+        document.getElementById('map-view').style.display = 'block';
+        if (!fromHistory) window.history.pushState(null, '', '#map');
+        if (window.loadRecentIssues) {
+          window.loadRecentIssues();
+        }
+        if (window.renderPublicIssuesMap && window.publicIssuesList) {
+          setTimeout(() => window.renderPublicIssuesMap(window.publicIssuesList), 100);
+        }
+      }
 
       // Remove active states
       document.getElementById('nav-home').classList.remove('active');
       document.getElementById('nav-recent').classList.remove('active');
+      document.getElementById('nav-map').classList.remove('active'); // Added for map view
       document.getElementById('nav-about').classList.remove('active');
 
       // Show selected view and activate nav
@@ -872,6 +928,9 @@
       } else if (viewName === 'recent-issues') {
         document.getElementById('recent-issues-view').style.display = 'block';
         document.getElementById('nav-recent').classList.add('active');
+      } else if (viewName === 'map') { // Added for map view
+        document.getElementById('map-view').style.display = 'block';
+        document.getElementById('nav-map').classList.add('active');
       } else if (viewName === 'about') {
         document.getElementById('about-view').style.display = 'block';
         document.getElementById('nav-about').classList.add('active');
@@ -886,6 +945,19 @@
       // Scroll to top of the content
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
+
+    // Persist tab state on load and back button
+    function handleLocationChange() {
+      const hash = window.location.hash.replace('#', '');
+      if (['about', 'recent-issues', 'map'].includes(hash)) {
+        switchView(hash, true);
+      } else {
+        switchView('home', true);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
   </script>
 
   <!-- Toast Notification Container -->

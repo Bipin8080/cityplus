@@ -10,11 +10,11 @@ async function submitIssue(event) {
   const departmentNode = form.querySelector("#department");
   const department = departmentNode ? departmentNode.value.trim() : "";
   const category = form.querySelector("#category").value.trim();
-  const ward = form.querySelector("#ward").value.trim();
+
   const location = form.querySelector("#location").value.trim();
   const description = form.querySelector("#description").value.trim();
 
-  if (!title || !department || !category || !ward || !location || !description) {
+  if (!title || !department || !category || !location || !description) {
     showToast('warning', "Please complete all required fields before submitting your complaint.");
     return;
   }
@@ -115,6 +115,19 @@ async function initIssueMap() {
     marker = L.marker([defaultCenter.lat, defaultCenter.lng], {
       draggable: true
     }).addTo(map);
+
+    if (L.Control && L.Control.geocoder) {
+      L.Control.geocoder({
+        defaultMarkGeocode: false
+      }).on('markgeocode', async function(e) {
+        const bbox = e.geocode.bbox;
+        const center = e.geocode.center;
+        map.fitBounds(bbox);
+        marker.setLatLng(center);
+        updateHiddenCoordinates(center.lat, center.lng);
+        await reverseGeocode(center.lat, center.lng);
+      }).addTo(map);
+    }
 
     // Set initial hidden values
     updateHiddenCoordinates(defaultCenter.lat, defaultCenter.lng);

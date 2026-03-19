@@ -10,6 +10,9 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <style>
     .navbar-inner {
       align-items: center;
@@ -61,6 +64,10 @@
         <a class="nav-link staff-nav-tab" id="tab-my-assigned" href="#" onclick="event.preventDefault();">
           <span class="material-icons-round">assignment_ind</span>
           <span class="nav-text">My Assigned Issues</span>
+        </a>
+        <a class="nav-link staff-nav-tab" id="tab-map-view" href="#" onclick="event.preventDefault();">
+          <span class="material-icons-round">map</span>
+          <span class="nav-text">Map View</span>
         </a>
       </nav>
 
@@ -130,7 +137,168 @@
                 </div>
             </div>
         </section>
+
+        <!-- New Detailed Dashboard Sections -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;" id="staffDashboardWidgets">
+          <!-- Left Column -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Priority Breakdown -->
+            <section class="admin-section" style="padding: 1.5rem; height: auto;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span class="material-icons-round">flag</span> Priority Breakdown
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <!-- High -->
+                <div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500;">High Priority</span>
+                    <span id="statHighPriority" style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">0</span>
+                  </div>
+                  <div style="width: 100%; background: var(--slate-100); border-radius: 9999px; height: 0.5rem; overflow: hidden;">
+                    <div id="barHighPriority" style="background: #ef4444; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                  </div>
+                </div>
+                <!-- Medium -->
+                <div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500;">Medium Priority</span>
+                    <span id="statMediumPriority" style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">0</span>
+                  </div>
+                  <div style="width: 100%; background: var(--slate-100); border-radius: 9999px; height: 0.5rem; overflow: hidden;">
+                    <div id="barMediumPriority" style="background: #eab308; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                  </div>
+                </div>
+                <!-- Low -->
+                <div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 500;">Low Priority</span>
+                    <span id="statLowPriority" style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">0</span>
+                  </div>
+                  <div style="width: 100%; background: var(--slate-100); border-radius: 9999px; height: 0.5rem; overflow: hidden;">
+                    <div id="barLowPriority" style="background: #22c55e; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Recent Assigned Issues -->
+            <section class="admin-section" style="padding: 1.5rem; height: auto; flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.1rem; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                  <span class="material-icons-round">fiber_new</span> Recent Assignments
+                </h3>
+                <button class="btn btn-outline btn-small" onclick="document.getElementById('tab-my-assigned').click()">View All</button>
+              </div>
+              <div class="table-wrapper" style="margin: 0 -1.5rem -1.5rem -1.5rem; border-radius: 0 0 1rem 1rem;">
+                <table class="table admin-table" style="margin: 0; font-size: 0.875rem;">
+                  <thead>
+                    <tr>
+                      <th style="padding: 0.75rem 1.5rem;">ID</th>
+                      <th style="padding: 0.75rem 1.5rem;">Category</th>
+                      <th style="padding: 0.75rem 1.5rem;">Priority</th>
+                      <th style="padding: 0.75rem 1.5rem;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffRecentIssuesBody">
+                    <tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-secondary);">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+          </div>
+
+          <!-- Right Column -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Quick Actions -->
+            <section class="admin-section" style="padding: 1.5rem; height: auto;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span class="material-icons-round">bolt</span> Quick Actions
+              </h3>
+              <div style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">
+                <button class="btn btn-outline" style="justify-content: flex-start; padding: 0.75rem 1rem; display: flex; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="document.getElementById('tab-map-view').click()">
+                  <span class="material-icons-round" style="color: var(--primary-color); margin-right: 0.75rem;">map</span> 
+                  View Issue Map
+                </button>
+                <button class="btn btn-outline" style="justify-content: flex-start; padding: 0.75rem 1rem; display: flex; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="document.getElementById('tab-my-assigned').click()">
+                  <span class="material-icons-round" style="color: var(--primary-color); margin-right: 0.75rem;">assignment_ind</span> 
+                  My Assignments
+                </button>
+                <button class="btn btn-outline" style="justify-content: flex-start; padding: 0.75rem 1rem; display: flex; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="openProfileModal()">
+                  <span class="material-icons-round" style="color: var(--primary-color); margin-right: 0.75rem;">person</span> 
+                  Update Profile
+                </button>
+              </div>
+            </section>
+
+            <!-- Activity Timeline -->
+            <section class="admin-section" style="padding: 1.5rem; height: auto; flex: 1;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span class="material-icons-round">history</span> My Recent Activity
+              </h3>
+              <div id="staffRecentActivityTimeline" style="display: flex; flex-direction: column; gap: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--primary-color-light); position: relative;">
+                <div style="color: var(--text-secondary); font-size: 0.875rem;">Loading updates...</div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
       </div><!-- /staff-dashboard-container -->
+
+      <!-- My Assigned Content (Placeholder) -->
+      <div class="content-container" id="staff-my-assigned-container" style="display: none;">
+        <header class="panel-header"
+          style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+          <div>
+            <div class="tag">My Work</div>
+            <h1 class="section-title" style="margin-top: 0.4rem;">
+              My Assigned Issues
+            </h1>
+            <p class="section-subtitle" style="margin-bottom: 0;">
+              Issues specifically assigned to you for resolution.
+            </p>
+          </div>
+        </header>
+        <section class="admin-section">
+          <p style="color: var(--text-secondary);">This section can be expanded later to exclusively show issues assigned to the logged-in staff member.</p>
+        </section>
+      </div>
+
+      <!-- Map View Content -->
+      <div class="content-container" id="staff-map-view-container" style="display: none;">
+        <header class="panel-header">
+          <div>
+            <div class="tag">Geospatial Overview</div>
+            <h1 class="section-title" style="margin-top:8px;">City Map View</h1>
+            <p class="section-subtitle" style="margin-bottom:0;">
+              Explore civic issues geographically across the city.
+            </p>
+          </div>
+        </header>
+
+        <section class="admin-section" style="padding-top: 1rem;">
+          <div id="staffMapFilters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div class="filter-item">
+              <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">State</label>
+              <select id="staffMapStateFilter" class="filter-select">
+                <option value="">All States</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">City</label>
+              <select id="staffMapCityFilter" class="filter-select">
+                <option value="">All Cities</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-card" id="staffAllIssuesMapContainer" style="padding: 0; height: 500px; overflow: hidden;">
+            <div id="staffAllIssuesMap" style="width: 100%; height: 100%; z-index: 1;"></div>
+          </div>
+        </section>
+      </div>
 
       <div class="content-container" id="staff-main-container" style="display: none;">
         <header class="panel-header"
@@ -299,10 +467,6 @@
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Location:</span>
                   <span id="staffModalLocation">--</span>
-                </div>
-                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-                  <span style="color: var(--text-secondary); font-weight: 500;">Ward:</span>
-                  <span id="staffModalWard">--</span>
                 </div>
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Category:</span>
@@ -548,6 +712,12 @@
   <script src="js/theme.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/notifications.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script>
+    window.isLeafletLoaded = true;
+  </script>
   <script src="js/staff-dashboard.js"></script>
 </body>
 

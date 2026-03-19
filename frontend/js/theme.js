@@ -189,7 +189,8 @@ window.isLeafletLoaded = false;
 
 window.loadLeafletApi = async function () {
   if (window.isLeafletLoaded || document.querySelector('script[src*="leaflet.js"]')) {
-    return Promise.resolve();
+    // Ensure geocoder is loaded even if Leaflet was already present
+    return loadGeocoderApi();
   }
 
   return new Promise((resolve, reject) => {
@@ -211,7 +212,7 @@ window.loadLeafletApi = async function () {
 
     script.onload = () => {
       window.isLeafletLoaded = true;
-      resolve();
+      loadGeocoderApi().then(resolve).catch(reject);
     };
     script.onerror = () => {
       console.error('Failed to load Leaflet API');
@@ -221,3 +222,33 @@ window.loadLeafletApi = async function () {
     document.head.appendChild(script);
   });
 };
+
+function loadGeocoderApi() {
+  if (document.querySelector('script[src*="Control.Geocoder.js"]')) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    // Load Geocoder CSS
+    if (!document.querySelector('link[href*="Control.Geocoder.css"]')) {
+      const geoLink = document.createElement('link');
+      geoLink.rel = 'stylesheet';
+      geoLink.href = 'https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css';
+      document.head.appendChild(geoLink);
+    }
+
+    // Load Geocoder JS
+    const geoScript = document.createElement('script');
+    geoScript.src = 'https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js';
+    
+    geoScript.onload = () => {
+      resolve();
+    };
+    geoScript.onerror = () => {
+      console.error('Failed to load Geocoder API');
+      reject(new Error('Failed to load Geocoder API'));
+    };
+
+    document.head.appendChild(geoScript);
+  });
+}

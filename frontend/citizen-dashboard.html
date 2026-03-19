@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="css/styles.css" rel="stylesheet" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <meta name="theme-color" content="#1e40af" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
@@ -55,6 +58,10 @@
         <a class="nav-link" href="#" onclick="event.preventDefault(); switchToAllIssuesTab();">
           <span class="material-icons">assignment</span>
           <span class="nav-text">All Issues</span>
+        </a>
+        <a class="nav-link" href="#" onclick="event.preventDefault(); switchToMapTab();">
+          <span class="material-icons">map</span>
+          <span class="nav-text">Map View</span>
         </a>
         <a class="nav-link" href="report-issue.html">
           <span class="material-icons">add_circle_outline</span>
@@ -236,10 +243,6 @@
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div class="filter-group">
-              <label class="filter-label">Ward</label>
-              <input class="search-input" id="wardFilter" placeholder="Filter by ward..." type="text" />
-            </div>
           </div>
 
           <div class="table-scroll">
@@ -321,7 +324,7 @@
               <h2 class="table-card__title">Community Issue Reports</h2>
               <p class="table-card__sub">View all submitted issues from residents in your area</p>
             </div>
-            <div class="table-card__controls">
+            <div class="table-card__controls" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
               <div class="search-wrapper">
                 <span class="search-wrapper__icon">
                   <span class="material-icons">search</span>
@@ -357,13 +360,9 @@
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div class="filter-group">
-              <label class="filter-label">Ward</label>
-              <input class="search-input" id="allIssuesWardFilter" placeholder="Filter by ward..." type="text" />
-            </div>
           </div>
 
-          <div class="table-scroll">
+          <div class="table-scroll" id="citizenAllIssuesTableContainer">
             <table>
               <thead>
                 <tr>
@@ -382,8 +381,12 @@
             </table>
           </div>
 
+          <div id="citizenAllIssuesMapContainer" style="display: none; width: 100%; height: 500px; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--border-color); margin-top: 1rem; z-index: 1;">
+            <div id="citizenAllIssuesMap" style="width: 100%; height: 100%;"></div>
+          </div>
+
           <!-- Pagination -->
-          <div class="table-footer">
+          <div class="table-footer" id="citizenAllIssuesPagination">
             <span class="table-footer__count" id="allIssuesPaginationInfo">Showing 0 entries</span>
             <div class="table-footer__buttons">
               <button class="btn-page" id="allIssuesPrevBtn" disabled>Previous</button>
@@ -502,10 +505,7 @@
                   <span style="color: var(--text-secondary); font-weight: 500;">Location:</span>
                   <span id="modalLocation">--</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-                  <span style="color: var(--text-secondary); font-weight: 500;">Ward:</span>
-                  <span id="modalWard">--</span>
-                </div>
+
                 <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                   <span style="color: var(--text-secondary); font-weight: 500;">Department:</span>
                   <span id="modalDepartment">--</span>
@@ -658,6 +658,33 @@
         </section>
       </div><!-- /profile-view-container -->
 
+      <!-- MAP VIEW -->
+      <div class="content-container" id="mapViewTab" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-header__title">City Map View</h1>
+            <p class="page-header__sub">Explore civic issues geographically across the city</p>
+          </div>
+        </div>
+        <div id="citizenMapFilters" style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+          <div class="filter-item">
+            <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">State</label>
+            <select id="citizenMapStateFilter" class="form-select" style="min-width: 150px;">
+              <option value="">All States</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">City</label>
+            <select id="citizenMapCityFilter" class="form-select" style="min-width: 150px;">
+              <option value="">All Cities</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-card" style="padding: 0; height: 500px; overflow: hidden; border-radius: 1rem; margin-top: 1rem;">
+          <div id="citizenAllIssuesMap" style="width: 100%; height: 100%; z-index: 1;"></div>
+        </div>
+      </div>
+
     </main>
   </div><!-- /app-shell -->
 
@@ -685,6 +712,12 @@
   <script src="js/theme.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/notifications.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script>
+    window.isLeafletLoaded = true;
+  </script>
   <script src="js/citizen-dashboard.js"></script>
 </body>
 

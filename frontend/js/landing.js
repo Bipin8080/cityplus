@@ -66,6 +66,8 @@ async function loadRecentIssues() {
     const displayIssues = [...issues]
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 20);
+      
+    window.publicIssuesList = displayIssues;
 
     if (displayIssues.length === 0) {
       container.innerHTML = `
@@ -114,10 +116,7 @@ async function loadRecentIssues() {
             <span class="issue-card-detail-label">Location:</span>
             <span class="issue-card-detail-value">${issue.location}</span>
           </div>
-          <div class="issue-card-detail-row">
-            <span class="issue-card-detail-label">Ward:</span>
-            <span class="issue-card-detail-value">${issue.ward}</span>
-          </div>
+
         </div>
         <div class="issue-card-date">Submitted: ${created}</div>
       `;
@@ -127,6 +126,10 @@ async function loadRecentIssues() {
 
       container.appendChild(card);
     });
+
+    // Set up and apply filters for the map view
+    setupPublicMapFilters(issues);
+    applyPublicMapFilters();
 
   } catch (err) {
     console.error("Error loading issues:", err);
@@ -138,6 +141,64 @@ async function loadRecentIssues() {
     if (elResolved) elResolved.textContent = 0;
     if (elProgress) elProgress.textContent = 0;
   }
+}
+
+function renderPublicIssuesMap(issues) {
+  if (!window.isLeafletLoaded || typeof L === 'undefined') return;
+  
+  const mapEl = document.getElementById('publicIssuesMap');
+  if (!mapEl) return;
+  
+  if (!window.publicIssuesMapInstance) {
+    // Centered on Bhiwandi
+    window.publicIssuesMapInstance = L.map(mapEl).setView([19.2952, 73.0544], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(window.publicIssuesMapInstance);
+
+    if (L.Control && L.Control.geocoder) {
+      L.Control.geocoder({
+        defaultMarkGeocode: false
+      }).on('markgeocode', function(e) {
+        var bbox = e.geocode.bbox;
+        window.publicIssuesMapInstance.fitBounds(bbox);
+      }).addTo(window.publicIssuesMapInstance);
+    }
+  }
+  
+  if (window.publicIssuesMarkers) {
+    window.publicIssuesMapInstance.removeLayer(window.publicIssuesMarkers);
+  }
+  
+  window.publicIssuesMarkers = L.layerGroup().addTo(window.publicIssuesMapInstance);
+  
+  issues.forEach(issue => {
+    if (issue.lat && issue.lng) {
+      let markerColor = '#ef4444'; // Red default
+      if (issue.status === 'In Progress') markerColor = '#eab308'; // Yellow
+      else if (issue.status === 'Resolved') markerColor = '#22c55e'; // Green
+      
+      const svgIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="${markerColor}" stroke="white" stroke-width="2">
+                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+               </svg>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+      
+      const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
+      marker.bindTooltip(`<strong>${issue.category}</strong><br>${issue.status}`);
+      marker.on('click', () => openIssueDetails(issue));
+      window.publicIssuesMarkers.addLayer(marker);
+    }
+  });
+
+  setTimeout(() => { 
+    window.publicIssuesMapInstance.invalidateSize();
+  }, 100);
 }
 
 // In-Page Details functions
@@ -192,7 +253,7 @@ function openIssueDetails(issue) {
   document.getElementById("pageCategory").innerHTML = `<span style="background: var(--primary-10); color: var(--primary-color); padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">${issue.category || '--'}</span>`;
 
   document.getElementById("pageLocation").textContent = issue.location || "--";
-  document.getElementById("pageWard").textContent = issue.ward || "--";
+
 
   // Status with badge style
   let statusColor = "var(--slate-500)";
@@ -201,7 +262,7 @@ function openIssueDetails(issue) {
   if (issue.status === "In Progress") { statusColor = "var(--blue-600)"; statusBg = "rgba(59, 130, 246, 0.1)"; }
   if (issue.status === "Resolved") { statusColor = "var(--green-600)"; statusBg = "rgba(34, 197, 94, 0.1)"; }
   document.getElementById("pageStatus").innerHTML = `<span style="background: ${statusBg}; color: ${statusColor}; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">${issue.status || '--'}</span>`;
-
+  // Date received
   document.getElementById("pageSubmitted").textContent = created;
 
   // Set Reporter info (anonymized properly)
@@ -303,3 +364,74 @@ function closeIssueDetails() {
 }
 
 document.addEventListener("DOMContentLoaded", loadRecentIssues);
+
+// --- Map Filters Logic ---
+let publicMapStateFilter = "";
+let publicMapCityFilter = "";
+
+function parseLocationForMap(locationStr) {
+  if (!locationStr) return { city: '', state: '' };
+  const parts = locationStr.split(',').map(p => p.trim());
+  if (parts.length >= 3) {
+    return {
+      state: parts[parts.length - 2].replace(/[0-9]/g, '').trim(),
+      city: parts[parts.length - 3]
+    };
+  } else if (parts.length === 2) {
+    return {
+      state: parts[1].replace(/[0-9]/g, '').trim(),
+      city: parts[0]
+    };
+  }
+  return { city: locationStr, state: '' };
+}
+
+function getUniqueLocationsForMap(issues) {
+  const states = new Set();
+  const cities = new Set();
+  
+  issues.forEach(issue => {
+    const loc = parseLocationForMap(issue.location);
+    if(loc.state) states.add(loc.state);
+    if(loc.city) cities.add(loc.city);
+  });
+  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
+}
+
+function setupPublicMapFilters(issues) {
+  const stateSelect = document.getElementById('publicMapStateFilter');
+  const citySelect = document.getElementById('publicMapCityFilter');
+  if(!stateSelect || !citySelect) return;
+  
+  const { states, cities } = getUniqueLocationsForMap(issues);
+  
+  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
+  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  // Remove old event listeners if overriding
+  const newStateSelect = stateSelect.cloneNode(true);
+  const newCitySelect = citySelect.cloneNode(true);
+  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
+  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+
+  newStateSelect.addEventListener('change', (e) => {
+    publicMapStateFilter = e.target.value;
+    applyPublicMapFilters();
+  });
+  
+  newCitySelect.addEventListener('change', (e) => {
+    publicMapCityFilter = e.target.value;
+    applyPublicMapFilters();
+  });
+}
+
+function applyPublicMapFilters() {
+  if (!window.publicIssuesList) return;
+  const filtered = window.publicIssuesList.filter(issue => {
+    const loc = parseLocationForMap(issue.location);
+    const matchState = !publicMapStateFilter || loc.state === publicMapStateFilter;
+    const matchCity = !publicMapCityFilter || loc.city === publicMapCityFilter;
+    return matchState && matchCity;
+  });
+  renderPublicIssuesMap(filtered);
+}
