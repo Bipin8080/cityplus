@@ -18,10 +18,9 @@ let currentUserPage = 1;
 const usersPerPage = 10;
 
 async function loadAdminData() {
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
+  const token = localStorage.getItem("admin_token");
 
-  if (!token || role !== "admin") {
+  if (!token) {
     window.location.href = "login.html";
     return;
   }
@@ -309,7 +308,7 @@ async function submitStaffAssignment(token, issueId, staffId) {
 }
 
 async function updateUserStatusAdmin(userId, status) {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("admin_token");
   try {
     const res = await fetch(`/api/admin/users/${userId}/status`, {
       method: "PATCH",
@@ -608,7 +607,7 @@ async function assignIssueToStaffModal() {
   const staffSelect = document.getElementById("adminModalStaffSelect");
   const issueId = staffSelect.dataset.issueId;
   const staffId = staffSelect.value;
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("admin_token");
 
   if (!staffId) {
     showToast('warning', "Please select a staff member before assigning.");
@@ -637,7 +636,7 @@ async function updateAdminIssueStatus() {
   if (noteContent) formData.append("note", noteContent);
   if (file) formData.append("image", file);
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("admin_token");
 
   // Show loading state
   const btn = document.getElementById("adminModalStatusSubmitBtn");
@@ -667,7 +666,8 @@ function hideLogoutConfirmation() {
 
 function confirmLogout() {
   const theme = localStorage.getItem('cityplus-theme');
-  localStorage.clear();
+  const items = ['admin_token', 'admin_role', 'admin_userName', 'admin_userEmail'];
+  items.forEach(item => localStorage.removeItem(item));
   if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
@@ -953,10 +953,35 @@ function renderAdminAllIssuesMap(issues) {
       
       const marker = L.marker(pos, { icon: svgIcon }).addTo(window.adminAllIssuesMarkers);
       
-      marker.bindTooltip(`<b>${issue.category || 'Issue'}</b><br/>Status: ${issue.status}`);
-      marker.on('click', () => {
-        openAdminIssueDetails(issue, window.adminStaffList);
+      // Rich tooltip on hover
+      marker.bindTooltip(`
+        <div style="min-width:180px;">
+          <strong style="font-size:0.875rem;">${issue.title || issue.category}</strong><br/>
+          <span style="font-size:0.8rem; color:#666;">📍 ${issue.location ? issue.location.substring(0, 40) : '--'}</span><br/>
+          <span style="font-size:0.8rem;">📂 ${issue.category}</span><br/>
+          <span style="font-size:0.8rem; color:${markerColor}; font-weight:600;">● ${issue.status}</span>
+        </div>
+      `, { direction: 'top', opacity: 0.95 });
+
+      // Rich popup on click
+      const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric"
       });
+      const popupContent = `
+        <div style="min-width:220px; max-width:280px; font-family: inherit;">
+          ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : issue.image}" alt="${issue.title}" style="width:100%; height:120px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
+          <h4 style="margin:0 0 0.25rem 0; font-size:0.95rem; color:#1e293b;">${issue.title || 'Untitled'}</h4>
+          <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+            <span style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.category}</span>
+            <span style="background:${markerColor}20; color:${markerColor}; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.status}</span>
+          </div>
+          <p style="margin:0 0 0.25rem 0; font-size:0.8rem; color:#64748b;">📍 ${issue.location || '--'}</p>
+          <p style="margin:0 0 0.5rem 0; font-size:0.75rem; color:#94a3b8;">Submitted: ${created}</p>
+          ${issue.description ? `<p style="margin:0 0 0.5rem 0; font-size:0.8rem; color:#475569; line-height:1.4;">${issue.description.substring(0, 100)}${issue.description.length > 100 ? '...' : ''}</p>` : ''}
+          <button onclick="openAdminIssueDetails(window.adminIssuesList.find(i => i._id === '${issue._id}'), window.adminStaffList)" style="width:100%; padding:0.4rem; background:#3b82f6; color:white; border:none; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer;">View Full Details</button>
+        </div>
+      `;
+      marker.bindPopup(popupContent, { maxWidth: 300 });
     }
   });
   
@@ -1792,7 +1817,7 @@ async function submitDepartment() {
 
   if (!name) return showToast('error', 'Department name is required');
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('admin_token');
   const method = id ? 'PUT' : 'POST';
   const url = id ? '/api/departments/' + id : '/api/departments';
 
@@ -1820,7 +1845,7 @@ async function submitDepartment() {
 async function softDeleteDepartment(id) {
   if (!confirm('Are you sure you want to delete this department?')) return;
   
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('admin_token');
   try {
     const res = await fetch('/api/departments/' + id, {
       method: 'DELETE',
@@ -1900,7 +1925,7 @@ window.removeStaffFromDept = async function(staffId) {
 };
 
 async function updateStaffDepartment(staffId, departmentId) {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('admin_token');
   try {
     const res = await fetch(`/api/admin/staff/${staffId}/department`, {
       method: 'PATCH',

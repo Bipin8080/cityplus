@@ -1,9 +1,8 @@
 async function submitIssue(event) {
   event.preventDefault();
 
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
-  const isLoggedIn = token && role === "citizen";
+  const token = localStorage.getItem("citizen_token");
+  const isLoggedIn = !!token;
 
   const form = event.target;
   const title = form.querySelector("#title").value.trim();

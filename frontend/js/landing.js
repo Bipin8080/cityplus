@@ -190,8 +190,40 @@ function renderPublicIssuesMap(issues) {
       });
       
       const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
-      marker.bindTooltip(`<strong>${issue.category}</strong><br>${issue.status}`);
-      marker.on('click', () => openIssueDetails(issue));
+
+      // Rich tooltip on hover
+      let statusColor = '#ef4444';
+      if (issue.status === 'In Progress') statusColor = '#eab308';
+      else if (issue.status === 'Resolved') statusColor = '#22c55e';
+      marker.bindTooltip(`
+        <div style="min-width:180px;">
+          <strong style="font-size:0.875rem;">${issue.title || issue.category}</strong><br/>
+          <span style="font-size:0.8rem; color:#666;">📍 ${issue.location ? issue.location.substring(0, 40) : '--'}</span><br/>
+          <span style="font-size:0.8rem;">📂 ${issue.category}</span><br/>
+          <span style="font-size:0.8rem; color:${statusColor}; font-weight:600;">● ${issue.status}</span>
+        </div>
+      `, { direction: 'top', opacity: 0.95 });
+
+      // Rich popup on click
+      const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric"
+      });
+      const popupContent = `
+        <div style="min-width:220px; max-width:280px; font-family: inherit;">
+          ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : issue.image}" alt="${issue.title}" style="width:100%; height:120px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
+          <h4 style="margin:0 0 0.25rem 0; font-size:0.95rem; color:#1e293b;">${issue.title || 'Untitled'}</h4>
+          <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+            <span style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.category}</span>
+            <span style="background:${statusColor}20; color:${statusColor}; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.status}</span>
+          </div>
+          <p style="margin:0 0 0.25rem 0; font-size:0.8rem; color:#64748b;">📍 ${issue.location || '--'}</p>
+          <p style="margin:0 0 0.5rem 0; font-size:0.75rem; color:#94a3b8;">Submitted: ${created}</p>
+          ${issue.description ? `<p style="margin:0 0 0.5rem 0; font-size:0.8rem; color:#475569; line-height:1.4;">${issue.description.substring(0, 100)}${issue.description.length > 100 ? '...' : ''}</p>` : ''}
+          <button onclick="openIssueDetails(window.publicIssuesList.find(i => i._id === '${issue._id}'))" style="width:100%; padding:0.4rem; background:#3b82f6; color:white; border:none; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer;">View Full Details</button>
+        </div>
+      `;
+      marker.bindPopup(popupContent, { maxWidth: 300 });
+
       window.publicIssuesMarkers.addLayer(marker);
     }
   });

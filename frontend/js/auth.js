@@ -94,15 +94,16 @@ async function loginUser() {
       return;
     }
 
-    // Save token + role + email + name + department Name if present
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("role", data.role);
-    localStorage.setItem("userEmail", email);
+    // Save token + role + email + name + department Name if present using role prefix
+    const prefix = data.role + "_";
+    localStorage.setItem(prefix + "token", data.token);
+    localStorage.setItem(prefix + "role", data.role);
+    localStorage.setItem(prefix + "userEmail", email);
     if (data.name) {
-      localStorage.setItem("userName", data.name);
+      localStorage.setItem(prefix + "userName", data.name);
     }
     if (data.departmentName) {
-      localStorage.setItem("departmentName", data.departmentName);
+      localStorage.setItem(prefix + "departmentName", data.departmentName);
     }
 
     // Redirect based on role with success modal
@@ -172,7 +173,7 @@ async function registerUser() {
     // Staff/Admin registration requires admin authentication
     const headers = { "Content-Type": "application/json" };
     if (role === "staff" || role === "admin") {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
       if (!token) {
         showToast('error', "You must be logged in as an admin to register staff or admin accounts.");
         return;
@@ -211,11 +212,12 @@ async function registerUser() {
       return;
     }
 
-    // Save token + role + email + name from registration form
-    localStorage.setItem("token", loginData.token);
-    localStorage.setItem("role", loginData.role);
-    localStorage.setItem("userName", name);
-    localStorage.setItem("userEmail", email);
+    // Save token + role + email + name with role prefix
+    const prefix = loginData.role + "_";
+    localStorage.setItem(prefix + "token", loginData.token);
+    localStorage.setItem(prefix + "role", loginData.role);
+    localStorage.setItem(prefix + "userName", name);
+    localStorage.setItem(prefix + "userEmail", email);
 
     // Redirect based on role with success modal
     let regDashboardUrl = '';

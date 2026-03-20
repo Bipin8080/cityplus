@@ -9,10 +9,9 @@ let currentStaffPage = 1;
 const staffIssuesPerPage = 10;
 
 async function loadStaffData() {
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
+  const token = localStorage.getItem("staff_token");
 
-  if (!token || role !== "staff") {
+  if (!token) {
     window.location.href = "login.html";
     return;
   }
@@ -33,6 +32,7 @@ async function loadStaffData() {
   if (!assignedRes.ok) throw new Error(assignedData.message || "Unable to retrieve assigned issues. Please refresh the page or try again later.");
 
   staffAllIssues = allData.issues || [];
+  window.staffAllIssues = staffAllIssues; // Global for map popup click
   staffAssignedIssues = assignedData.issues || [];
 
   renderStaffAnalytics();
@@ -66,10 +66,10 @@ function renderStaffAnalytics() {
   });
 
   if (departmentName !== "-") {
-    localStorage.setItem('departmentName', departmentName);
+    localStorage.setItem('staff_departmentName', departmentName);
   }
 
-  const userName_stored = localStorage.getItem('userName') || 'Staff';
+  const userName_stored = localStorage.getItem('staff_userName') || 'Staff';
   const staffDashboardTitle = document.getElementById("staffDashboardTitle");
   const staffDashboardSubtitle = document.getElementById("staffDashboardSubtitle");
 
@@ -408,8 +408,40 @@ window.renderStaffAllIssuesMap = function(issues) {
       });
       
       const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
-      marker.bindTooltip(`<strong>${issue.category}</strong><br>${issue.status}`);
-      marker.on('click', () => openStaffIssueDetails(issue));
+
+      // Rich tooltip on hover
+      let statusColor = '#ef4444';
+      if (issue.status === 'In Progress') statusColor = '#eab308';
+      else if (issue.status === 'Resolved') statusColor = '#22c55e';
+      marker.bindTooltip(`
+        <div style="min-width:180px;">
+          <strong style="font-size:0.875rem;">${issue.title || issue.category}</strong><br/>
+          <span style="font-size:0.8rem; color:#666;">📍 ${issue.location ? issue.location.substring(0, 40) : '--'}</span><br/>
+          <span style="font-size:0.8rem;">📂 ${issue.category}</span><br/>
+          <span style="font-size:0.8rem; color:${statusColor}; font-weight:600;">● ${issue.status}</span>
+        </div>
+      `, { direction: 'top', opacity: 0.95 });
+
+      // Rich popup on click
+      const created = new Date(issue.createdAt).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric"
+      });
+      const popupContent = `
+        <div style="min-width:220px; max-width:280px; font-family: inherit;">
+          ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : issue.image}" alt="${issue.title}" style="width:100%; height:120px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
+          <h4 style="margin:0 0 0.25rem 0; font-size:0.95rem; color:#1e293b;">${issue.title || 'Untitled'}</h4>
+          <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+            <span style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.category}</span>
+            <span style="background:${statusColor}20; color:${statusColor}; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.status}</span>
+          </div>
+          <p style="margin:0 0 0.25rem 0; font-size:0.8rem; color:#64748b;">📍 ${issue.location || '--'}</p>
+          <p style="margin:0 0 0.5rem 0; font-size:0.75rem; color:#94a3b8;">Submitted: ${created}</p>
+          ${issue.description ? `<p style="margin:0 0 0.5rem 0; font-size:0.8rem; color:#475569; line-height:1.4;">${issue.description.substring(0, 100)}${issue.description.length > 100 ? '...' : ''}</p>` : ''}
+          <button onclick="openStaffIssueDetails(window.staffAllIssues.find(i => i._id === '${issue._id}'))" style="width:100%; padding:0.4rem; background:#3b82f6; color:white; border:none; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer;">View Full Details</button>
+        </div>
+      `;
+      marker.bindPopup(popupContent, { maxWidth: 300 });
+
       window.staffAllIssuesMarkers.addLayer(marker);
     }
   });
@@ -486,8 +518,8 @@ window.resetStaffIssueFilters = function () {
 
 document.addEventListener("DOMContentLoaded", async () => {
   // Set user profile in sidebar
-  const userName_stored = localStorage.getItem('userName');
-  const userEmail_stored = localStorage.getItem('userEmail');
+  const userName_stored = localStorage.getItem('staff_userName');
+  const userEmail_stored = localStorage.getItem('staff_userEmail');
   if (userName_stored) {
     const nameEl = document.getElementById('userName');
     if (nameEl) nameEl.textContent = userName_stored;
@@ -879,8 +911,10 @@ function openStaffIssueDetails(issue) {
   const detailsTab = document.getElementById("staff-issue-details-container");
   const mainTab = document.getElementById("staff-main-container");
   const dashboardTab = document.getElementById("staff-dashboard-container");
+  const mapViewTab = document.getElementById("staff-map-view-container");
   if (mainTab) mainTab.style.display = "none";
   if (dashboardTab) dashboardTab.style.display = "none";
+  if (mapViewTab) mapViewTab.style.display = "none";
   if (detailsTab) detailsTab.style.display = "block";
   window.scrollTo(0, 0);
 }
@@ -889,10 +923,17 @@ function closeStaffIssueDetails() {
   const detailsTab = document.getElementById("staff-issue-details-container");
   const mainTab = document.getElementById("staff-main-container");
   const dashboardTab = document.getElementById("staff-dashboard-container");
+  const mapViewTab = document.getElementById("staff-map-view-container");
   if (detailsTab) detailsTab.style.display = "none";
   
   if (currentStaffView === "dashboard") {
     if (dashboardTab) dashboardTab.style.display = "block";
+  } else if (currentStaffView === "map") {
+    if (mapViewTab) mapViewTab.style.display = "block";
+    // Refresh map size after re-showing
+    setTimeout(() => {
+      if (window.staffAllIssuesMapInstance) window.staffAllIssuesMapInstance.invalidateSize();
+    }, 100);
   } else {
     if (mainTab) mainTab.style.display = "block";
   }
@@ -916,7 +957,7 @@ async function updateStaffIssueStatus() {
   if (noteContent) formData.append("note", noteContent);
   if (file) formData.append("image", file);
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("staff_token");
 
   // Show loading state
   const btn = document.getElementById("staffModalStatusSubmitBtn");
@@ -963,7 +1004,8 @@ function hideLogoutConfirmation() {
 
 function confirmLogout() {
   const theme = localStorage.getItem('cityplus-theme');
-  localStorage.clear();
+  const items = ['staff_token', 'staff_role', 'staff_userName', 'staff_userEmail', 'staff_departmentName'];
+  items.forEach(item => localStorage.removeItem(item));
   if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
@@ -1017,8 +1059,8 @@ window.openProfileModal = function (fromHash = false) {
   }
 
   // Populate profile data
-  const userName_stored = localStorage.getItem('userName');
-  const userEmail_stored = localStorage.getItem('userEmail');
+  const userName_stored = localStorage.getItem('staff_userName');
+  const userEmail_stored = localStorage.getItem('staff_userEmail');
 
   let profileDepartmentName = "-";
   

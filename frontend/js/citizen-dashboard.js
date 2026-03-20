@@ -35,6 +35,8 @@ function handleHashChange() {
     openProfileModal(true);
   } else if (hash === 'allIssues') {
     switchToAllIssuesTab(true);
+  } else if (hash === 'mapView') {
+    switchToMapTab(true);
   } else {
     switchToDashboardTab(true);
   }
@@ -87,6 +89,8 @@ function switchToDashboardTab(fromHash = false) {
   currentTab = 'dashboard';
   const detailsContainer = document.getElementById('citizen-issue-details-container');
   if (detailsContainer) detailsContainer.style.display = 'none';
+  const mapViewTab = document.getElementById('mapViewTab');
+  if (mapViewTab) mapViewTab.style.display = 'none';
   document.getElementById('dashboardView').style.display = ''; // Clear inline styles
   document.getElementById('allIssuesView').style.display = 'none';
   updateSidebarActive('dashboard');
@@ -104,6 +108,8 @@ function switchToAllIssuesTab(fromHash = false) {
   currentTab = 'allIssues';
   const detailsContainer = document.getElementById('citizen-issue-details-container');
   if (detailsContainer) detailsContainer.style.display = 'none';
+  const mapViewTab = document.getElementById('mapViewTab');
+  if (mapViewTab) mapViewTab.style.display = 'none';
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('allIssuesView').style.display = ''; // Clear inline styles
   updateSidebarActive('allIssues');
@@ -124,10 +130,9 @@ function updateSidebarActive(tab) {
 
 // Check if user is authenticated
 function checkAuth() {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const token = localStorage.getItem('citizen_token');
 
-  if (!token || role !== 'citizen') {
+  if (!token) {
     window.location.href = 'login.html';
     return;
   }
@@ -136,8 +141,8 @@ function checkAuth() {
 // Load citizen profile from localStorage and display
 function loadCitizenProfile() {
   try {
-    const userName_stored = localStorage.getItem('userName');
-    const userEmail_stored = localStorage.getItem('userEmail');
+    const userName_stored = localStorage.getItem('citizen_userName');
+    const userEmail_stored = localStorage.getItem('citizen_userEmail');
 
     // Use stored name if available
     if (userName_stored) {
@@ -165,7 +170,7 @@ function loadCitizenProfile() {
 
 // Load citizen issues from API
 async function loadCitizenIssues() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('citizen_token');
 
   try {
     const res = await fetch('/api/issues/my', {
@@ -188,7 +193,7 @@ async function loadCitizenIssues() {
 
 // Load all community issues from API
 async function loadAllCommunityIssues() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('citizen_token');
 
   try {
     const res = await fetch('/api/issues/all', {
@@ -486,22 +491,38 @@ function renderAllIssuesTable() {
 }
 
 // Map View Logic for Community Issues
-window.switchToMapTab = function() {
+window.switchToMapTab = function(fromHash = false) {
+  if (fromHash !== true) {
+    history.pushState(null, null, '#mapView');
+  }
+
+  currentTab = 'mapView';
+
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('allIssuesView').style.display = 'none';
-  const detailsView = document.getElementById('issueDetailsView');
+  const detailsView = document.getElementById('citizen-issue-details-container');
   if(detailsView) detailsView.style.display = 'none';
   const profileView = document.getElementById('profile-view-container');
   if(profileView) profileView.style.display = 'none';
 
   document.getElementById('mapViewTab').style.display = 'block';
 
-  // Update nav active state (assuming the map link doesn't have an ID, we'll just remove from others)
+  // Update nav active state
   document.querySelectorAll('.sidebar__nav .nav-link').forEach(l => l.classList.remove('nav-link--active'));
-  // Note: we might want to add an ID to the map nav link to highlight it properly, but this removes it from Dashboard.
-  
-  if (typeof filteredCommunityIssues !== 'undefined') {
-    let mapFilteredIssues = filteredCommunityIssues;
+  const mapNavLinks = document.querySelectorAll('.sidebar__nav .nav-link');
+  if (mapNavLinks[2]) mapNavLinks[2].classList.add('nav-link--active');
+
+  // Auto-load community issues if not loaded yet
+  if (!allCommunityIssues || allCommunityIssues.length === 0) {
+    loadAllCommunityIssues().then(() => {
+      renderMapWithFilters();
+    });
+  } else {
+    renderMapWithFilters();
+  }
+
+  function renderMapWithFilters() {
+    let mapFilteredIssues = filteredCommunityIssues || allCommunityIssues || [];
     if (citizenMapStateFilter || citizenMapCityFilter) {
        mapFilteredIssues = mapFilteredIssues.filter(issue => {
          const loc = parseLocationForMap(issue.location);
@@ -510,14 +531,14 @@ window.switchToMapTab = function() {
          return matchState && matchCity;
        });
     }
-    setTimeout(() => renderCitizenAllIssuesMap(mapFilteredIssues), 100);
+    setTimeout(() => renderCitizenAllIssuesMap(mapFilteredIssues), 150);
   }
 };
 
 function renderCitizenAllIssuesMap(issues) {
   if (!window.isLeafletLoaded || typeof L === 'undefined') return;
   
-  const mapEl = document.getElementById('citizenAllIssuesMap');
+  const mapEl = document.getElementById('citizenMapViewMap');
   if (!mapEl) return;
   
   if (!window.citizenAllIssuesMapInstance) {
@@ -542,6 +563,9 @@ function renderCitizenAllIssuesMap(issues) {
   }
   
   window.citizenAllIssuesMarkers = L.layerGroup().addTo(window.citizenAllIssuesMapInstance);
+
+  // Store issues globally so popup button onclick can reference them
+  window.citizenMapIssuesList = issues;
   
   issues.forEach(issue => {
     if (issue.lat && issue.lng) {
@@ -560,8 +584,37 @@ function renderCitizenAllIssuesMap(issues) {
       });
       
       const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
-      marker.bindTooltip(`<strong>${issue.category}</strong><br>${issue.status}`);
-      marker.on('click', () => openIssueDetails(issue));
+
+      // Rich tooltip on hover
+      marker.bindTooltip(`
+        <div style="min-width:180px;">
+          <strong style="font-size:0.875rem;">${issue.title || issue.category}</strong><br/>
+          <span style="font-size:0.8rem; color:#666;">📍 ${issue.location ? issue.location.substring(0, 40) : '--'}</span><br/>
+          <span style="font-size:0.8rem;">📂 ${issue.category}</span><br/>
+          <span style="font-size:0.8rem; color:${markerColor}; font-weight:600;">● ${issue.status}</span>
+        </div>
+      `, { direction: 'top', opacity: 0.95 });
+
+      // Rich popup on click with issue preview
+      const created = new Date(issue.createdAt).toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+      const popupContent = `
+        <div style="min-width:220px; max-width:280px; font-family: inherit;">
+          ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : issue.image}" alt="${issue.title}" style="width:100%; height:120px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
+          <h4 style="margin:0 0 0.25rem 0; font-size:0.95rem; color:#1e293b;">${issue.title || 'Untitled'}</h4>
+          <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+            <span style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.category}</span>
+            <span style="background:${markerColor}20; color:${markerColor}; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.status}</span>
+          </div>
+          <p style="margin:0 0 0.25rem 0; font-size:0.8rem; color:#64748b;">📍 ${issue.location || '--'}</p>
+          <p style="margin:0 0 0.5rem 0; font-size:0.75rem; color:#94a3b8;">Submitted: ${created}</p>
+          ${issue.description ? `<p style="margin:0 0 0.5rem 0; font-size:0.8rem; color:#475569; line-height:1.4;">${issue.description.substring(0, 100)}${issue.description.length > 100 ? '...' : ''}</p>` : ''}
+          <button onclick="openIssueDetails(window.citizenMapIssuesList.find(i => i._id === '${issue._id}'))" style="width:100%; padding:0.4rem; background:#3b82f6; color:white; border:none; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer;">View Full Details</button>
+        </div>
+      `;
+      marker.bindPopup(popupContent, { maxWidth: 300 });
+
       window.citizenAllIssuesMarkers.addLayer(marker);
     }
   });
@@ -749,6 +802,8 @@ function openIssueDetails(issue) {
   // Hide main views and show details
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('allIssuesView').style.display = 'none';
+  const mapViewTab = document.getElementById('mapViewTab');
+  if (mapViewTab) mapViewTab.style.display = 'none';
   document.getElementById('citizen-issue-details-container').style.display = 'block';
   window.scrollTo(0, 0);
 }
@@ -776,7 +831,7 @@ async function submitFeedback(issueId) {
   }
 
   const text = document.querySelector('#feedbackText').value.trim();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('citizen_token');
   const btn = document.querySelector('#submitFeedbackBtn');
   const originalText = btn.textContent;
 
@@ -833,6 +888,11 @@ function closeIssueDetails() {
   document.getElementById('citizen-issue-details-container').style.display = 'none';
   if (currentTab === 'dashboard') {
     document.getElementById('dashboardView').style.display = 'block';
+  } else if (currentTab === 'mapView') {
+    document.getElementById('mapViewTab').style.display = 'block';
+    setTimeout(() => {
+      if (window.citizenAllIssuesMapInstance) window.citizenAllIssuesMapInstance.invalidateSize();
+    }, 100);
   } else {
     document.getElementById('allIssuesView').style.display = 'block';
   }
@@ -845,8 +905,8 @@ window.openProfileModal = function (fromHash = false) {
   }
 
   // Populate profile data
-  const userName_stored = localStorage.getItem('userName');
-  const userEmail_stored = localStorage.getItem('userEmail');
+  const userName_stored = localStorage.getItem('citizen_userName');
+  const userEmail_stored = localStorage.getItem('citizen_userEmail');
 
   document.querySelector('#profileName').textContent = userName_stored || 'Citizen User';
   document.querySelector('#profileFullName').textContent = userName_stored || '-';
@@ -1058,13 +1118,6 @@ function setupEventListeners() {
 
 
 
-  // Close profile modal when clicking outside
-  document.querySelector('#profileModal').addEventListener('click', (e) => {
-    if (e.target.id === 'profileModal') {
-      closeProfileModal();
-    }
-  });
-
   // Star feedback rating interactions
   const stars = document.querySelectorAll('.star-btn');
   stars.forEach(star => {
@@ -1075,10 +1128,11 @@ function setupEventListeners() {
   });
 }
 
-// Logout function (kept for backwards compatibility)
+// Logout function
 function logout() {
   const theme = localStorage.getItem('cityplus-theme');
-  localStorage.clear();
+  const items = ['citizen_token', 'citizen_role', 'citizen_userName', 'citizen_userEmail'];
+  items.forEach(item => localStorage.removeItem(item));
   if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }
@@ -1096,7 +1150,8 @@ function hideLogoutConfirmation() {
 
 function confirmLogout() {
   const theme = localStorage.getItem('cityplus-theme');
-  localStorage.clear();
+  const items = ['citizen_token', 'citizen_role', 'citizen_userName', 'citizen_userEmail'];
+  items.forEach(item => localStorage.removeItem(item));
   if (theme) localStorage.setItem('cityplus-theme', theme);
   window.location.href = 'login.html';
 }

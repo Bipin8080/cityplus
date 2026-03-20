@@ -13,7 +13,11 @@
 
     // ── Helpers ─────────────────────────────────────────────────────────
     function getToken() {
-        return localStorage.getItem('token');
+        const path = window.location.pathname;
+        if (path.includes('citizen-dashboard')) return localStorage.getItem('citizen_token');
+        if (path.includes('staff-dashboard')) return localStorage.getItem('staff_token');
+        if (path.includes('admin-dashboard')) return localStorage.getItem('admin_token');
+        return localStorage.getItem('token'); // Fallback
     }
 
     function authHeaders() {
