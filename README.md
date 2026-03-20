@@ -30,6 +30,7 @@ The system provides a seamless online submission portal for citizens, while equi
 ### 👤 Citizen Module
 - **Authentication**: Secure user registration and login functionality, enhanced with secure OTP-based password verification.
 - **Issue Reporting**: Users can seamlessly report civic issues with relevant details, categorize the incident by type, and upload images as tangible evidence.
+- **Interactive Map View**: Enhanced map interface with hover tooltips displaying rich details (title, location, category, status) and click popups providing quick issue previews.
 - **Real-Time Tracking**: Citizens have a dedicated dashboard to view all their submitted reports and track progressive resolution statuses in real-time.
 - **Modern User Interface**: A clean, intuitive dashboard interface with persistent Dark/Light mode theme selections, collapsible mini-sidebar navigation, skeletal loading states, and fluid responsive styling.
 - **Progressive Web App (PWA)**: Installable web application offering an app-like experience with service worker integration.
@@ -37,11 +38,13 @@ The system provides a seamless online submission portal for citizens, while equi
 ### 🛡️ Admin & Staff Module
 - **Role-Based Access Control**: Dedicated, secure authentication portals separating Admin and Staff tier users.
 - **Centralized Issue Management**: View, filter, and manage all comprehensively reported issues. The application features "Fetch Latest" capabilities to retrieve data updates without jarring page reloads.
+- **Interactive Map Tracking**: Advanced map view features including detailed marker hover effects and click-to-view popups for efficient geographical issue management.
 - **Regulated Workflow**: Clear operational workflow to modify an issue's status securely via role boundaries (`Pending` ➜ `Assigned` ➜ `In Progress` ➜ `Resolved`).
 - **Dedicated Dashboards**: Tailored views featuring functional statistical overview cards and dynamic, responsive layouts matching user roles.
 
 ### ⚙️ System & Technical Integrations
 - **Cloud Media Storage**: Formally integrated with **Cloudinary** for scalable, secure image hosting. This system replaces standard local file storage, ensuring evidence persistence and improving server processing capabilities.
+- **Multi-Role Session Management**: Robust authentication handling utilizing namespaced local storage (e.g., `citizen_token`, `staff_token`), allowing simultaneous login across different roles in separate tabs without session conflict.
 - **Dynamic UI/UX Improvements**: Interactive hover animations, integrated modal popups, toast notifications for direct action feedback, and a design scaled effectively for diverse screen sizes.
 
 ---
