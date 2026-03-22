@@ -11,10 +11,12 @@ async function loadRecentIssues() {
   const elTotal = document.getElementById("landing-total");
   const elResolved = document.getElementById("landing-resolved");
   const elProgress = document.getElementById("landing-progress");
+  const elPending = document.getElementById("landing-pending");
 
   if (elTotal) elTotal.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
   if (elResolved) elResolved.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
   if (elProgress) elProgress.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
+  if (elPending) elPending.innerHTML = '<span class="skeleton skeleton-value">&nbsp;</span>';
 
   if (container) {
     // Show skeleton cards while loading
@@ -49,6 +51,7 @@ async function loadRecentIssues() {
         if (elTotal) elTotal.textContent = 0;
         if (elResolved) elResolved.textContent = 0;
         if (elProgress) elProgress.textContent = 0;
+        if (elPending) elPending.textContent = 0;
       }
       return;
     }
@@ -59,6 +62,7 @@ async function loadRecentIssues() {
     if (elTotal) elTotal.textContent = issues.length;
     if (elResolved) elResolved.textContent = issues.filter(i => i.status === "Resolved").length;
     if (elProgress) elProgress.textContent = issues.filter(i => i.status === "In Progress").length;
+    if (elPending) elPending.textContent = issues.filter(i => i.status === "Pending").length;
 
     if (!container) return;
 
@@ -140,6 +144,7 @@ async function loadRecentIssues() {
     if (elTotal) elTotal.textContent = 0;
     if (elResolved) elResolved.textContent = 0;
     if (elProgress) elProgress.textContent = 0;
+    if (elPending) elPending.textContent = 0;
   }
 }
 

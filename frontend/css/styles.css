@@ -2496,6 +2496,13 @@ body>div:not(.app-shell) {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.sidebar__nav::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .nav-link {
@@ -3709,36 +3716,36 @@ td.action-cell {
 .form-header {
   background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
   color: var(--text-inverse);
-  padding: 40px 30px;
+  padding: 18px 24px;
   text-align: center;
 }
 
 .form-header i {
-  font-size: 3em;
-  margin-bottom: 15px;
+  font-size: 1.6em;
+  margin-bottom: 6px;
   color: rgba(255, 255, 255, 0.9);
   display: block;
 }
 
 .form-header h1 {
-  font-size: 2.2em;
+  font-size: 1.4em;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .form-header p {
-  font-size: 1em;
+  font-size: 0.88em;
   opacity: 0.9;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* Report Form */
 .report-form {
-  padding: 30px;
+  padding: 18px 24px;
 }
 
 .report-form .form-group {
-  margin-bottom: 25px;
+  margin-bottom: 12px;
 }
 
 .report-form .form-label {
@@ -3765,13 +3772,15 @@ td.action-cell {
 .report-form .form-input,
 .report-form .form-select {
   width: 100%;
-  padding: 12px 16px;
+  max-width: 100%;
+  padding: 10px 14px;
   border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 1em;
+  border-radius: 10px;
+  font-size: 0.95em;
   font-family: inherit;
   transition: all 0.3s ease;
   background: var(--bg-secondary);
+  box-sizing: border-box;
 }
 
 .report-form .form-input:focus,
@@ -3788,7 +3797,7 @@ td.action-cell {
 
 .report-form textarea.form-input {
   resize: vertical;
-  min-height: 120px;
+  min-height: 80px;
 }
 
 /* Form Helper Text */
@@ -3830,15 +3839,16 @@ td.action-cell {
 
 .priority-option label {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  padding: 15px 12px;
+  gap: 8px;
+  padding: 8px 14px;
   background: #f8f9fc;
   border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-align: center;
+  text-align: left;
 }
 
 .priority-option input[type="radio"]:checked+label {
@@ -3848,19 +3858,18 @@ td.action-cell {
 }
 
 .priority-option label i {
-  font-size: 1.5em;
-  margin-bottom: 8px;
+  font-size: 1.2em;
+  margin-bottom: 0;
 }
 
 .priority-option .priority-name {
   font-weight: 600;
-  margin-bottom: 4px;
-  font-size: 0.95em;
+  margin-bottom: 0;
+  font-size: 0.9em;
 }
 
 .priority-option .priority-desc {
-  font-size: 0.75em;
-  color: #666;
+  display: none;
 }
 
 .priority-option.low label i {
@@ -3878,12 +3887,19 @@ td.action-cell {
 /* File Upload Area */
 .file-upload {
   border: 2px dashed #d1d3e2;
-  border-radius: 12px;
-  padding: 30px;
+  border-radius: 10px;
+  padding: 14px 16px;
   text-align: center;
   background: #f8f9fc;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .file-upload:hover {
@@ -3892,23 +3908,22 @@ td.action-cell {
 }
 
 .file-upload i {
-  font-size: 2.5em;
+  font-size: 1.5em;
   color: #4e73df;
-  margin-bottom: 10px;
-  display: block;
+  margin-bottom: 2px;
 }
 
 .file-upload p {
   color: #666;
-  margin-bottom: 10px;
-  margin: 10px 0;
+  margin: 2px 0;
+  font-size: 0.88em;
 }
 
 .file-upload .file-name {
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: #4e73df;
   font-weight: 500;
-  margin-top: 10px;
+  margin-top: 4px;
 }
 
 .file-upload input[type="file"] {
@@ -3917,11 +3932,11 @@ td.action-cell {
 
 /* Form Footer */
 .form-footer {
-  padding: 20px 30px;
+  padding: 14px 24px;
   background: #f8f9fc;
   border-top: 1px solid #e3e6f0;
   display: flex;
-  gap: 15px;
+  gap: 12px;
   justify-content: flex-end;
 }
 
@@ -4017,19 +4032,19 @@ td.action-cell {
   }
 
   .form-header {
-    padding: 30px 20px;
+    padding: 14px 16px;
   }
 
   .form-header h1 {
-    font-size: 1.8em;
+    font-size: 1.2em;
   }
 
   .form-header i {
-    font-size: 2.5em;
+    font-size: 1.4em;
   }
 
   .report-form {
-    padding: 20px;
+    padding: 14px 16px;
   }
 
   .form-row-two-col {

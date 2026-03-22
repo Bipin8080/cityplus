@@ -158,22 +158,42 @@ async function initIssueMap() {
 // Function to fetch address from coordinates using Nominatim API
 async function reverseGeocode(lat, lng) {
   try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
     const data = await response.json();
     if (data && data.display_name) {
       // Auto-fill the location text input
       const locationInput = document.getElementById("location");
       if (locationInput) {
         locationInput.value = data.display_name;
-        // Optionally flash the input field green briefly to show it was auto-filled
-        locationInput.style.transition = 'background-color 0.3s ease';
-        locationInput.style.backgroundColor = '#dcfce7'; // light green
-        setTimeout(() => { locationInput.style.backgroundColor = ''; }, 1500);
+        flashAutoFill(locationInput);
+      }
+
+      // Auto-fill State and City from address details
+      if (data.address) {
+        const stateInput = document.getElementById("state");
+        if (stateInput && data.address.state) {
+          stateInput.value = data.address.state;
+          flashAutoFill(stateInput);
+        }
+
+        const cityInput = document.getElementById("city");
+        const cityValue = data.address.city || data.address.town || data.address.village || data.address.county || '';
+        if (cityInput && cityValue) {
+          cityInput.value = cityValue;
+          flashAutoFill(cityInput);
+        }
       }
     }
   } catch (err) {
     console.error("Reverse geocoding failed:", err);
   }
+}
+
+// Flash an input green briefly to indicate auto-fill
+function flashAutoFill(inputEl) {
+  inputEl.style.transition = 'background-color 0.3s ease';
+  inputEl.style.backgroundColor = '#dcfce7'; // light green
+  setTimeout(() => { inputEl.style.backgroundColor = ''; }, 1500);
 }
 
 // Map visibility toggle
@@ -218,7 +238,7 @@ async function fetchDepartments() {
         
         const unknownOption = document.createElement("option");
         unknownOption.value = "unknown";
-        unknownOption.textContent = "I Don't Know";
+        unknownOption.textContent = "I'm Not Sure / Other";
         deptSelect.appendChild(unknownOption);
 
         responseData.forEach(dept => {

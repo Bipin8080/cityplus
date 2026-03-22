@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   showDashboardSkeleton();
 
   window.addEventListener('hashchange', handleHashChange);
-  
+
   await loadCitizenIssues();
   hideDashboardSkeleton();
   setupEventListeners();
@@ -81,7 +81,7 @@ function switchToDashboardTab(fromHash = false) {
   if (fromHash !== true) {
     history.pushState(null, null, '#dashboard');
   }
-  
+
   // hide profile if active
   const profileContainer = document.getElementById('profile-view-container');
   if (profileContainer) profileContainer.style.display = 'none';
@@ -476,12 +476,12 @@ function renderAllIssuesTable() {
   if (mapTab && mapTab.style.display !== 'none') {
     let mapFilteredIssues = filteredCommunityIssues;
     if (citizenMapStateFilter || citizenMapCityFilter) {
-       mapFilteredIssues = mapFilteredIssues.filter(issue => {
-         const loc = parseLocationForMap(issue.location);
-         const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
-         const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
-         return matchState && matchCity;
-       });
+      mapFilteredIssues = mapFilteredIssues.filter(issue => {
+        const loc = parseLocationForMap(issue.location);
+        const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
+        const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
+        return matchState && matchCity;
+      });
     }
     renderCitizenAllIssuesMap(mapFilteredIssues);
   } else {
@@ -491,7 +491,7 @@ function renderAllIssuesTable() {
 }
 
 // Map View Logic for Community Issues
-window.switchToMapTab = function(fromHash = false) {
+window.switchToMapTab = function (fromHash = false) {
   if (fromHash !== true) {
     history.pushState(null, null, '#mapView');
   }
@@ -501,9 +501,9 @@ window.switchToMapTab = function(fromHash = false) {
   document.getElementById('dashboardView').style.display = 'none';
   document.getElementById('allIssuesView').style.display = 'none';
   const detailsView = document.getElementById('citizen-issue-details-container');
-  if(detailsView) detailsView.style.display = 'none';
+  if (detailsView) detailsView.style.display = 'none';
   const profileView = document.getElementById('profile-view-container');
-  if(profileView) profileView.style.display = 'none';
+  if (profileView) profileView.style.display = 'none';
 
   document.getElementById('mapViewTab').style.display = 'block';
 
@@ -524,12 +524,12 @@ window.switchToMapTab = function(fromHash = false) {
   function renderMapWithFilters() {
     let mapFilteredIssues = filteredCommunityIssues || allCommunityIssues || [];
     if (citizenMapStateFilter || citizenMapCityFilter) {
-       mapFilteredIssues = mapFilteredIssues.filter(issue => {
-         const loc = parseLocationForMap(issue.location);
-         const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
-         const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
-         return matchState && matchCity;
-       });
+      mapFilteredIssues = mapFilteredIssues.filter(issue => {
+        const loc = parseLocationForMap(issue.location);
+        const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
+        const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
+        return matchState && matchCity;
+      });
     }
     setTimeout(() => renderCitizenAllIssuesMap(mapFilteredIssues), 150);
   }
@@ -537,10 +537,10 @@ window.switchToMapTab = function(fromHash = false) {
 
 function renderCitizenAllIssuesMap(issues) {
   if (!window.isLeafletLoaded || typeof L === 'undefined') return;
-  
+
   const mapEl = document.getElementById('citizenMapViewMap');
   if (!mapEl) return;
-  
+
   if (!window.citizenAllIssuesMapInstance) {
     window.citizenAllIssuesMapInstance = L.map(mapEl).setView([19.2952, 73.0544], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -551,28 +551,28 @@ function renderCitizenAllIssuesMap(issues) {
     if (L.Control && L.Control.geocoder) {
       L.Control.geocoder({
         defaultMarkGeocode: false
-      }).on('markgeocode', function(e) {
+      }).on('markgeocode', function (e) {
         var bbox = e.geocode.bbox;
         window.citizenAllIssuesMapInstance.fitBounds(bbox);
       }).addTo(window.citizenAllIssuesMapInstance);
     }
   }
-  
+
   if (window.citizenAllIssuesMarkers) {
     window.citizenAllIssuesMapInstance.removeLayer(window.citizenAllIssuesMarkers);
   }
-  
+
   window.citizenAllIssuesMarkers = L.layerGroup().addTo(window.citizenAllIssuesMapInstance);
 
   // Store issues globally so popup button onclick can reference them
   window.citizenMapIssuesList = issues;
-  
+
   issues.forEach(issue => {
     if (issue.lat && issue.lng) {
-      let markerColor = '#ef4444'; 
+      let markerColor = '#ef4444';
       if (issue.status === 'In Progress') markerColor = '#eab308';
-      else if (issue.status === 'Resolved') markerColor = '#22c55e'; 
-      
+      else if (issue.status === 'Resolved') markerColor = '#22c55e';
+
       const svgIcon = L.divIcon({
         className: 'custom-map-marker',
         html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="${markerColor}" stroke="white" stroke-width="2">
@@ -582,7 +582,7 @@ function renderCitizenAllIssuesMap(issues) {
         iconAnchor: [16, 32],
         popupAnchor: [0, -32]
       });
-      
+
       const marker = L.marker([issue.lat, issue.lng], { icon: svgIcon });
 
       // Rich tooltip on hover
@@ -1264,11 +1264,11 @@ function parseLocationForMap(locationStr) {
 function getUniqueLocationsForMap(issues) {
   const states = new Set();
   const cities = new Set();
-  
+
   issues.forEach(issue => {
     const loc = parseLocationForMap(issue.location);
-    if(loc.state) states.add(loc.state);
-    if(loc.city) cities.add(loc.city);
+    if (loc.state) states.add(loc.state);
+    if (loc.city) cities.add(loc.city);
   });
   return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
 }
@@ -1276,10 +1276,10 @@ function getUniqueLocationsForMap(issues) {
 function setupCitizenMapFilters(issues) {
   const stateSelect = document.getElementById('citizenMapStateFilter');
   const citySelect = document.getElementById('citizenMapCityFilter');
-  if(!stateSelect || !citySelect) return;
-  
+  if (!stateSelect || !citySelect) return;
+
   const { states, cities } = getUniqueLocationsForMap(issues);
-  
+
   stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
   citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
 
@@ -1290,11 +1290,11 @@ function setupCitizenMapFilters(issues) {
 
   newStateSelect.addEventListener('change', (e) => {
     citizenMapStateFilter = e.target.value;
-    applyAllIssuesFiltersAndRender(); 
+    applyAllIssuesFiltersAndRender();
   });
-  
+
   newCitySelect.addEventListener('change', (e) => {
     citizenMapCityFilter = e.target.value;
-    applyAllIssuesFiltersAndRender(); 
+    applyAllIssuesFiltersAndRender();
   });
 }

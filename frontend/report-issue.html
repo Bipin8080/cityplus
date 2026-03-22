@@ -7,341 +7,235 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,wght@0..1,100..700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css" />
   <meta name="theme-color" content="#1e40af" />
-  <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
   <style>
-    .navbar-inner {
-      align-items: center;
+    /* Single screen form styles */
+    html, body { margin: 0; padding: 0; background: #f8fafc; }
+    body { padding-top: 65px; display: flex; flex-direction: column; }
+    .navbar-inner { align-items: center; }
+
+    .form-container {
+      max-width: 800px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; width: 100%; box-sizing: border-box;
     }
 
-    .report-form {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+    h1.page-title { font-size: 1.8rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+    p.page-subtitle { color: #64748b; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.5; }
+
+    /* Forms */
+    .report-form { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .full-width { grid-column: 1 / -1; }
+    .form-group { margin-bottom: 0; display: flex; flex-direction: column; }
+    .form-label { font-weight: 600; font-size: 0.9rem; color: #334155; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .form-label i { color: #94a3b8; font-size: 1.1rem; }
+    
+    .form-input, .form-select, textarea.form-input {
+      width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-size: 0.95rem; transition: all 0.2s ease; box-sizing: border-box;
+    }
+    textarea.form-input { height: 100px; min-height: 100px; resize: vertical; }
+    .form-input:focus, .form-select:focus, textarea.form-input:focus {
+      background: #ffffff; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); outline: none;
     }
 
-    .full-width {
-      grid-column: 1 / -1;
+    /* Section divider */
+    .section-divider {
+      grid-column: 1 / -1; margin: 20px 0 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;
     }
+    .section-divider h3 { font-size: 1.2rem; color: #0f172a; margin: 0; }
 
-    .form-group {
-      margin-bottom: 0;
-      /* Override default margin since grid gap handles it */
+    /* Priority Cards */
+    .priority-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .priority-option input { display: none; }
+    .priority-option label {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 10px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.2s ease; text-align: center; height: 100%; box-sizing: border-box;
     }
+    .priority-option label i { font-size: 1.6rem; margin-bottom: 8px; color: #94a3b8; transition: all 0.2s; }
+    .priority-option .priority-name { font-weight: 700; font-size: 0.95rem; color: #334155; margin-bottom: 4px; }
+    .priority-option .priority-desc { font-size: 0.75rem; color: #64748b; }
+    
+    .priority-option.low input:checked + label { border-color: #10b981; background: #ecfdf5; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
+    .priority-option.low input:checked + label i, .priority-option.low input:checked + label .priority-name { color: #059669; }
+    .priority-option.medium input:checked + label { border-color: #f59e0b; background: #fffbeb; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245,158,11,0.15); }
+    .priority-option.medium input:checked + label i, .priority-option.medium input:checked + label .priority-name { color: #d97706; }
+    .priority-option.high input:checked + label { border-color: #ef4444; background: #fef2f2; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239,68,68,0.15); }
+    .priority-option.high input:checked + label i, .priority-option.high input:checked + label .priority-name { color: #dc2626; }
+
+    /* Map & File Upload */
+    #map { height: 200px !important; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 8px; display: none; } 
+    .file-upload {
+      border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .file-upload:hover { border-color: #3b82f6; background: #eff6ff; }
+    .file-upload i { font-size: 2rem; color: #64748b; margin-bottom: 8px; }
+    .file-upload p { color: #475569; font-weight: 500; font-size: 0.9rem; margin: 0 0 6px 0; }
+    .file-upload .file-name { font-size: 0.8rem; color: #3b82f6; font-weight: 600; background: #ffffff; padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .file-upload input { display: none; }
+
+    .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 24px; }
+    .form-actions .btn { padding: 12px 32px; font-size: 1.05rem; font-weight: 600; border-radius: 8px; }
 
     @media (max-width: 768px) {
-      .report-form {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .hide-mobile {
-      display: inline;
-    }
-
-    @media (max-width: 480px) {
-      .hide-mobile {
-        display: none;
-      }
+      .form-container { margin: 20px 15px; padding: 24px; width: auto; }
+      .report-form { grid-template-columns: 1fr; gap: 16px; }
+      .priority-options { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 
 <body>
-  <div class="report-issue-page">
-    <!-- Navbar -->
-    <header class="navbar">
-      <div class="container navbar-inner">
-        <a href="index.html" class="brand">
-          <div class="brand-title">CityPlus</div>
-        </a>
-        <div class="navbar-auth">
-          <button class="btn btn-outline" onclick="window.history.back()">Back</button>
-        </div>
-      </div>
-    </header>
-
-    <!-- Form Container -->
-    <div class="report-issue-wrapper">
-      <div class="form-card">
-        <!-- Header -->
-        <div class="form-header">
-          <i class="fas fa-clipboard-list"></i>
-          <h1>Report a Civic Issue</h1>
-          <p>Help us improve our community by reporting issues you encounter.<br>All complaints are tracked through the
-            CityPlus system.</p>
-        </div>
-
-        <!-- Form -->
-        <form onsubmit="submitIssue(event)" enctype="multipart/form-data" class="report-form">
-
-          <!-- Issue Title (Left) -->
-          <div class="form-group">
-            <label class="form-label" for="title">
-              <i class="fas fa-heading"></i>
-              Issue Title
-            </label>
-            <input id="title" name="title" type="text" class="form-input"
-              placeholder="e.g., Large pothole on Main Street" required />
-          </div>
-
-
-
-          <!-- Department (Left) -->
-          <div class="form-group">
-            <label class="form-label" for="department">
-              <i class="fas fa-building"></i>
-              Department
-            </label>
-            <select id="department" name="department" class="form-select" required onchange="handleDepartmentChange()">
-              <option value="">Loading departments...</option>
-            </select>
-          </div>
-
-          <!-- Category (Left) -->
-          <div class="form-group">
-            <label class="form-label" for="category">
-              <i class="fas fa-tag"></i>
-              Category
-            </label>
-            <select id="category" name="category" class="form-select" required>
-              <option value="">Select a department first</option>
-            </select>
-          </div>
-
-          <!-- Location Details (Right) -->
-          <div class="form-group">
-            <label class="form-label" for="location">
-              <i class="fas fa-location-dot"></i>
-              Location Details
-            </label>
-            <input id="location" name="location" type="text" class="form-input"
-              placeholder="Enter specific location details" required style="margin-bottom: 8px;" />
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <button type="button" class="btn btn-outline" id="useMyLocationBtn" onclick="getCurrentLocation()"
-                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem;">
-                <i class="fas fa-crosshairs"></i> <span class="hide-mobile">Use My Location</span>
-              </button>
-              <button type="button" class="btn btn-outline" id="toggleMapBtn" onclick="toggleMap()"
-                style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem;">
-                <i class="fas fa-map"></i> <span class="hide-mobile">Choose on Map</span>
-              </button>
-            </div>
-
-            <!-- Map Container -->
-            <div id="map"
-              style="width: 100%; height: 200px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; background-color: #f1f5f9; display: none; align-items: center; justify-content: center;">
-              <span style="color: var(--text-secondary);" id="mapStatus">Loading Map...</span>
-            </div>
-            <input type="hidden" id="lat" name="lat">
-            <input type="hidden" id="lng" name="lng">
-
-            <p class="form-helper">
-              <i class="fas fa-info-circle"></i>
-              Type the address manually, use current location, or mark the map.
-            </p>
-          </div>
-
-          <!-- Priority (Left) -->
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-flag"></i>
-              Priority Level
-            </label>
-            <div class="priority-options">
-              <div class="priority-option low">
-                <input type="radio" name="priority" id="priority-low" value="Low">
-                <label for="priority-low">
-                  <i class="fas fa-thermometer-half"></i>
-                  <span class="priority-name">Low</span>
-                  <span class="priority-desc">Minor issue</span>
-                </label>
-              </div>
-              <div class="priority-option medium">
-                <input type="radio" name="priority" id="priority-medium" value="Medium" checked>
-                <label for="priority-medium">
-                  <i class="fas fa-exclamation-triangle"></i>
-                  <span class="priority-name">Medium</span>
-                  <span class="priority-desc">Needs attention</span>
-                </label>
-              </div>
-              <div class="priority-option high">
-                <input type="radio" name="priority" id="priority-high" value="High">
-                <label for="priority-high">
-                  <i class="fas fa-exclamation-circle"></i>
-                  <span class="priority-name">High</span>
-                  <span class="priority-desc">Urgent risk</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Photo Upload (Right) -->
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-camera"></i>
-              Attach Photo
-              <span class="optional">(Required)</span>
-            </label>
-            <div class="file-upload" id="uploadArea">
-              <i class="fas fa-cloud-upload-alt"></i>
-              <p>Drag & drop or click to upload</p>
-              <p style="font-size: 0.85em; color: #999;">Supports: JPG, PNG, GIF (Max 10MB)</p>
-              <div class="file-name" id="fileName">No file chosen</div>
-              <input type="file" id="image" name="image" accept="image/*">
-            </div>
-          </div>
-
-          <!-- Description (Full Width) -->
-          <div class="form-group full-width">
-            <label class="form-label" for="description">
-              <i class="fas fa-align-left"></i>
-              Issue Description
-            </label>
-            <textarea id="description" name="description" rows="4" class="form-input"
-              placeholder="Provide a detailed description of the issue, including duration and impact on the community"
-              required></textarea>
-          </div>
-
-          <!-- Submit Button (Full Width) -->
-          <div class="form-footer full-width">
-            <button type="submit" class="btn btn-primary"
-              style="width: 100%; max-width: 400px; margin: 0 auto; display: block;">
-              <i class="fas fa-paper-plane"></i>
-              Submit Report
-            </button>
-            <p class="form-helper" style="text-align: center; margin-top: 1rem;">
-              Upon submission, your complaint will be registered in the system and you will be redirected to track its
-              status.
-            </p>
-          </div>
-        </form>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-title">CityPlus</div>
+      </a>
+      <div class="navbar-auth">
+        <button class="btn btn-outline" onclick="window.history.back()">Cancel</button>
       </div>
     </div>
+  </header>
 
-    <!-- Login Required Modal -->
-    <div id="loginRequiredModal" class="issue-modal-backdrop" style="display:none;">
-      <div class="issue-modal" style="max-width: 480px;">
-        <div class="issue-modal-header">
-          <h2 class="issue-modal-title" style="display: flex; align-items: center; gap: 12px;">
-            <i class="fas fa-lock"></i>
-            Login Required to Report
-          </h2>
-          <button class="issue-modal-close" onclick="closeLoginModal()">&times;</button>
-        </div>
-        <div class="issue-modal-content">
-          <p style="font-size: 1rem; line-height: 1.6; color: #475569; margin-top: 0; margin-bottom: 1.5rem;">
-            To ensure accountability and allow you to track your report's status, please log in. This helps us prevent
-            spam and provide you with updates.
-          </p>
-          <a href="login.html" class="btn btn-primary"
-            style="width: 100%; text-align: center; padding: 14px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fas fa-sign-in-alt"></i>
-            Login to Report Issue
-          </a>
+  
+  <div class="container form-container">
+    <h1 class="page-title">Report an Issue</h1>
+    <p class="page-subtitle">Please provide the details of the civic issue to help us resolve it quickly.</p>
+    
+    <form onsubmit="submitIssue(event)" enctype="multipart/form-data" id="reportIssueForm" class="report-form">
+      
+      <div class="section-divider"><h3>Basic Information</h3></div>
+      
+      <div class="form-group full-width">
+        <label class="form-label" for="title"><i class="fas fa-heading"></i> Issue Title</label>
+        <input id="title" name="title" type="text" class="form-input" placeholder="e.g., Pothole on Main Street" required />
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label" for="category"><i class="fas fa-tag"></i> Category</label>
+        <select id="category" name="category" class="form-select" required>
+          <option value="">Loading categories...</option>
+        </select>
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label" for="description"><i class="fas fa-align-left"></i> Description</label>
+        <textarea id="description" name="description" class="form-input" placeholder="Provide a detailed description of what needs fixing..." required></textarea>
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label"><i class="fas fa-flag"></i> Priority Level</label>
+        <div class="priority-options">
+          <div class="priority-option low">
+            <input type="radio" name="priority" id="priority-low" value="Low">
+            <label for="priority-low">
+              <i class="fas fa-thermometer-empty"></i> <div class="priority-name">Low</div> <div class="priority-desc">Minor issue</div>
+            </label>
+          </div>
+          <div class="priority-option medium">
+            <input type="radio" name="priority" id="priority-medium" value="Medium" checked>
+            <label for="priority-medium">
+              <i class="fas fa-thermometer-half"></i> <div class="priority-name">Medium</div> <div class="priority-desc">Needs attention</div>
+            </label>
+          </div>
+          <div class="priority-option high">
+            <input type="radio" name="priority" id="priority-high" value="High">
+            <label for="priority-high">
+              <i class="fas fa-thermometer-full"></i> <div class="priority-name">High</div> <div class="priority-desc">Urgent risk</div>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-      © 2026 CityPlus. All rights reserved.
-    </footer>
+      <div class="section-divider" style="margin-top: 30px;"><h3>Location & Evidence</h3></div>
+
+      <div class="form-group full-width">
+        <label class="form-label" for="location"><i class="fas fa-location-dot"></i> Location Details</label>
+        <input id="location" name="location" type="text" class="form-input" placeholder="Enter specific location details" required style="margin-bottom: 8px;" />
+        <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+          <button type="button" class="btn btn-outline" id="useMyLocationBtn" onclick="getCurrentLocation()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem;">
+            <i class="fas fa-crosshairs"></i> <span class="hide-mobile">Use My Location</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="toggleMapBtn" onclick="toggleMap()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem;">
+            <i class="fas fa-map"></i> <span class="hide-mobile">Choose on Map</span>
+          </button>
+        </div>
+
+        <div id="map"><span style="color: var(--text-secondary); display:flex; align-items:center; justify-content:center; height:100%;" id="mapStatus">Loading Map...</span></div>
+        <input type="hidden" id="lat" name="lat"><input type="hidden" id="lng" name="lng">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="ward"><i class="fas fa-map-signs"></i> Ward / Area</label>
+        <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="city"><i class="fas fa-city"></i> City</label>
+        <input id="city" name="city" type="text" class="form-input" placeholder="e.g., Mumbai" />
+      </div>
+      
+      <input type="hidden" id="state" name="state" value="Maharashtra">
+
+      <div class="form-group full-width">
+        <label class="form-label"><i class="fas fa-camera"></i> Attach Photo <span style="color: #64748b; font-weight: normal; font-size: 0.8rem; margin-top:2px;">(Required)</span></label>
+        <div class="file-upload" id="uploadArea">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p>Drag & drop or click to upload</p>
+          <div class="file-name" id="fileName">No file chosen</div>
+          <input type="file" id="image" name="image" accept="image/*" required>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Submit Report</button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Login Required Modal -->
+  <div id="loginRequiredModal" class="issue-modal-backdrop" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="issue-modal" style="background: white; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 1.5rem;"><i class="fas fa-lock" style="color: #1e40af;"></i> Login Required</h2>
+        <button onclick="closeLoginModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+      <p style="color: #475569; margin-bottom: 20px;">To ensure accountability and allow you to track your report's status, please log in.</p>
+      <a href="login.html" class="btn btn-primary" style="display: block; text-align: center;"><i class="fas fa-sign-in-alt"></i> Login to Report Issue</a>
+    </div>
   </div>
 
   <script src="js/theme.js"></script>
   <script>
-    // --- Modal Functions (Global Scope) ---
-    // These are placed in the global scope to be accessible from inline `onclick`
-    // attributes and other script files like `issue.js`.
-    function openLoginModal() {
-      document.getElementById('loginRequiredModal').style.display = 'flex';
-    }
+    function openLoginModal() { document.getElementById('loginRequiredModal').style.display = 'flex'; }
+    function closeLoginModal() { document.getElementById('loginRequiredModal').style.display = 'none'; }
 
-    function closeLoginModal() {
-      document.getElementById('loginRequiredModal').style.display = 'none';
-    }
-
-    // Pre-populate category from URL parameter
     document.addEventListener("DOMContentLoaded", function () {
       const urlParams = new URLSearchParams(window.location.search);
       const selectedCategory = urlParams.get('category');
-
       if (selectedCategory) {
         const categorySelect = document.getElementById('category');
-        if (categorySelect) {
-          categorySelect.value = selectedCategory;
-        }
+        if (categorySelect) categorySelect.value = selectedCategory;
       }
 
-      // File upload functionality
       const fileInput = document.getElementById('image');
       const fileNameSpan = document.getElementById('fileName');
       const uploadDiv = document.getElementById('uploadArea');
 
       if (fileInput && fileNameSpan && uploadDiv) {
-        // Update file name on change
-        fileInput.addEventListener('change', function () {
-          fileNameSpan.textContent = fileInput.files[0] ? fileInput.files[0].name : 'No file chosen';
-        });
-
-        // Click on upload area triggers file input
-        uploadDiv.addEventListener('click', function (e) {
-          if (e.target.tagName !== 'INPUT') {
-            fileInput.click();
-          }
-        });
-
-        // Drag and drop support
-        uploadDiv.addEventListener('dragover', function (e) {
-          e.preventDefault();
-          uploadDiv.style.borderColor = '#4e73df';
-          uploadDiv.style.background = '#eef2ff';
-        });
-
-        uploadDiv.addEventListener('dragleave', function (e) {
-          e.preventDefault();
-          uploadDiv.style.borderColor = '#d1d3e2';
-          uploadDiv.style.background = '#f8f9fc';
-        });
-
-        uploadDiv.addEventListener('drop', function (e) {
-          e.preventDefault();
-          uploadDiv.style.borderColor = '#d1d3e2';
-          uploadDiv.style.background = '#f8f9fc';
-
-          if (e.dataTransfer.files.length > 0) {
-            fileInput.files = e.dataTransfer.files;
-            fileNameSpan.textContent = e.dataTransfer.files[0].name;
-          }
-        });
+        fileInput.addEventListener('change', function () { fileNameSpan.textContent = fileInput.files[0] ? fileInput.files[0].name : 'No file chosen'; });
+        uploadDiv.addEventListener('click', function (e) { if (e.target.tagName !== 'INPUT') fileInput.click(); });
+        uploadDiv.addEventListener('dragover', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#4e73df'; uploadDiv.style.background = '#eef2ff'; });
+        uploadDiv.addEventListener('dragleave', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#cbd5e1'; uploadDiv.style.background = '#f8fafc'; });
+        uploadDiv.addEventListener('drop', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#cbd5e1'; uploadDiv.style.background = '#f8fafc'; if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; fileNameSpan.textContent = e.dataTransfer.files[0].name; }});
       }
-
-      // Close modal when clicking outside
       const loginModal = document.getElementById('loginRequiredModal');
-      if (loginModal) {
-        loginModal.addEventListener('click', (e) => {
-          if (e.target.id === 'loginRequiredModal') {
-            closeLoginModal();
-          }
-        });
-      }
+      if (loginModal) loginModal.addEventListener('click', (e) => { if (e.target.id === 'loginRequiredModal') closeLoginModal(); });
     });
   </script>
-  <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
-
   <script src="js/issue.js"></script>
 </body>
-
 </html>
