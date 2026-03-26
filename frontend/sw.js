@@ -1,13 +1,15 @@
 // CityPlus Service Worker
-const CACHE_NAME = "cityplus-v2";
+const CACHE_NAME = "cityplus-v3";
 const STATIC_ASSETS = [
     "/",
     "/index.html",
     "/login.html",
+    "/staff-setup.html",
     "/css/styles.css",
     "/js/theme.js",
     "/js/landing.js",
     "/js/auth.js",
+    "/js/staff-setup.js",
     "/manifest.json"
 ];
 

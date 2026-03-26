@@ -1,174 +1,300 @@
-<div align="center">
-  <h1>🏙️ CityPlus</h1>
-  <p><strong>Smart Civic Issue Reporting Platform</strong></p>
-  <p>
-    <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
-    <img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express.js" />
-    <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
-    <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
-    <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" />
-    <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
-    <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" alt="Cloudinary" />
-    <img src="https://img.shields.io/badge/PWA-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA" />
-  </p>
-</div>
+# CityPlus 🏙️
 
-<br />
+**Smart Civic Issue Reporting Platform**
 
-## 📖 About The Project
-
-**CityPlus** is a full-stack web application designed to digitize the process of reporting and managing civic issues. From garbage accumulation and road potholes to water supply leakage and infrastructure complaints, CityPlus empowers citizens to easily voice their concerns. 
-
-The system provides a seamless online submission portal for citizens, while equipping administrators and municipal staff with a centralized, role-based dashboard to track, manage, and update issue statuses efficiently. The primary focus of this project is to provide a smooth, resilient, and actionable incident reporting workflow.
-
-> **Note:** This project was developed as a TYBSc IT Final Year Project, focusing on practical full-stack development using real-world technologies.
+CityPlus is a full-stack civic issue reporting web application that enables citizens to report municipal issues (potholes, streetlight outages, garbage, etc.) and allows municipal staff and administrators to track, assign, and resolve them efficiently.
 
 ---
 
-## ✨ Key Features & Enhancements
+## ✨ Features
 
-### 👤 Citizen Module
-- **Authentication**: Secure user registration and login functionality, enhanced with secure OTP-based password verification.
-- **Issue Reporting**: Users can seamlessly report civic issues with relevant details, categorize the incident by type, and upload images as tangible evidence.
-- **Interactive Map View**: Enhanced map interface with hover tooltips displaying rich details (title, location, category, status) and click popups providing quick issue previews.
-- **Real-Time Tracking**: Citizens have a dedicated dashboard to view all their submitted reports and track progressive resolution statuses in real-time.
-- **Modern User Interface**: A clean, intuitive dashboard interface with persistent Dark/Light mode theme selections, collapsible mini-sidebar navigation, skeletal loading states, and fluid responsive styling.
-- **Progressive Web App (PWA)**: Installable web application offering an app-like experience with service worker integration.
+### For Citizens
+- **Report Issues** — Submit civic issues with photo uploads and map-based location tagging
+- **Track Issues** — View status updates on reported issues in real-time
+- **Feedback** — Provide feedback on resolved issues
+- **Anonymous Reporting** — Submit issues without creating an account
+- **Notifications** — Receive real-time and email notifications on issue status changes
 
-### 🛡️ Admin & Staff Module
-- **Role-Based Access Control**: Dedicated, secure authentication portals separating Admin and Staff tier users.
-- **Centralized Issue Management**: View, filter, and manage all comprehensively reported issues. The application features "Fetch Latest" capabilities to retrieve data updates without jarring page reloads.
-- **Interactive Map Tracking**: Advanced map view features including detailed marker hover effects and click-to-view popups for efficient geographical issue management.
-- **Regulated Workflow**: Clear operational workflow to modify an issue's status securely via role boundaries (`Pending` ➜ `Assigned` ➜ `In Progress` ➜ `Resolved`).
-- **Dedicated Dashboards**: Tailored views featuring functional statistical overview cards and dynamic, responsive layouts matching user roles.
+### For Staff
+- **Assigned Issues** — View and manage issues assigned to their department
+- **Status Updates** — Update issue status with proof images (In Progress → Resolved)
+- **Reject Requests** — Request admin approval to reject invalid issues
 
-### ⚙️ System & Technical Integrations
-- **Cloud Media Storage**: Formally integrated with **Cloudinary** for scalable, secure image hosting. This system replaces standard local file storage, ensuring evidence persistence and improving server processing capabilities.
-- **Multi-Role Session Management**: Robust authentication handling utilizing namespaced local storage (e.g., `citizen_token`, `staff_token`), allowing simultaneous login across different roles in separate tabs without session conflict.
-- **Dynamic UI/UX Improvements**: Interactive hover animations, integrated modal popups, toast notifications for direct action feedback, and a design scaled effectively for diverse screen sizes.
+### For Admins
+- **Dashboard Analytics** — Overview cards with live counts and statistics
+- **Issue Management** — View, filter, assign, soft-delete, and restore issues
+- **Staff Management** — Register staff accounts, assign departments, activate/block users
+- **Department Management** — Create, edit, and delete departments
+- **User Management** — Manage all citizen, staff, and admin accounts
+- **CSV Export** — Export filtered issues to CSV for offline analysis
+
+### Platform-Wide
+- 🔔 **Real-Time Notifications** via Socket.IO
+- 📧 **Email Notifications** with styled HTML templates (OTP, status updates, assignments)
+- 🌗 **Dark/Light Theme** toggle with persistence
+- 📱 **PWA Support** — installable on mobile devices with offline caching
+- 🔒 **Role-Based Access Control** — citizen, staff, admin
+- 🗺️ **Map Integration** — Mappls/Google Maps for issue location
 
 ---
 
-## 🏗️ Project Architecture
+## 🛠️ Tech Stack
 
-The codebase follows a streamlined structural pattern, cleanly separating the backend REST API core from the client-side frontend interfaces.
+| Layer       | Technology                                              |
+|-------------|--------------------------------------------------------|
+| **Frontend** | HTML5, CSS3, Vanilla JavaScript, Material Icons       |
+| **Backend**  | Node.js, Express.js (ES Modules)                      |
+| **Database** | MongoDB Atlas, Mongoose ODM                           |
+| **Auth**     | JWT (JSON Web Tokens), bcryptjs                       |
+| **File Upload** | Cloudinary + Multer                                |
+| **Real-Time** | Socket.IO                                            |
+| **Email**    | Nodemailer (Gmail SMTP)                               |
+| **Security** | express-rate-limit, express-mongo-sanitize, CORS      |
+| **Dev Tools** | Nodemon, custom lint script                          |
+
+---
+
+## 📁 Project Structure
 
 ```text
-Cityplus/
-├── backend/                  # Node.js & Express API
-│   ├── config/               # Database & Cloudinary configurations
-│   ├── controllers/          # Business logic handlers
-│   ├── middleware/           # Auth (JWT) and error middlewares
-│   ├── models/               # Mongoose schemas (User, Issue)
-│   ├── routes/               # Express route definitions
-│   └── server.js             # Application entry point
-│
-└── frontend/                 # Vanilla web client UI
-    ├── css/                  # Stylesheets & cascading themes
-    ├── js/                   # Client-side logic & API integration
-    └── *.html                # Views (Dashboards, Login, Landing Page)
+cityplus/
+├── backend/
+│   ├── config/
+│   │   ├── cloudinary.js      # Cloudinary SDK setup
+│   │   ├── db.js              # MongoDB connection
+│   │   ├── email.js           # Nodemailer transporter
+│   │   └── socket.js          # Socket.IO initialization & events
+│   ├── controllers/
+│   │   ├── adminController.js     # Dashboard summary, user management
+│   │   ├── authController.js      # Register, login, OTP, password reset
+│   │   ├── departmentController.js # CRUD for departments
+│   │   ├── issueController.js     # Issue CRUD, assignment, export
+│   │   └── notificationController.js # Notification list, read, count
+│   ├── middleware/
+│   │   ├── authMiddleware.js  # JWT verification, role guards
+│   │   └── errorMiddleware.js # Centralized error handler
+│   ├── models/
+│   │   ├── Department.js      # Department schema
+│   │   ├── Issue.js           # Issue schema (status, location, images)
+│   │   ├── Notification.js    # In-app notification schema
+│   │   ├── OTP.js             # OTP storage with expiry
+│   │   └── User.js            # User schema (citizen/staff/admin)
+│   ├── routes/
+│   │   ├── adminRoutes.js     # /api/admin/*
+│   │   ├── authRoutes.js      # /api/auth/*
+│   │   ├── configRoutes.js    # /api/config/*
+│   │   ├── departmentRoutes.js # /api/departments/*
+│   │   ├── issueRoutes.js     # /api/issues/*
+│   │   └── notificationRoutes.js # /api/notifications/*
+│   ├── scripts/               # Lint and utility scripts
+│   ├── tests/                 # Automated security tests
+│   ├── utils/
+│   │   ├── emailTemplates.js  # Styled HTML email templates
+│   │   ├── issueAccess.js     # Role-based issue access checks
+│   │   └── response.js        # Standardized API response helpers
+│   └── server.js              # Express app entry point
+├── frontend/
+│   ├── css/
+│   │   └── styles.css         # All application styles
+│   ├── js/
+│   │   ├── admin-dashboard.js # Admin panel logic
+│   │   ├── api.js             # API helper (fetch wrapper with auth)
+│   │   ├── auth.js            # Login & registration logic
+│   │   ├── citizen-dashboard.js # Citizen panel logic
+│   │   ├── issue.js           # Report-issue form with map
+│   │   ├── landing.js         # Public landing page
+│   │   ├── main.js            # Shared bootstrap
+│   │   ├── notifications.js   # Bell icon, notification panel
+│   │   ├── staff-dashboard.js # Staff panel logic
+│   │   ├── staff-setup.js     # First-time staff password setup
+│   │   └── theme.js           # Dark/light theme & toast system
+│   ├── admin-dashboard.html
+│   ├── citizen-dashboard.html
+│   ├── index.html             # Landing / public issue feed
+│   ├── login.html             # Login & registration page
+│   ├── report-issue.html      # Issue submission form
+│   ├── staff-dashboard.html
+│   ├── staff-setup.html       # Staff first-login setup
+│   ├── manifest.json          # PWA manifest
+│   └── sw.js                  # Service worker for offline caching
+└── package.json               # Root scripts (dev, lint, test)
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-Follow these instructions to set up the project locally on your machine.
-
 ### Prerequisites
 
-Ensure you have the following services installed:
-- [Node.js](https://nodejs.org/) (v16 or higher)
-- [MongoDB](https://www.mongodb.com/) (Local instance or Cloud Atlas URI)
-- **Cloudinary Account**: Required for resolving application image uploads.
+- **Node.js** v18+ and **npm**
+- **MongoDB Atlas** account (or a local MongoDB instance)
+- **Cloudinary** account (for image uploads)
+- **Gmail** account with App Password (for email notifications)
 
-### 🛠️ Backend Setup
+### Installation
 
-1. **Navigate to the backend directory:**
+1. **Clone the repository:**
    ```bash
-   cd backend
+   git clone https://github.com/Bipin8080/cityplus.git
+   cd cityplus
    ```
 
 2. **Install dependencies:**
    ```bash
    npm install
+   npm --prefix backend install
    ```
 
 3. **Configure environment variables:**
-   Create a `.env` file within the `backend` directory and add your localized configurations:
+
+   Create `backend/.env` with the following:
    ```env
    PORT=5000
    MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_super_secret_key
-   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-   SMTP_USER=your_email_address
-   SMTP_PASS=your_email_password
+   JWT_SECRET=your_jwt_secret
+
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USER=your_email@gmail.com
+   EMAIL_PASS=your_app_password
+   EMAIL_FROM="CityPlus" <your_email@gmail.com>
+
+   FRONTEND_URL=http://localhost:5000
    ```
 
 4. **Start the development server:**
    ```bash
    npm run dev
-   # or
-   npm start
    ```
 
-### 🖥️ Frontend Setup
+5. **Open your browser:**
+   ```
+   http://localhost:5000
+   ```
 
-The frontend is built efficiently with vanilla web technologies, meaning **no build step is explicitly required**.
+> The backend serves the frontend statically, so a single `npm run dev` is all you need.
 
-1. Simply open the HTML files directly in your preferred web browser:
-   - `frontend/index.html` (Landing Page)
-   - `frontend/login.html` (Authentication)
+---
 
-*Tip: For the best development experience seamlessly handling local route requests, use a local server extension like **Live Server** in Visual Studio Code to serve the frontend directory.*
+## 📜 Available Scripts
+
+| Command         | Description                              |
+|-----------------|------------------------------------------|
+| `npm run dev`   | Start dev server with hot-reload (nodemon) |
+| `npm start`     | Start production server                  |
+| `npm run lint`  | Run the custom linter                    |
+| `npm test`      | Run automated security tests             |
 
 ---
 
 ## 🔌 API Reference
 
-The backend exposes a well-defined RESTful API for client consumption:
+### Authentication — `/api/auth`
 
-| HTTP Method | Endpoint               | Description                 | Auth Required |
-| :---        | :---                   | :---                        | :---:         |
-| `POST`      | `/api/auth/register`   | Register a new user         | ❌            |
-| `POST`      | `/api/auth/login`      | Authenticate user & get JWT | ❌            |
-| `POST`      | `/api/issues`          | Report a new civic issue    | ✅            |
-| `GET`       | `/api/issues`          | Retrieve all issues         | ✅            |
-| `PUT`       | `/api/issues/:id`      | Update issue status         | ✅ (Admin/Staff)|
+| Method | Endpoint                    | Access  | Description                    |
+|--------|-----------------------------|---------|--------------------------------|
+| POST   | `/register`                 | Public  | Citizen self-registration      |
+| POST   | `/register/verify-otp`      | Public  | Verify registration OTP        |
+| POST   | `/register/resend-otp`      | Public  | Resend registration OTP        |
+| POST   | `/login`                    | Public  | Login (all roles)              |
+| POST   | `/forgot-password`          | Public  | Send password-reset OTP        |
+| POST   | `/verify-otp`               | Public  | Verify password-reset OTP      |
+| POST   | `/reset-password`           | Public  | Reset password with OTP        |
+| POST   | `/complete-staff-setup`     | Public  | Staff first-login setup        |
+| POST   | `/send-change-password-otp` | Auth    | Request change-password OTP    |
+| POST   | `/change-password`          | Auth    | Change password                |
+| PATCH  | `/email-notifications`      | Auth    | Toggle email notification pref |
+| POST   | `/register-staff`           | Admin   | Register new staff member      |
+| POST   | `/register-admin`           | Admin   | Register new admin             |
+
+### Issues — `/api/issues`
+
+| Method | Endpoint              | Access      | Description                         |
+|--------|-----------------------|-------------|-------------------------------------|
+| GET    | `/`                   | Public      | Public issue feed (landing page)    |
+| POST   | `/`                   | Public/Auth | Create issue (with image upload)    |
+| GET    | `/my`                 | Citizen     | List citizen's own issues           |
+| GET    | `/all`                | Auth        | All issues with filters & pagination|
+| GET    | `/export`             | Admin       | Export issues as CSV                |
+| GET    | `/assigned/mine`      | Staff       | Staff's assigned issues             |
+| PATCH  | `/:id/status`         | Staff/Admin | Update issue status                 |
+| POST   | `/:id/reject-request` | Staff       | Request rejection approval          |
+| PATCH  | `/:id/assign`         | Admin       | Assign staff to issue               |
+| PATCH  | `/:id/reject`         | Admin       | Reject an issue                     |
+| DELETE | `/:id`                | Admin       | Soft-delete an issue                |
+| PATCH  | `/:id/restore`        | Admin       | Restore soft-deleted issue          |
+| GET    | `/:id`                | Auth        | Get single issue details            |
+| POST   | `/:id/feedback`       | Citizen     | Add feedback to resolved issue      |
+
+### Admin — `/api/admin`
+
+| Method | Endpoint                      | Access | Description                      |
+|--------|-------------------------------|--------|----------------------------------|
+| GET    | `/summary`                    | Admin  | Dashboard summary counts         |
+| GET    | `/users`                      | Admin  | List all users                   |
+| GET    | `/staff`                      | Admin  | List staff for dropdowns         |
+| PATCH  | `/users/:userId/status`       | Admin  | Update user status               |
+| PATCH  | `/staff/:staffId/department`  | Admin  | Assign department to staff       |
+
+### Departments — `/api/departments`
+
+| Method | Endpoint   | Access | Description        |
+|--------|------------|--------|--------------------|
+| GET    | `/`        | Public | List departments   |
+| POST   | `/`        | Admin  | Create department  |
+| PUT    | `/:id`     | Admin  | Update department  |
+| DELETE | `/:id`     | Admin  | Delete department  |
+
+### Notifications — `/api/notifications`
+
+| Method | Endpoint        | Access | Description            |
+|--------|-----------------|--------|------------------------|
+| GET    | `/`             | Auth   | List latest 50         |
+| GET    | `/unread-count` | Auth   | Unread badge count     |
+| PATCH  | `/read-all`     | Auth   | Mark all as read       |
+| PATCH  | `/:id/read`     | Auth   | Mark one as read       |
+
+### Config — `/api/config`
+
+| Method | Endpoint    | Access | Description               |
+|--------|-------------|--------|---------------------------|
+| GET    | `/maps-key` | Public | Get maps API key          |
 
 ---
 
-## 🔐 Security & Best Practices
+## 🔐 Security
 
-- **Scalable Media Management**: Migrated reporting media logic to Cloudinary to handle assets efficiently, avoiding local server bloat and ensuring high cloud availability.
-- **Secure Authentication & Recovery**: Protected API routes universally mandate JSON Web Tokens (JWT). Password modifications are comprehensively secured with time-sensitive OTP verification delivered via email.
-- **Environment Isolation**: Sensitive credentials, database URIs, API keys, and email service credentials are stored in a `.env` file kept safely out of version control systems via `.gitignore`.
-- **MVC Architecture Pattern**: The server-side codebase is uniformly structured following the Model-View-Controller framework paradigm for robust long-term maintainability.
-
----
-
-## 🎓 Academic Objective
-
-This capstone project successfully demonstrates:
-- Full-stack web application engineering originating from scratch.
-- Implementation of a resilient MVC-based Node.js backend infrastructure.
-- Complete RESTful API schema design, construction, and client-side consumption.
-- Securely tiered token-based user authentication and strict data authorization.
-- Third-party Software-as-a-Service integration (Cloudinary).
-- Advanced vanilla DOM manipulation, handling complex cross-role application structural workflows, and assembling natively responsive user interfaces.
+- **JWT Authentication** — Stateless token-based auth with role claims
+- **Password Hashing** — bcryptjs with salt rounds
+- **Rate Limiting** — 20 requests per 15 min on auth endpoints
+- **NoSQL Injection Prevention** — express-mongo-sanitize
+- **CORS** — Configurable origin whitelist
+- **Input Validation** — Server-side validation on all endpoints
+- **OTP Verification** — Email-based OTP for registration and password reset
+- **Role-Based Access** — Middleware guards on all protected routes
 
 ---
 
-## 👨‍💻 Author
+## 👥 User Roles
 
-**Bipin**  
-*TYBSc IT – Final Year Student*  
-Project developed individually.
+| Role      | Capabilities                                                         |
+|-----------|----------------------------------------------------------------------|
+| **Citizen** | Report issues, track own issues, provide feedback, manage profile  |
+| **Staff**   | View assigned issues, update status, request rejections            |
+| **Admin**   | Full access: manage users, issues, departments, analytics, exports |
 
 ---
 
-<div align="center">
-  <p><i>Developed for educational conceptualization. Not affiliated with any operating municipal authority or civic board.</i></p>
-</div>
+## 📄 License
+
+ISC
+
+---
+
+## 👤 Author
+
+**Bipin**

@@ -15,6 +15,7 @@ import configRoutes from "./routes/configRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { initSocket } from "./config/socket.js";
+import { verifyEmailTransport } from "./config/email.js";
 
 // Path setup for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -58,13 +59,15 @@ const authLimiter = rateLimit({
 });
 
 // ──── Static Files ──────────────────────────────────────────────────────
-// Disable caching to prevent UI staleness during development
-app.use((req, res, next) => {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.set("Pragma", "no-cache");
-  res.set("Expires", "0");
-  next();
-});
+// Disable caching only in development to prevent stale HTML/JS during local work.
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    next();
+  });
+}
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -93,5 +96,9 @@ const PORT = process.env.PORT || 5000;
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
 initSocket(server);
+
+verifyEmailTransport()
+  .then(() => console.log("[Email] SMTP transporter verified"))
+  .catch((err) => console.warn("[Email] SMTP transporter verification failed:", err.message));
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

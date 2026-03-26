@@ -11,11 +11,12 @@ export const getSummary = async (req, res, next) => {
     User.countDocuments({ role: "admin" })
   ]);
 
-  const [totalIssues, openCount, progressCount, resolvedCount] = await Promise.all([
+  const [totalIssues, openCount, progressCount, resolvedCount, rejectedCount] = await Promise.all([
     Issue.countDocuments(),
     Issue.countDocuments({ status: "Pending" }),
     Issue.countDocuments({ status: "In Progress" }),
-    Issue.countDocuments({ status: "Resolved" })
+    Issue.countDocuments({ status: "Resolved" }),
+    Issue.countDocuments({ status: "Rejected" })
   ]);
 
   const users = {
@@ -29,7 +30,8 @@ export const getSummary = async (req, res, next) => {
     total: totalIssues,
     open: openCount,
     inProgress: progressCount,
-    resolved: resolvedCount
+    resolved: resolvedCount,
+    rejected: rejectedCount
   };
 
   res.json({

@@ -13,14 +13,14 @@
 
 </head>
 
-<body>
+<body data-i18n-page-title="page.loginTitle">
   <header class="navbar navbar-login">
     <div class="container navbar-inner">
       <a href="index.html" class="brand">
         <div class="brand-title">CityPlus</div>
       </a>
       <div class="navbar-auth">
-        <a href="index.html" class="btn btn-outline">Back to Home</a>
+        <a href="index.html" class="btn btn-outline" data-i18n="nav.backHome">Back to Home</a>
       </div>
     </div>
   </header>
@@ -32,12 +32,12 @@
         <button id="loginTab" class="auth-tab active" onclick="switchToLogin()">
           <span class="material-icons-round"
             style="vertical-align: middle; margin-right: 6px; font-size: 20px;">login</span>
-          Login
+          <span data-i18n="auth.signIn">Login</span>
         </button>
         <button id="registerTab" class="auth-tab" onclick="switchToRegister()">
           <span class="material-icons-round"
             style="vertical-align: middle; margin-right: 6px; font-size: 20px;">person_add</span>
-          Register
+          <span data-i18n="auth.register">Register</span>
         </button>
       </div>
 
@@ -47,44 +47,43 @@
           <div class="auth-header">
             <div class="auth-title">
               <span class="material-icons-round">verified_user</span>
-              Welcome
+              <span data-i18n="auth.loginTitle">Welcome</span>
             </div>
-            <p class="auth-subtitle">Sign in to access your civic account and manage your issues</p>
+            <p class="auth-subtitle" data-i18n="auth.loginSubtitle">Sign in to access your civic account and manage your issues</p>
           </div>
 
           <form onsubmit="event.preventDefault(); loginUser();">
             <div class="form-group">
-              <label class="form-label" for="email">Email Address</label>
-              <input id="email" type="email" class="form-input" placeholder="your@email.com" required />
+              <label class="form-label" for="email" data-i18n="auth.emailAddress">Email Address</label>
+              <input id="email" type="email" class="form-input" placeholder="your@email.com" data-i18n-placeholder="auth.emailAddress" required />
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="password">Password</label>
-              <input id="password" type="password" class="form-input" placeholder="••••••••" required />
+              <label class="form-label" for="password" data-i18n="auth.password">Password</label>
+              <input id="password" type="password" class="form-input" placeholder="••••••••" data-i18n-placeholder="auth.password" required />
             </div>
 
             <div class="form-group"
               style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
               <label class="checkbox-group" style="margin-bottom: 0;">
                 <input type="checkbox" id="rememberMe" />
-                Keep me signed in
+                <span data-i18n="auth.keepSignedIn">Keep me signed in</span>
               </label>
               <a href="#" onclick="event.preventDefault(); openForgotPasswordModal();"
-                style="color:var(--primary-color, #2563eb);font-size:0.9rem;font-weight:500;text-decoration:none;cursor:pointer;">Forgot
-                Password?</a>
+                style="color:var(--primary-color, #2563eb);font-size:0.9rem;font-weight:500;text-decoration:none;cursor:pointer;"><span data-i18n="auth.forgotPassword">Forgot Password?</span></a>
             </div>
 
             <button type="submit" class="btn-full btn-primary-large">
-              Sign In
+              <span data-i18n="auth.signIn">Sign In</span>
             </button>
 
             <div class="auth-switch-link">
-              Don't have an account? <a href="#" onclick="event.preventDefault(); switchToRegister();">Register to
+              <span data-i18n="auth.noAccount">Don't have an account?</span> <a href="#" onclick="event.preventDefault(); switchToRegister();"><span data-i18n="auth.register">Register</span> to
                 create one</a>
             </div>
 
             <div class="auth-footer" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-              After successful login, you'll be redirected to your role-specific dashboard
+              <span data-i18n="auth.afterLogin">After successful login, you'll be redirected to your role-specific dashboard</span>
             </div>
           </form>
         </div>
@@ -96,46 +95,68 @@
           <div class="auth-header">
             <div class="auth-title">
               <span class="material-icons-round">how_to_reg</span>
-              Join CityPlus
+              <span data-i18n="auth.registerTitle">Join CityPlus</span>
             </div>
-            <p class="auth-subtitle">Create an account to report issues or manage civic services</p>
+            <p class="auth-subtitle" data-i18n="auth.registerSubtitle">Create an account to report issues or manage civic services</p>
           </div>
 
           <form onsubmit="event.preventDefault(); registerUser();">
+            <div id="regStep1">
             <div class="form-group">
-              <label class="form-label" for="regName">Full Name</label>
-              <input id="regName" type="text" class="form-input" placeholder="Your Full Name" required />
-              <p class="form-helper">This name will appear on your dashboard and reports</p>
+              <label class="form-label" for="regName" data-i18n="auth.fullName">Full Name</label>
+              <input id="regName" type="text" class="form-input" placeholder="Your Full Name" data-i18n-placeholder="auth.fullName" required />
+              <p class="form-helper" data-i18n="auth.nameHelper">This name will appear on your dashboard and reports</p>
             </div>
 
             <input type="hidden" id="regRole" value="citizen" />
 
             <div class="form-group">
-              <label class="form-label" for="regEmail">Email Address</label>
-              <input id="regEmail" type="email" class="form-input" placeholder="your@email.com" required />
+              <label class="form-label" for="regEmail" data-i18n="auth.emailAddress">Email Address</label>
+              <input id="regEmail" type="email" class="form-input" placeholder="your@email.com" data-i18n-placeholder="auth.emailAddress" required />
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="regPassword">Password</label>
-              <input id="regPassword" type="password" class="form-input" placeholder="••••••••" required />
-              <p class="form-helper">Use a strong password (minimum 6 characters)</p>
+              <label class="form-label" for="regPassword" data-i18n="auth.password">Password</label>
+              <input id="regPassword" type="password" class="form-input" placeholder="••••••••" data-i18n-placeholder="auth.password" required />
+              <p class="form-helper" data-i18n="auth.passwordHelper">Use a strong password (minimum 6 characters)</p>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="regConfirmPassword">Confirm Password</label>
-              <input id="regConfirmPassword" type="password" class="form-input" placeholder="••••••••" required />
+              <label class="form-label" for="regConfirmPassword" data-i18n="auth.confirmPassword">Confirm Password</label>
+              <input id="regConfirmPassword" type="password" class="form-input" placeholder="••••••••" data-i18n-placeholder="auth.confirmPassword" required />
             </div>
 
             <button type="submit" class="btn-full btn-primary-large">
-              Create Account
+              <span data-i18n="auth.createAccount">Create Account</span>
             </button>
 
             <div class="auth-switch-link">
-              Already have an account? <a href="#" onclick="event.preventDefault(); switchToLogin();">Sign In</a>
+              <span data-i18n="auth.alreadyHaveAccount">Already have an account?</span> <a href="#" onclick="event.preventDefault(); switchToLogin();"><span data-i18n="auth.signIn">Sign In</span></a>
             </div>
 
             <div class="auth-footer">
-              You'll be automatically logged in and redirected to your dashboard
+              <span>After registration, you'll verify your email with an OTP before logging in.</span>
+            </div>
+            </div>
+
+            <div id="regStep2" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">Verification Code</label>
+                <p class="form-helper" style="margin-bottom:0.75rem;">
+                  We sent a 6-digit code to <strong id="regEmailDisplay"></strong>. Enter it below to activate your account.
+                </p>
+                <input id="regOTP" type="text" class="form-input" placeholder="Enter 6-digit code" maxlength="6"
+                  style="text-align:center;font-size:1.5rem;letter-spacing:8px;font-weight:700;" required />
+              </div>
+
+              <button type="button" class="btn-full btn-primary-large" id="regVerifyBtn" onclick="verifyRegistrationOTP();">
+                Verify OTP
+              </button>
+
+              <p style="text-align:center;margin-top:12px;">
+                <a href="#" onclick="event.preventDefault(); resendRegistrationOTP();" id="regResendBtn"
+                  style="color:var(--primary);font-size:0.85rem;">Resend OTP</a>
+              </p>
             </div>
           </form>
         </div>
@@ -148,7 +169,7 @@
     <div class="error-modal">
       <div class="error-modal-header">
         <span class="material-icons-round error-icon">error_outline</span>
-        <h2 id="errorModalTitle">Error</h2>
+        <h2 id="errorModalTitle" data-i18n="auth.errorTitle">Error</h2>
         <button class="error-modal-close" onclick="closeErrorModal()">&times;</button>
       </div>
       <div class="error-modal-content">
@@ -166,7 +187,7 @@
       <div class="success-modal-icon-wrapper">
         <span class="material-icons-round success-modal-icon">check_circle</span>
       </div>
-      <h2 id="successModalTitle" class="success-modal-title">Success!</h2>
+      <h2 id="successModalTitle" class="success-modal-title" data-i18n="auth.successTitle">Success!</h2>
       <p id="successModalMessage" class="success-modal-message">Operation completed successfully.</p>
       <p class="success-modal-redirect">Redirecting in <span id="successCountdown">3</span>s...</p>
       <div class="success-modal-progress">
@@ -185,17 +206,17 @@
       <div id="fpStep1">
         <div class="error-modal-header" style="border-bottom:none;padding-bottom:0;">
           <span class="material-icons-round" style="color:var(--primary);font-size:32px;">lock_reset</span>
-          <h2 style="font-size:1.25rem;">Forgot Password</h2>
+          <h2 style="font-size:1.25rem;" data-i18n="auth.forgotPasswordTitle">Forgot Password</h2>
           <button class="error-modal-close" onclick="closeForgotPasswordModal()">&times;</button>
         </div>
         <div class="error-modal-content" style="padding-top:8px;">
-          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">Enter your registered email
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;" data-i18n="auth.forgotPasswordIntro">Enter your registered email
             address and we'll send you a 6-digit verification code.</p>
           <div class="form-group" style="margin-bottom:1.25rem;">
-            <label class="form-label" for="fpEmail">Email Address</label>
-            <input id="fpEmail" type="email" class="form-input" placeholder="your@email.com" required />
+            <label class="form-label" for="fpEmail" data-i18n="auth.emailAddress">Email Address</label>
+            <input id="fpEmail" type="email" class="form-input" placeholder="your@email.com" data-i18n-placeholder="auth.emailAddress" required />
           </div>
-          <button class="btn-full btn-primary-large" onclick="sendForgotPasswordOTP()" id="fpSendBtn">Send OTP</button>
+          <button class="btn-full btn-primary-large" onclick="sendForgotPasswordOTP()" id="fpSendBtn" data-i18n="auth.sendOtp">Send OTP</button>
         </div>
       </div>
 
@@ -203,22 +224,21 @@
       <div id="fpStep2" style="display:none;">
         <div class="error-modal-header" style="border-bottom:none;padding-bottom:0;">
           <span class="material-icons-round" style="color:var(--primary);font-size:32px;">pin</span>
-          <h2 style="font-size:1.25rem;">Enter Verification Code</h2>
+          <h2 style="font-size:1.25rem;" data-i18n="auth.enterCodeTitle">Enter Verification Code</h2>
           <button class="error-modal-close" onclick="closeForgotPasswordModal()">&times;</button>
         </div>
         <div class="error-modal-content" style="padding-top:8px;">
-          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">We sent a 6-digit code to
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;"><span data-i18n="auth.verifyCodeIntro">We sent a 6-digit code to</span>
             <strong id="fpEmailDisplay"></strong>. Check your inbox.
           </p>
           <div class="form-group" style="margin-bottom:1.25rem;">
-            <label class="form-label" for="fpOTP">Verification Code</label>
+            <label class="form-label" for="fpOTP" data-i18n="auth.verifyCode">Verification Code</label>
             <input id="fpOTP" type="text" class="form-input" placeholder="Enter 6-digit code" maxlength="6"
               style="text-align:center;font-size:1.5rem;letter-spacing:8px;font-weight:700;" required />
           </div>
-          <button class="btn-full btn-primary-large" onclick="verifyForgotPasswordOTP()" id="fpVerifyBtn">Verify
-            Code</button>
+          <button class="btn-full btn-primary-large" onclick="verifyForgotPasswordOTP()" id="fpVerifyBtn" data-i18n="auth.verifyCode">Verify Code</button>
           <p style="text-align:center;margin-top:12px;"><a href="#" onclick="event.preventDefault(); resendOTP();"
-              style="color:var(--primary);font-size:0.85rem;">Resend Code</a></p>
+              style="color:var(--primary);font-size:0.85rem;" data-i18n="auth.resendCode">Resend Code</a></p>
         </div>
       </div>
 
@@ -226,22 +246,21 @@
       <div id="fpStep3" style="display:none;">
         <div class="error-modal-header" style="border-bottom:none;padding-bottom:0;">
           <span class="material-icons-round" style="color:#22c55e;font-size:32px;">check_circle</span>
-          <h2 style="font-size:1.25rem;">Set New Password</h2>
+          <h2 style="font-size:1.25rem;" data-i18n="auth.setNewPasswordTitle">Set New Password</h2>
           <button class="error-modal-close" onclick="closeForgotPasswordModal()">&times;</button>
         </div>
         <div class="error-modal-content" style="padding-top:8px;">
-          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">OTP verified! Enter your new
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;" data-i18n="auth.newPasswordIntro">OTP verified! Enter your new
             password below.</p>
           <div class="form-group" style="margin-bottom:1rem;">
-            <label class="form-label" for="fpNewPassword">New Password</label>
-            <input id="fpNewPassword" type="password" class="form-input" placeholder="••••••••" required />
+            <label class="form-label" for="fpNewPassword" data-i18n="auth.password">New Password</label>
+            <input id="fpNewPassword" type="password" class="form-input" placeholder="••••••••" data-i18n-placeholder="auth.password" required />
           </div>
           <div class="form-group" style="margin-bottom:1.25rem;">
-            <label class="form-label" for="fpConfirmPassword">Confirm New Password</label>
-            <input id="fpConfirmPassword" type="password" class="form-input" placeholder="••••••••" required />
+            <label class="form-label" for="fpConfirmPassword" data-i18n="auth.confirmPassword">Confirm New Password</label>
+            <input id="fpConfirmPassword" type="password" class="form-input" placeholder="••••••••" data-i18n-placeholder="auth.confirmPassword" required />
           </div>
-          <button class="btn-full btn-primary-large" onclick="resetForgotPassword()" id="fpResetBtn">Reset
-            Password</button>
+          <button class="btn-full btn-primary-large" onclick="resetForgotPassword()" id="fpResetBtn" data-i18n="auth.resetPassword">Reset Password</button>
         </div>
       </div>
     </div>
@@ -252,6 +271,7 @@
   </footer>
 
   <script src="js/theme.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>
     function switchToLogin() {
@@ -266,6 +286,9 @@
       document.getElementById('loginForm').classList.remove('active');
       document.getElementById('registerTab').classList.add('active');
       document.getElementById('loginTab').classList.remove('active');
+      if (typeof resetRegistrationFlow === 'function') {
+        resetRegistrationFlow();
+      }
     }
   </script>
 </body>

@@ -2,21 +2,36 @@ import Issue from "../models/Issue.js";
 import User from "../models/User.js";
 import Department from "../models/Department.js";
 import { createNotification, notifyAllAdmins } from "./notificationController.js";
+import { sendEmail } from "../config/email.js";
+import { anonymousIssueSubmissionTemplate } from "../utils/emailTemplates.js";
+import { createHttpError, sendSuccess } from "../utils/response.js";
+import { assertCanCreateIssue, assertCanViewIssue, getIssuePopulateOptions } from "../utils/issueAccess.js";
 
 // ──── Citizen: create issue ──────────────────────────────────────────────
 export const createIssue = async (req, res, next) => {
-  const { title, category, ward, location, priority, description, lat, lng } = req.body;
+  assertCanCreateIssue(req.user);
+  const { title, category, ward, location, priority, description, lat, lng, email } = req.body;
+  const reporterEmail = req.user?.email || (typeof email === "string" ? email.trim() : "");
+  const isLoggedInCitizen = !!req.user?.id;
 
   if (!title || !category || !ward || !location || !priority || !description) {
-    const error = new Error("All fields are required");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("All fields are required", 400));
   }
   if (!req.file) {
-    const error = new Error("An image is required. Please upload a photo of the issue.");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("An image is required. Please upload a photo of the issue.", 400));
   }
+
+  if (!isLoggedInCitizen) {
+    if (!reporterEmail) {
+      return next(createHttpError("Email is required to submit an issue without logging in", 400));
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(reporterEmail)) {
+      return next(createHttpError("Please enter a valid email address", 400));
+    }
+  }
+
   const imageUrl = req.file.path;
 
   // Resolve Department using Category
@@ -48,13 +63,21 @@ export const createIssue = async (req, res, next) => {
     location,
     priority,
     description,
-    citizen: req.user.id,
+    citizen: req.user?.id || null,
+    reporterEmail: reporterEmail || null,
     department: departmentId,
     assignedTo: assignedStaffId,
     lat,
     lng,
     image: imageUrl,
   });
+
+  let emailSent = false;
+  if (reporterEmail) {
+    const issueReference = issue._id.toString().slice(-6).toUpperCase();
+    const html = anonymousIssueSubmissionTemplate(issue.title, issueReference, issue._id.toString());
+    emailSent = await sendEmail(reporterEmail, `CityPlus: Your Issue ID #${issueReference}`, html);
+  }
 
   if (assignedStaffId) {
     createNotification(
@@ -74,12 +97,11 @@ export const createIssue = async (req, res, next) => {
     issue._id
   );
 
-  res.status(201).json({
-    success: true,
-    message: "Issue created",
-    data: { issue },
-    issue
-  });
+  sendSuccess(res, "Issue created", {
+    issue,
+    issueReference: issue._id.toString().slice(-6).toUpperCase(),
+    emailSent
+  }, 201);
 };
 
 // ──── Citizen: my issues ─────────────────────────────────────────────────
@@ -89,36 +111,25 @@ export const getMyIssues = async (req, res, next) => {
     .populate("department", "name")
     .sort({ createdAt: -1 });
 
-  res.json({
-    success: true,
-    message: "Issues fetched successfully",
-    data: { issues },
-    issues
-  });
+  sendSuccess(res, "Issues fetched successfully", { issues });
 };
 
 // ──── Public: get issues for landing page ────────────────────────────────
 export const getPublicIssues = async (req, res, next) => {
   const issues = await Issue.find({ deleted: { $ne: true } })
+    .select("-reporterEmail")
     .populate("department", "name")
     .sort({ createdAt: -1 })
     .limit(50);
 
-  res.json({
-    success: true,
-    message: "Public issues fetched successfully",
-    data: { issues },
-    issues,
-  });
+  sendSuccess(res, "Public issues fetched successfully", { issues });
 };
 
 // ──── Staff/Admin/Citizen: all issues with pagination & filtering ────────
 // Query params: ?page=1&limit=10&status=Pending&ward=5&category=Roads&search=pothole
 export const getAllIssues = async (req, res, next) => {
   if (req.user.role !== "staff" && req.user.role !== "admin" && req.user.role !== "citizen") {
-    const error = new Error("Access denied");
-    error.statusCode = 403;
-    return next(error);
+    return next(createHttpError("Access denied", 403));
   }
 
   // Build filter object
@@ -171,15 +182,12 @@ export const getAllIssues = async (req, res, next) => {
   if (req.user.role === "staff" || req.user.role === "admin") {
     query = query.populate("citizen", "name email").populate("assignedTo", "name email").populate("department", "name");
   } else {
-    query = query.populate("assignedTo", "name").populate("department", "name");
+    query = query.select("-reporterEmail").populate("assignedTo", "name").populate("department", "name");
   }
 
   const issues = await query;
 
-  res.json({
-    success: true,
-    message: "Issues fetched successfully",
-    data: { issues },
+  sendSuccess(res, "Issues fetched successfully", {
     issues,
     pagination: {
       total,
@@ -192,67 +200,44 @@ export const getAllIssues = async (req, res, next) => {
 
 // ──── Staff: my assigned issues ──────────────────────────────────────────
 export const getMyAssignedIssues = async (req, res, next) => {
-  if (req.user.role !== "staff") {
-    const error = new Error("Staff only");
-    error.statusCode = 403;
-    return next(error);
-  }
-
   const issues = await Issue.find({ assignedTo: req.user.id, deleted: { $ne: true } })
     .populate("citizen", "name email")
     .populate("department", "name")
     .sort({ createdAt: -1 });
 
-  res.json({
-    success: true,
-    message: "Issues fetched successfully",
-    data: { issues },
-    issues
-  });
+  sendSuccess(res, "Issues fetched successfully", { issues });
 };
 
 // ──── Staff/Admin: change status ─────────────────────────────────────────
 export const updateStatus = async (req, res, next) => {
   if (req.user.role !== "staff" && req.user.role !== "admin") {
-    const error = new Error("Access denied");
-    error.statusCode = 403;
-    return next(error);
+    return next(createHttpError("Access denied", 403));
   }
 
   const { status, note } = req.body;
   const allowed = ["Pending", "In Progress", "Resolved"];
 
   if (!allowed.includes(status)) {
-    const error = new Error("Invalid status");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Invalid status", 400));
   }
 
   const existingIssue = await Issue.findById(req.params.id);
   if (!existingIssue) {
-    const error = new Error("Issue not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Issue not found", 404));
   }
 
-  if (existingIssue.status === "Resolved") {
-    const error = new Error("Cannot change status of a resolved issue.");
-    error.statusCode = 400;
-    return next(error);
+  if (existingIssue.status === "Resolved" || existingIssue.status === "Rejected") {
+    return next(createHttpError(`Cannot change status of a ${existingIssue.status.toLowerCase()} issue.`, 400));
   }
 
   if (existingIssue.status === status) {
-    const error = new Error("Issue is already in this status.");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Issue is already in this status.", 400));
   }
 
   // Require image for forward transitions
   if (status === "In Progress" || status === "Resolved") {
     if (!req.file) {
-      const error = new Error(`An image proof is required to change status to ${status}.`);
-      error.statusCode = 400;
-      return next(error);
+      return next(createHttpError(`An image proof is required to change status to ${status}.`, 400));
     }
   }
 
@@ -275,6 +260,8 @@ export const updateStatus = async (req, res, next) => {
     updateData.resolvedAt = null;
     updateData.resolvedImage = null;
     updateData.resolvedNote = null;
+    updateData.rejectedAt = null;
+    updateData.rejectedNote = null;
   }
 
   const issue = await Issue.findByIdAndUpdate(
@@ -294,35 +281,46 @@ export const updateStatus = async (req, res, next) => {
     );
   }
 
-  res.json({
-    success: true,
-    message: "Status updated",
-    data: { issue },
-    issue
-  });
+  sendSuccess(res, "Status updated", { issue });
+};
+
+// ──── Staff: request admin rejection ────────────────────────────────────
+export const requestIssueReject = async (req, res, next) => {
+  const issue = await Issue.findById(req.params.id);
+  if (!issue || issue.deleted) {
+    return next(createHttpError("Issue not found", 404));
+  }
+
+  if (issue.status === "Resolved" || issue.status === "Rejected") {
+    return next(createHttpError(`Cannot request rejection for a ${issue.status.toLowerCase()} issue.`, 400));
+  }
+
+  const { note } = req.body || {};
+  const requestText = note && note.trim()
+    ? `Reason: ${note.trim()}`
+    : "No additional reason provided.";
+
+  await notifyAllAdmins(
+    "issue_reject_requested",
+    "Issue Rejection Requested",
+    `${req.user.name || "A staff member"} requested rejection for issue "${issue.title}". ${requestText}`,
+    issue._id
+  );
+
+  sendSuccess(res, "Rejection request sent to admins", { issue });
 };
 
 // ──── Admin: assign staff to issue ───────────────────────────────────────
 export const assignIssue = async (req, res, next) => {
-  if (req.user.role !== "admin") {
-    const error = new Error("Admin only");
-    error.statusCode = 403;
-    return next(error);
-  }
-
   const { staffId } = req.body;
 
   if (!staffId) {
-    const error = new Error("staffId required");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("staffId required", 400));
   }
 
   const staff = await User.findOne({ _id: staffId, role: "staff" });
   if (!staff) {
-    const error = new Error("Staff user not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Staff user not found", 404));
   }
 
   const existingIssue = await Issue.findById(req.params.id);
@@ -337,9 +335,7 @@ export const assignIssue = async (req, res, next) => {
    .populate("department", "name");
 
   if (!issue) {
-    const error = new Error("Issue not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Issue not found", 404));
   }
 
   const notifType = isReassignment ? "issue_reassigned" : "issue_assigned";
@@ -371,33 +367,72 @@ export const assignIssue = async (req, res, next) => {
     );
   }
 
-  res.json({
-    success: true,
-    message: "Issue assigned successfully",
-    data: { issue },
-    issue
-  });
+  sendSuccess(res, "Issue assigned successfully", { issue });
+};
+
+// ──── Admin: reject issue ───────────────────────────────────────────────
+export const rejectIssue = async (req, res, next) => {
+  const issue = await Issue.findById(req.params.id);
+  if (!issue || issue.deleted) {
+    return next(createHttpError("Issue not found", 404));
+  }
+
+  if (issue.status === "Rejected") {
+    return next(createHttpError("Issue is already rejected", 400));
+  }
+
+  if (issue.status === "Resolved") {
+    return next(createHttpError("Cannot reject a resolved issue.", 400));
+  }
+
+  const { note } = req.body || {};
+  issue.status = "Rejected";
+  issue.rejectedAt = new Date();
+  issue.rejectedNote = note || null;
+  await issue.save();
+
+  const rejectionMessage = `Your issue "${issue.title}" was rejected by an administrator.${note ? ` Reason: ${note}` : ""}`;
+
+  if (issue.citizen) {
+    createNotification(
+      issue.citizen,
+      "issue_rejected",
+      "Issue Rejected",
+      rejectionMessage,
+      issue._id
+    );
+  }
+
+  if (issue.assignedTo) {
+    createNotification(
+      issue.assignedTo,
+      "issue_rejected",
+      "Issue Rejected",
+      `Issue "${issue.title}" was rejected by an administrator.${note ? ` Reason: ${note}` : ""}`,
+      issue._id
+    );
+  }
+
+  sendSuccess(res, "Issue rejected successfully", { issue });
 };
 
 // ──── Get single issue ───────────────────────────────────────────────────
 export const getIssueById = async (req, res, next) => {
-  const issue = await Issue.findById(req.params.id)
-    .populate("citizen", "name email")
-    .populate("assignedTo", "name email")
-    .populate("department", "name");
+  const issue = await Issue.findById(req.params.id);
 
   if (!issue || issue.deleted) {
-    const error = new Error("Issue not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Issue not found", 404));
   }
 
-  res.json({
-    success: true,
-    message: "Issue fetched successfully",
-    data: { issue },
-    issue
+  assertCanViewIssue(req.user, issue);
+
+  let query = Issue.findById(req.params.id);
+  getIssuePopulateOptions(req.user.role).forEach((populateOption) => {
+    query = query.populate(populateOption);
   });
+
+  const populatedIssue = await query;
+  sendSuccess(res, "Issue fetched successfully", { issue: populatedIssue });
 };
 
 // ──── Citizen: Add feedback ──────────────────────────────────────────────
@@ -405,35 +440,25 @@ export const addFeedback = async (req, res, next) => {
   const { rating, text } = req.body;
 
   if (!rating || rating < 1 || rating > 5) {
-    const error = new Error("Valid rating (1-5) is required");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Valid rating (1-5) is required", 400));
   }
 
   const issue = await Issue.findById(req.params.id);
 
   if (!issue) {
-    const error = new Error("Issue not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Issue not found", 404));
   }
 
   if (issue.citizen.toString() !== req.user.id) {
-    const error = new Error("Not authorized to leave feedback on this issue");
-    error.statusCode = 403;
-    return next(error);
+    return next(createHttpError("Not authorized to leave feedback on this issue", 403));
   }
 
   if (issue.status !== "Resolved") {
-    const error = new Error("Feedback can only be left on resolved issues");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Feedback can only be left on resolved issues", 400));
   }
 
   if (issue.feedback && issue.feedback.rating) {
-    const error = new Error("Feedback has already been submitted for this issue");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Feedback has already been submitted for this issue", 400));
   }
 
   issue.feedback = {
@@ -462,82 +487,45 @@ export const addFeedback = async (req, res, next) => {
     issue._id
   );
 
-  res.json({
-    success: true,
-    message: "Feedback submitted successfully",
-    data: { issue },
-    issue
-  });
+  sendSuccess(res, "Feedback submitted successfully", { issue });
 };
 
 // ──── Admin: soft delete issue ───────────────────────────────────────────
 export const deleteIssue = async (req, res, next) => {
-  if (req.user.role !== "admin") {
-    const error = new Error("Admin only");
-    error.statusCode = 403;
-    return next(error);
-  }
-
   const issue = await Issue.findById(req.params.id);
   if (!issue) {
-    const error = new Error("Issue not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Issue not found", 404));
   }
 
   if (issue.deleted) {
-    const error = new Error("Issue is already deleted");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Issue is already deleted", 400));
   }
 
   issue.deleted = true;
   await issue.save();
 
-  res.json({
-    success: true,
-    message: "Issue deleted successfully"
-  });
+  sendSuccess(res, "Issue deleted successfully");
 };
 
 // ──── Admin: restore soft-deleted issue ──────────────────────────────────
 export const restoreIssue = async (req, res, next) => {
-  if (req.user.role !== "admin") {
-    const error = new Error("Admin only");
-    error.statusCode = 403;
-    return next(error);
-  }
-
   const issue = await Issue.findById(req.params.id);
   if (!issue) {
-    const error = new Error("Issue not found");
-    error.statusCode = 404;
-    return next(error);
+    return next(createHttpError("Issue not found", 404));
   }
 
   if (!issue.deleted) {
-    const error = new Error("Issue is not deleted");
-    error.statusCode = 400;
-    return next(error);
+    return next(createHttpError("Issue is not deleted", 400));
   }
 
   issue.deleted = false;
   await issue.save();
 
-  res.json({
-    success: true,
-    message: "Issue restored successfully"
-  });
+  sendSuccess(res, "Issue restored successfully");
 };
 
 // ──── Admin: export issues as CSV ────────────────────────────────────────
 export const exportIssues = async (req, res, next) => {
-  if (req.user.role !== "admin") {
-    const error = new Error("Admin only");
-    error.statusCode = 403;
-    return next(error);
-  }
-
   // Build same filter as getAllIssues
   const filter = { deleted: { $ne: true } };
   if (req.query.status && req.query.status !== "all") filter.status = req.query.status;

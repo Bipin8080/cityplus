@@ -18,7 +18,7 @@
   <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
 </head>
 
-<body>
+<body data-i18n-page-title="page.citizenDashboardTitle">
 
   <header class="navbar navbar-dashboard">
     <div class="container navbar-inner">
@@ -45,7 +45,7 @@
         <button id="sidebarToggleBtn" class="sidebar__logo-inner"
           style="background: none; border: none; cursor: pointer; width: 100%; text-align: left; padding: 0; display: flex; align-items: center; gap: 0.75rem; justify-content: flex-start; color: var(--text-primary);">
           <span class="material-icons">menu</span>
-          <span class="sidebar__logo-text" style="font-size: 1.25rem; font-weight: 600;">Menu</span>
+          <span class="sidebar__logo-text" style="font-size: 1.25rem; font-weight: 600;" data-i18n="dashboard.citizen.menu">Menu</span>
         </button>
       </div>
 
@@ -53,28 +53,28 @@
       <nav class="sidebar__nav">
         <a class="nav-link nav-link--active" href="citizen-dashboard.html" onclick="switchToDashboardTab()">
           <span class="material-icons">dashboard</span>
-          <span class="nav-text">Dashboard</span>
+          <span class="nav-text" data-i18n="dashboard.citizen.dashboard">Dashboard</span>
         </a>
         <a class="nav-link" href="#" onclick="event.preventDefault(); switchToAllIssuesTab();">
           <span class="material-icons">assignment</span>
-          <span class="nav-text">All Issues</span>
+          <span class="nav-text" data-i18n="dashboard.citizen.allIssues">All Issues</span>
         </a>
         <a class="nav-link" href="#" onclick="event.preventDefault(); switchToMapTab();">
           <span class="material-icons">map</span>
-          <span class="nav-text">Map View</span>
+          <span class="nav-text" data-i18n="dashboard.citizen.mapView">Map View</span>
         </a>
         <a class="nav-link" href="report-issue.html">
           <span class="material-icons">add_circle_outline</span>
-          <span class="nav-text">Report New Issue</span>
+          <span class="nav-text" data-i18n="dashboard.citizen.reportNewIssue">Report New Issue</span>
         </a>
 
 
         <div class="sidebar__section">
-          <p class="sidebar__section-label">Account</p>
+          <p class="sidebar__section-label" data-i18n="dashboard.citizen.account">Account</p>
           <button class="nav-link" onclick="openProfileModal()"
             style="width: 100%; text-align: left; padding: 0.625rem 0.75rem;">
             <span class="material-icons">person</span>
-            <span class="nav-text">Profile</span>
+            <span class="nav-text" data-i18n="dashboard.citizen.profile">Profile</span>
           </button>
         </div>
       </nav>
@@ -93,7 +93,7 @@
         <button class="nav-link" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem; padding: 0.5rem;"
           onclick="showLogoutConfirmation()">
           <span class="material-icons">logout</span>
-          <span class="nav-text">Logout</span>
+          <span class="nav-text" data-i18n="dashboard.citizen.logout">Logout</span>
         </button>
       </div>
 
@@ -107,18 +107,18 @@
         <!-- Page Header -->
         <div class="page-header">
           <div>
-            <h1 class="page-header__title" id="pageTitle">Welcome back, User</h1>
-            <p class="page-header__sub">Here is what's happening with your reported issues in your neighborhood.</p>
+            <h1 class="page-header__title" id="pageTitle" data-i18n="dashboard.citizen.welcomeBack">Welcome back, User</h1>
+            <p class="page-header__sub" data-i18n="dashboard.citizen.overview">Here is what's happening with your reported issues in your neighborhood.</p>
           </div>
           <div style="display:flex; gap:1rem; align-items:center;">
             <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
               onclick="refreshCitizenData(this)">
               <span class="material-icons-round">refresh</span>
-              Refresh
+              <span data-i18n="common.refresh">Refresh</span>
             </button>
             <a href="report-issue.html" class="btn-primary" style="width: fit-content;">
               <span class="material-icons">add_location_alt</span>
-              Report New Issue
+              <span data-i18n="dashboard.citizen.reportNewIssue">Report New Issue</span>
             </a>
           </div>
         </div>
@@ -131,7 +131,7 @@
             <div class="stat-card__accent stat-card__accent--primary"></div>
             <div class="stat-card__top">
               <div>
-                <p class="stat-card__label">Total Reported</p>
+              <p class="stat-card__label" data-i18n="dashboard.citizen.totalReported">Total Reported</p>
                 <h3 class="stat-card__value" id="statTotal">0</h3>
               </div>
               <div class="stat-card__icon stat-card__icon--primary">
@@ -139,7 +139,7 @@
               </div>
             </div>
             <div class="stat-card__footer">
-              <span class="stat-card__footer-text">All submitted complaints</span>
+              <span class="stat-card__footer-text" data-i18n="dashboard.citizen.totalReportedSub">All submitted complaints</span>
             </div>
           </div>
 
@@ -148,7 +148,7 @@
             <div class="stat-card__accent stat-card__accent--yellow"></div>
             <div class="stat-card__top">
               <div>
-                <p class="stat-card__label">Pending Review</p>
+              <p class="stat-card__label" data-i18n="dashboard.citizen.pendingReview">Pending Review</p>
                 <h3 class="stat-card__value" id="statOpen">0</h3>
               </div>
               <div class="stat-card__icon stat-card__icon--yellow">
@@ -156,7 +156,7 @@
               </div>
             </div>
             <div class="stat-card__footer">
-              <span class="stat-card__footer-text">Awaiting action</span>
+              <span class="stat-card__footer-text" data-i18n="dashboard.citizen.pendingReviewSub">Awaiting action</span>
             </div>
           </div>
 
@@ -165,7 +165,7 @@
             <div class="stat-card__accent stat-card__accent--blue"></div>
             <div class="stat-card__top">
               <div>
-                <p class="stat-card__label">In Progress</p>
+              <p class="stat-card__label" data-i18n="dashboard.citizen.inProgress">In Progress</p>
                 <h3 class="stat-card__value" id="statProgress">0</h3>
               </div>
               <div class="stat-card__icon stat-card__icon--blue">
@@ -173,7 +173,7 @@
               </div>
             </div>
             <div class="stat-card__footer">
-              <span class="stat-card__footer-text">Under active work</span>
+              <span class="stat-card__footer-text" data-i18n="dashboard.citizen.inProgressSub">Under active work</span>
             </div>
           </div>
 
@@ -182,7 +182,7 @@
             <div class="stat-card__accent stat-card__accent--green"></div>
             <div class="stat-card__top">
               <div>
-                <p class="stat-card__label">Resolved</p>
+              <p class="stat-card__label" data-i18n="dashboard.citizen.resolved">Resolved</p>
                 <h3 class="stat-card__value" id="statResolved">0</h3>
               </div>
               <div class="stat-card__icon stat-card__icon--green">
@@ -193,7 +193,7 @@
               <span class="stat-card__footer-badge stat-card__footer-badge--green">
                 <span class="material-icons" style="font-size:1rem;">thumb_up</span>
               </span>
-              <span class="stat-card__footer-text">Successfully completed</span>
+              <span class="stat-card__footer-text" data-i18n="dashboard.citizen.resolvedSub">Successfully completed</span>
             </div>
           </div>
 
@@ -204,15 +204,15 @@
 
           <div class="table-card__header">
             <div>
-              <h2 class="table-card__title">My Reported Issues</h2>
-              <p class="table-card__sub">Track the status of your recent submissions</p>
+              <h2 class="table-card__title" data-i18n="dashboard.citizen.myReportedIssues">My Reported Issues</h2>
+              <p class="table-card__sub" data-i18n="dashboard.citizen.myReportedIssuesSub">Track the status of your recent submissions</p>
             </div>
             <div class="table-card__controls">
               <div class="search-wrapper">
                 <span class="search-wrapper__icon">
                   <span class="material-icons">search</span>
                 </span>
-                <input class="search-input" id="searchInput" placeholder="Search issues..." type="text" />
+                <input class="search-input" id="searchInput" placeholder="Search issues..." data-i18n-placeholder="common.searchIssues" type="text" />
               </div>
               <button class="icon-btn" id="filterBtn">
                 <span class="material-icons">filter_list</span>
@@ -229,6 +229,7 @@
                 <option value="Pending">Pending</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Resolved">Resolved</option>
+                <option value="Rejected">Rejected</option>
               </select>
             </div>
             <div class="filter-group">
@@ -346,6 +347,7 @@
                 <option value="Pending">Pending</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Resolved">Resolved</option>
+                <option value="Rejected">Rejected</option>
               </select>
             </div>
             <div class="filter-group">
@@ -666,19 +668,14 @@
             <p class="page-header__sub">Explore civic issues geographically across the city</p>
           </div>
         </div>
-        <div id="citizenMapFilters" style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <div id="citizenMapFilters" style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; align-items: flex-end;">
           <div class="filter-item">
-            <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">State</label>
-            <select id="citizenMapStateFilter" class="form-select" style="min-width: 150px;">
-              <option value="">All States</option>
+            <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">Status</label>
+            <select id="citizenMapStatusFilter" class="form-select" style="min-width: 150px;">
+              <option value="">All Statuses</option>
             </select>
           </div>
-          <div class="filter-item">
-            <label class="filter-label" style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">City</label>
-            <select id="citizenMapCityFilter" class="form-select" style="min-width: 150px;">
-              <option value="">All Cities</option>
-            </select>
-          </div>
+          <button type="button" class="btn btn-outline" id="citizenMapResetFilters" style="height: 42px; align-self: flex-end;">Reset Filters</button>
         </div>
         <div class="table-card" style="padding: 0; height: 500px; overflow: hidden; border-radius: 1rem; margin-top: 1rem;">
           <div id="citizenMapViewMap" style="width: 100%; height: 100%; z-index: 1;"></div>
@@ -699,17 +696,18 @@
       <div class="confirm-modal-icon">
         <span class="material-icons-round">logout</span>
       </div>
-      <h3 class="confirm-modal-title">Confirm Logout</h3>
-      <p class="confirm-modal-text">Are you sure you want to log out of your CityPlus account?</p>
+      <h3 class="confirm-modal-title" data-i18n="dashboard.citizen.confirmLogout">Confirm Logout</h3>
+      <p class="confirm-modal-text" data-i18n="dashboard.citizen.confirmLogoutBody">Are you sure you want to log out of your CityPlus account?</p>
       <div class="confirm-modal-actions">
-        <button id="cancelLogoutBtn" class="btn btn-secondary">Cancel</button>
-        <button id="confirmLogoutBtn" class="btn btn-danger">Logout</button>
+        <button id="cancelLogoutBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
+        <button id="confirmLogoutBtn" class="btn btn-danger" data-i18n="nav.logout">Logout</button>
       </div>
     </div>
   </div>
 
   <div id="toast-container" class="toast-container"></div>
   <script src="js/theme.js"></script>
+  <script src="js/api.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/notifications.js"></script>
   <!-- Leaflet JS -->

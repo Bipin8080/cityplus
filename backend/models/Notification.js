@@ -15,6 +15,8 @@ const NotificationSchema = new mongoose.Schema(
                 "issue_assigned",
                 "issue_reassigned",
                 "status_updated",
+                "issue_reject_requested",
+                "issue_rejected",
                 "feedback_received",
                 "account_status_changed"
             ],

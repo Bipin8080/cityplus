@@ -20,7 +20,7 @@
   </style>
 </head>
 
-<body>
+<body data-i18n-page-title="page.staffDashboardTitle">
   <!-- Navbar -->
   <header class="navbar navbar-dashboard">
     <div class="container navbar-inner">
@@ -45,7 +45,7 @@
         <button id="sidebarToggleBtn" class="sidebar__logo-inner"
           style="background: none; border: none; cursor: pointer; width: 100%; text-align: left; padding: 0; display: flex; align-items: center; gap: 0.75rem; justify-content: flex-start; color: var(--text-primary);">
           <span class="material-icons-round">menu</span>
-          <span class="sidebar__logo-text" style="font-size: 1.25rem; font-weight: 600;">Menu</span>
+          <span class="sidebar__logo-text" style="font-size: 1.25rem; font-weight: 600;" data-i18n="dashboard.staff.menu">Menu</span>
         </button>
       </div>
 
@@ -54,19 +54,19 @@
         <a class="nav-link nav-link--active staff-nav-tab active" id="tab-dashboard" href="#"
           onclick="event.preventDefault();">
           <span class="material-icons-round">dashboard</span>
-          <span class="nav-text">Dashboard</span>
+          <span class="nav-text" data-i18n="dashboard.staff.dashboard">Dashboard</span>
         </a>
         <a class="nav-link staff-nav-tab" id="tab-all-issues" href="#" onclick="event.preventDefault();">
           <span class="material-icons-round">assignment</span>
-          <span class="nav-text">All Issues</span>
+          <span class="nav-text" data-i18n="dashboard.staff.allIssues">All Issues</span>
         </a>
         <a class="nav-link staff-nav-tab" id="tab-my-assigned" href="#" onclick="event.preventDefault();">
           <span class="material-icons-round">assignment_ind</span>
-          <span class="nav-text">My Assigned Issues</span>
+          <span class="nav-text" data-i18n="dashboard.staff.myAssignedIssues">My Assigned Issues</span>
         </a>
         <a class="nav-link staff-nav-tab" id="tab-map-view" href="#" onclick="event.preventDefault();">
           <span class="material-icons-round">map</span>
-          <span class="nav-text">Map View</span>
+          <span class="nav-text" data-i18n="dashboard.staff.mapView">Map View</span>
         </a>
       </nav>
 
@@ -84,12 +84,12 @@
         <button class="nav-link" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem; padding: 0.5rem;"
           onclick="openProfileModal()">
           <span class="material-icons-round">person</span>
-          <span class="nav-text">Profile</span>
+          <span class="nav-text" data-i18n="dashboard.staff.profile">Profile</span>
         </button>
         <button class="nav-link" style="width: 100%; margin-top: 0.25rem; font-size: 0.875rem; padding: 0.5rem;"
           onclick="showLogoutConfirmation()">
           <span class="material-icons-round">logout</span>
-          <span class="nav-text">Logout</span>
+          <span class="nav-text" data-i18n="dashboard.staff.logout">Logout</span>
         </button>
       </div>
     </aside>
@@ -103,16 +103,16 @@
           <div>
             <div class="tag">Overview</div>
             <h1 class="section-title" style="margin-top: 0.4rem;" id="staffDashboardTitle">
-              Welcome, Staff
+              <span data-i18n="dashboard.staff.welcome">Welcome, Staff</span>
             </h1>
             <p class="section-subtitle" style="margin-bottom: 0;" id="staffDashboardSubtitle">
-              Here is an overview of your assigned issues.
+              <span data-i18n="dashboard.staff.overview">Here is an overview of your assigned issues.</span>
             </p>
           </div>
           <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
             onclick="refreshStaffData(this)">
             <span class="material-icons-round">refresh</span>
-            Refresh Data
+            <span data-i18n="dashboard.staff.refreshData">Refresh Data</span>
           </button>
         </header>
 
@@ -120,13 +120,13 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
             <div class="stat-card"
               style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem;">
-              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Total Assigned</span>
+              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;" data-i18n="dashboard.staff.totalAssigned">Total Assigned</span>
               <span id="statTotalAssigned"
                 style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</span>
             </div>
             <div class="stat-card"
               style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem; border-left: 4px solid var(--primary-color);">
-              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Pending Issues</span>
+              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;" data-i18n="dashboard.staff.pendingIssues">Pending Issues</span>
               <span id="statPending" style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</span>
             </div>
             <div class="stat-card"
@@ -153,7 +153,7 @@
             <section class="admin-section" style="padding: 1.5rem; height: auto;">
               <h3
                 style="font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                <span class="material-icons-round">flag</span> Priority Breakdown
+                <span class="material-icons-round">flag</span> <span data-i18n="dashboard.staff.priorityBreakdown">Priority Breakdown</span>
               </h3>
               <div style="display: flex; flex-direction: column; gap: 1.25rem;">
                 <!-- High -->
@@ -206,10 +206,10 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3
                   style="font-size: 1.1rem; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                  <span class="material-icons-round">fiber_new</span> Recent Assignments
+                  <span class="material-icons-round">fiber_new</span> <span data-i18n="dashboard.staff.recentAssignments">Recent Assignments</span>
                 </h3>
                 <button class="btn btn-outline btn-small"
-                  onclick="document.getElementById('tab-my-assigned').click()">View All</button>
+                  onclick="document.getElementById('tab-my-assigned').click()"><span data-i18n="dashboard.staff.viewAll">View All</span></button>
               </div>
               <div class="table-wrapper" style="margin: 0 -1.5rem -1.5rem -1.5rem; border-radius: 0 0 1rem 1rem;">
                 <table class="table admin-table" style="margin: 0; font-size: 0.875rem;">
@@ -240,7 +240,7 @@
             <section class="admin-section" style="padding: 1.5rem; height: auto;">
               <h3
                 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                <span class="material-icons-round">bolt</span> Quick Actions
+                <span class="material-icons-round">bolt</span> <span data-i18n="dashboard.staff.quickActions">Quick Actions</span>
               </h3>
               <div style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">
                 <button class="btn btn-outline"
@@ -248,21 +248,21 @@
                   onclick="document.getElementById('tab-map-view').click()">
                   <span class="material-icons-round"
                     style="color: var(--primary-color); margin-right: 0.75rem;">map</span>
-                  View Issue Map
+                  <span data-i18n="dashboard.staff.viewIssueMap">View Issue Map</span>
                 </button>
                 <button class="btn btn-outline"
                   style="justify-content: flex-start; padding: 0.75rem 1rem; display: flex; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                   onclick="document.getElementById('tab-my-assigned').click()">
                   <span class="material-icons-round"
                     style="color: var(--primary-color); margin-right: 0.75rem;">assignment_ind</span>
-                  My Assignments
+                  <span data-i18n="dashboard.staff.myAssignments">My Assignments</span>
                 </button>
                 <button class="btn btn-outline"
                   style="justify-content: flex-start; padding: 0.75rem 1rem; display: flex; width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);"
                   onclick="openProfileModal()">
                   <span class="material-icons-round"
                     style="color: var(--primary-color); margin-right: 0.75rem;">person</span>
-                  Update Profile
+                  <span data-i18n="dashboard.staff.updateProfile">Update Profile</span>
                 </button>
               </div>
             </section>
@@ -271,7 +271,7 @@
             <section class="admin-section" style="padding: 1.5rem; height: auto; flex: 1;">
               <h3
                 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                <span class="material-icons-round">history</span> My Recent Activity
+                <span class="material-icons-round">history</span> <span data-i18n="dashboard.staff.myRecentActivity">My Recent Activity</span>
               </h3>
               <div id="staffRecentActivityTimeline"
                 style="display: flex; flex-direction: column; gap: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--primary-color-light); position: relative;">
@@ -290,10 +290,10 @@
           style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
           <div>
             <div class="tag">My Work</div>
-            <h1 class="section-title" style="margin-top: 0.4rem;">
+            <h1 class="section-title" style="margin-top: 0.4rem;" data-i18n="dashboard.staff.myAssignedTitle">
               My Assigned Issues
             </h1>
-            <p class="section-subtitle" style="margin-bottom: 0;">
+            <p class="section-subtitle" style="margin-bottom: 0;" data-i18n="dashboard.staff.myAssignedSub">
               Issues specifically assigned to you for resolution.
             </p>
           </div>
@@ -309,7 +309,7 @@
         <header class="panel-header">
           <div>
             <div class="tag">Geospatial Overview</div>
-            <h1 class="section-title" style="margin-top:8px;">City Map View</h1>
+            <h1 class="section-title" style="margin-top:8px;" data-i18n="dashboard.staff.cityMapView">City Map View</h1>
             <p class="section-subtitle" style="margin-bottom:0;">
               Explore civic issues geographically across the city.
             </p>
@@ -317,21 +317,15 @@
         </header>
 
         <section class="admin-section" style="padding-top: 1rem;">
-          <div id="staffMapFilters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <div id="staffMapFilters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
             <div class="filter-item">
               <label class="filter-label"
-                style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">State</label>
-              <select id="staffMapStateFilter" class="filter-select">
-                <option value="">All States</option>
+                style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">Status</label>
+              <select id="staffMapStatusFilter" class="filter-select">
+                <option value="">All Statuses</option>
               </select>
             </div>
-            <div class="filter-item">
-              <label class="filter-label"
-                style="font-size: 0.825rem; font-weight: 500; color: var(--text-secondary);">City</label>
-              <select id="staffMapCityFilter" class="filter-select">
-                <option value="">All Cities</option>
-              </select>
-            </div>
+            <button type="button" class="btn btn-outline" id="staffMapResetFilters" style="height: 42px; align-self: flex-end;">Reset Filters</button>
           </div>
           <div class="table-card" id="staffAllIssuesMapContainer" style="padding: 0; height: 500px; overflow: hidden;">
             <div id="staffAllIssuesMap" style="width: 100%; height: 100%; z-index: 1;"></div>
@@ -344,7 +338,7 @@
           style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
           <div>
             <div class="tag">Logged in as Staff</div>
-            <h1 class="section-title" style="margin-top: 0.4rem;" id="pageTitle">
+            <h1 class="section-title" style="margin-top: 0.4rem;" id="pageTitle" data-i18n="dashboard.staff.issueManagement">
               City-wide Issues
             </h1>
             <p class="section-subtitle" style="margin-bottom: 0;" id="pageSubtitle">
@@ -354,7 +348,7 @@
           <button class="btn btn-outline" style="display:flex; align-items:center; gap:0.5rem; width: fit-content;"
             onclick="refreshStaffData(this)">
             <span class="material-icons-round">refresh</span>
-            Refresh Data
+            <span data-i18n="dashboard.staff.refreshData">Refresh Data</span>
           </button>
         </header>
 
@@ -383,6 +377,7 @@
                 <option value="Pending">Pending</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Resolved">Resolved</option>
+                <option value="Rejected">Rejected</option>
               </select>
             </div>
 
@@ -591,11 +586,35 @@
                   </button>
                 </div>
 
+                <div id="staffModalRejectRequestSection"
+                  style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                  <h4 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="material-icons-round">gavel</span> Request Rejection
+                  </h4>
+                  <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label class="form-label" style="font-size:0.875rem;">Request Note <span
+                        style="font-size:0.75rem;font-weight:normal;color:var(--text-secondary)">(Optional)</span></label>
+                    <textarea id="staffModalRejectNote" class="form-input"
+                      placeholder="Explain why this issue should be rejected..."
+                      style="width: 100%; box-sizing: border-box; min-height: 80px; resize: vertical;"></textarea>
+                  </div>
+                  <button onclick="requestStaffIssueReject()" id="staffModalRejectSubmitBtn" class="btn btn-outline"
+                    style="width: 100%; border-color: #b91c1c; color: #b91c1c;">
+                    Request Admin Rejection
+                  </button>
+                </div>
+
                 <div id="staffModalStatusResolvedMsg"
                   style="display: none; padding: 1rem; background: rgba(34,197,94,0.1); color: var(--green-600); border-radius: 0.5rem; text-align: center; font-weight: 500;">
                   <span class="material-icons-round"
                     style="vertical-align: middle; margin-right: 0.25rem;">check_circle</span>
                   This issue is resolved and can no longer be updated.
+                </div>
+                <div id="staffModalStatusRejectedMsg"
+                  style="display: none; padding: 1rem; background: rgba(239,68,68,0.1); color: #b91c1c; border-radius: 0.5rem; text-align: center; font-weight: 500;">
+                  <span class="material-icons-round"
+                    style="vertical-align: middle; margin-right: 0.25rem;">block</span>
+                  This issue is rejected and can no longer be updated.
                 </div>
               </div>
             </div>
@@ -739,17 +758,18 @@
       <div class="confirm-modal-icon">
         <span class="material-icons-round">logout</span>
       </div>
-      <h3 class="confirm-modal-title">Confirm Logout</h3>
-      <p class="confirm-modal-text">Are you sure you want to log out of your CityPlus account?</p>
+      <h3 class="confirm-modal-title" data-i18n="dashboard.staff.confirmLogout">Confirm Logout</h3>
+      <p class="confirm-modal-text" data-i18n="dashboard.staff.confirmLogoutBody">Are you sure you want to log out of your CityPlus account?</p>
       <div class="confirm-modal-actions">
-        <button id="cancelLogoutBtn" class="btn btn-secondary">Cancel</button>
-        <button id="confirmLogoutBtn" class="btn btn-danger">Logout</button>
+        <button id="cancelLogoutBtn" class="btn btn-secondary" data-i18n="common.cancel">Cancel</button>
+        <button id="confirmLogoutBtn" class="btn btn-danger" data-i18n="nav.logout">Logout</button>
       </div>
     </div>
   </div>
 
   <div id="toast-container" class="toast-container"></div>
   <script src="js/theme.js"></script>
+  <script src="js/api.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/notifications.js"></script>
   <!-- Leaflet JS -->

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "lint": "node ./scripts/lint.js",
+    "test": "node tests/security.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

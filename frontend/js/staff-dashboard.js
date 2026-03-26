@@ -9,7 +9,7 @@ let currentStaffPage = 1;
 const staffIssuesPerPage = 10;
 
 async function loadStaffData() {
-  const token = localStorage.getItem("staff_token");
+  const token = window.CityPlusApi.getToken("staff");
 
   if (!token) {
     window.location.href = "login.html";
@@ -134,7 +134,7 @@ function renderStaffDashboardWidgets() {
       topIssues.forEach(issue => {
         const catName = issue.category ? (issue.category.name || issue.category) : '--';
         
-        const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
+        const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : issue.status === 'Rejected' ? 'rejected' : 'pending';
         const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.15rem 0.5rem; border-radius: 9999px; font-weight: 500; font-size: 0.75rem;">${issue.status}</span>`;
         
         let priorityColor = 'var(--text-secondary)';
@@ -276,12 +276,9 @@ function renderStaffIssues() {
   const mapTab = document.getElementById('staff-map-view-container');
   if (mapTab && mapTab.style.display !== 'none') {
     let mapFilteredIssues = filteredIssues;
-    if (staffMapStateFilter || staffMapCityFilter) {
+    if (staffMapStatusFilter) {
        mapFilteredIssues = mapFilteredIssues.filter(issue => {
-         const loc = parseLocationForMap(issue.location);
-         const matchState = !staffMapStateFilter || loc.state === staffMapStateFilter;
-         const matchCity = !staffMapCityFilter || loc.city === staffMapCityFilter;
-         return matchState && matchCity;
+         return !staffMapStatusFilter || issue.status === staffMapStatusFilter;
        });
     }
     renderStaffAllIssuesMap(mapFilteredIssues);
@@ -317,7 +314,7 @@ function renderStaffIssues() {
       ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
       : "-";
 
-    const statusOptions = ["Pending", "In Progress", "Resolved"]
+    const statusOptions = ["Pending", "In Progress", "Resolved", "Rejected"]
       .map(s => `<option value="${s}" ${issue.status === s ? "selected" : ""}>${s}</option>`)
       .join("");
 
@@ -325,7 +322,7 @@ function renderStaffIssues() {
     tr.setAttribute("data-id", issue._id);
 
     // For "All Issues" view: disable action. For "Assigned" view, show view button.
-    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : issue.status === 'Rejected' ? 'rejected' : 'pending';
     const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
     const statusCell = `<td>${statusBadge}</td>`;
 
@@ -390,12 +387,15 @@ window.renderStaffAllIssuesMap = function(issues) {
   }
   
   window.staffAllIssuesMarkers = L.layerGroup().addTo(window.staffAllIssuesMapInstance);
+  const bounds = [];
   
   issues.forEach(issue => {
     if (issue.lat && issue.lng) {
+      bounds.push([issue.lat, issue.lng]);
       let markerColor = '#ef4444'; 
       if (issue.status === 'In Progress') markerColor = '#eab308';
-      else if (issue.status === 'Resolved') markerColor = '#22c55e'; 
+      else if (issue.status === 'Resolved') markerColor = '#22c55e';
+      else if (issue.status === 'Rejected') markerColor = '#b91c1c';
       
       const svgIcon = L.divIcon({
         className: 'custom-map-marker',
@@ -413,6 +413,7 @@ window.renderStaffAllIssuesMap = function(issues) {
       let statusColor = '#ef4444';
       if (issue.status === 'In Progress') statusColor = '#eab308';
       else if (issue.status === 'Resolved') statusColor = '#22c55e';
+      else if (issue.status === 'Rejected') statusColor = '#b91c1c';
       marker.bindTooltip(`
         <div style="min-width:180px;">
           <strong style="font-size:0.875rem;">${issue.title || issue.category}</strong><br/>
@@ -445,6 +446,16 @@ window.renderStaffAllIssuesMap = function(issues) {
       window.staffAllIssuesMarkers.addLayer(marker);
     }
   });
+
+  if (bounds.length > 0) {
+    if (bounds.length === 1) {
+      window.staffAllIssuesMapInstance.setView(bounds[0], 15);
+    } else {
+      window.staffAllIssuesMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+  } else {
+    window.staffAllIssuesMapInstance.setView([19.2952, 73.0544], 13);
+  }
 
   setTimeout(() => window.staffAllIssuesMapInstance.invalidateSize(), 100);
 }
@@ -727,6 +738,7 @@ function openStaffIssueDetails(issue) {
   let statusClass = "pending";
   if (issue.status === "In Progress") statusClass = "progress";
   if (issue.status === "Resolved") statusClass = "resolved";
+  if (issue.status === "Rejected") statusClass = "rejected";
 
   // Set title
   document.getElementById("staffDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}: ${issue.title || 'Untitled'}`;
@@ -768,16 +780,27 @@ function openStaffIssueDetails(issue) {
   // Set status form or show resolved message
   const statusForm = document.getElementById("staffModalStatusForm");
   const resolvedMsg = document.getElementById("staffModalStatusResolvedMsg");
+  const rejectedMsg = document.getElementById("staffModalStatusRejectedMsg");
+  const rejectSection = document.getElementById("staffModalRejectRequestSection");
   const statusSelect = document.getElementById("staffModalStatusSelect");
   const noteInput = document.getElementById("staffModalStatusNote");
   const imageInput = document.getElementById("staffModalStatusImage");
+  const rejectNoteInput = document.getElementById("staffModalRejectNote");
 
   if (issue.status === "Resolved") {
     if (statusForm) statusForm.style.display = "none";
     if (resolvedMsg) resolvedMsg.style.display = "block";
+    if (rejectedMsg) rejectedMsg.style.display = "none";
+    if (rejectSection) rejectSection.style.display = "none";
+  } else if (issue.status === "Rejected") {
+    if (statusForm) statusForm.style.display = "none";
+    if (resolvedMsg) resolvedMsg.style.display = "none";
+    if (rejectedMsg) rejectedMsg.style.display = "block";
+    if (rejectSection) rejectSection.style.display = "none";
   } else {
     if (statusForm) statusForm.style.display = "block";
     if (resolvedMsg) resolvedMsg.style.display = "none";
+    if (rejectedMsg) rejectedMsg.style.display = "none";
     if (statusSelect) {
       statusSelect.value = issue.status;
       statusSelect.dataset.issueId = issue._id;
@@ -789,6 +812,8 @@ function openStaffIssueDetails(issue) {
     }
     if (noteInput) noteInput.value = "";
     if (imageInput) imageInput.value = "";
+    if (rejectSection) rejectSection.style.display = currentStaffView === "all" ? "none" : "block";
+    if (rejectNoteInput) rejectNoteInput.value = "";
   }
 
   // Set Feedback
@@ -946,16 +971,10 @@ async function updateStaffIssueStatus() {
   const noteContent = document.getElementById("staffModalStatusNote").value;
   const imageInput = document.getElementById("staffModalStatusImage");
   const file = imageInput.files[0];
-
-  if ((newStatus === "In Progress" || newStatus === "Resolved") && !file) {
+  if (newStatus !== "Rejected" && (newStatus === "In Progress" || newStatus === "Resolved") && !file) {
     showToast('warning', `An image proof is required to change status to ${newStatus}.`);
     return;
   }
-
-  const formData = new FormData();
-  formData.append("status", newStatus);
-  if (noteContent) formData.append("note", noteContent);
-  if (file) formData.append("image", file);
 
   const token = localStorage.getItem("staff_token");
 
@@ -966,16 +985,40 @@ async function updateStaffIssueStatus() {
   btn.disabled = true;
 
   try {
-    const res = await fetch(`/api/issues/${issueId}/status`, {
-      method: "PATCH",
-      headers: {
-        Authorization: "Bearer " + token
-      },
-      body: formData
-    });
-    const data = await res.json();
-    // Show toast notification
-    showToast('success', `Issue status successfully updated to "${newStatus}".`);
+    if (newStatus === "Rejected") {
+      const res = await fetch(`/api/issues/${issueId}/reject`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ note: noteContent || "" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to reject issue.");
+      showToast('success', 'Issue rejected successfully.');
+    } else {
+      if ((newStatus === "In Progress" || newStatus === "Resolved") && !file) {
+        showToast('warning', `An image proof is required to change status to ${newStatus}.`);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("status", newStatus);
+      if (noteContent) formData.append("note", noteContent);
+      if (file) formData.append("image", file);
+
+      const res = await fetch(`/api/issues/${issueId}/status`, {
+        method: "PATCH",
+        headers: {
+          Authorization: "Bearer " + token
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update status.");
+      showToast('success', `Issue status successfully updated to "${newStatus}".`);
+    }
     closeStaffIssueDetails();
     loadStaffData();
   } catch (err) {
@@ -987,9 +1030,43 @@ async function updateStaffIssueStatus() {
   }
 }
 
+async function requestStaffIssueReject() {
+  const statusSelect = document.getElementById("staffModalStatusSelect");
+  const issueId = statusSelect.dataset.issueId;
+  const noteContent = document.getElementById("staffModalRejectNote").value;
+  const token = localStorage.getItem("staff_token");
+  const btn = document.getElementById("staffModalRejectSubmitBtn");
+  const originalHtml = btn.innerHTML;
+
+  btn.innerHTML = 'Sending...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/issues/${issueId}/reject-request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ note: noteContent || "" })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to send rejection request.");
+    showToast('success', 'Rejection request sent to admins.');
+    closeStaffIssueDetails();
+  } catch (err) {
+    console.error("Error requesting rejection:", err);
+    showToast('error', err.message);
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
+
 // Expose for inline HTML
 window.closeStaffIssueDetails = closeStaffIssueDetails;
 window.updateStaffIssueStatus = updateStaffIssueStatus;
+window.requestStaffIssueReject = requestStaffIssueReject;
 
 // Logout confirmation modal
 function showLogoutConfirmation() {
@@ -1003,10 +1080,7 @@ function hideLogoutConfirmation() {
 }
 
 function confirmLogout() {
-  const theme = localStorage.getItem('cityplus-theme');
-  const items = ['staff_token', 'staff_role', 'staff_userName', 'staff_userEmail', 'staff_departmentName'];
-  items.forEach(item => localStorage.removeItem(item));
-  if (theme) localStorage.setItem('cityplus-theme', theme);
+  window.CityPlusApi.clearSession('staff');
   window.location.href = 'login.html';
 }
 
@@ -1140,8 +1214,8 @@ window.submitPasswordChange = async function () {
   try {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword })
+      headers: window.CityPlusApi.authHeaders('staff', { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ currentPassword, newPassword })
     });
     const data = await res.json();
 
@@ -1162,8 +1236,7 @@ window.submitPasswordChange = async function () {
   }
 };
 // Map Filters Logic
-let staffMapStateFilter = "";
-let staffMapCityFilter = "";
+let staffMapStatusFilter = "";
 
 function parseLocationForMap(locationStr) {
   if (!locationStr) return { city: '', state: '' };
@@ -1182,40 +1255,40 @@ function parseLocationForMap(locationStr) {
   return { city: locationStr, state: '' };
 }
 
-function getUniqueLocationsForMap(issues) {
-  const states = new Set();
-  const cities = new Set();
-  
-  issues.forEach(issue => {
-    const loc = parseLocationForMap(issue.location);
-    if(loc.state) states.add(loc.state);
-    if(loc.city) cities.add(loc.city);
+function populateMapSelect(select, label, values) {
+  if (!select) return;
+  select.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = label;
+  select.appendChild(defaultOption);
+
+  values.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
   });
-  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
 }
 
 function setupStaffMapFilters(issues) {
-  const stateSelect = document.getElementById('staffMapStateFilter');
-  const citySelect = document.getElementById('staffMapCityFilter');
-  if(!stateSelect || !citySelect) return;
-  
-  const { states, cities } = getUniqueLocationsForMap(issues);
-  
-  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
-  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+  const statusSelect = document.getElementById('staffMapStatusFilter');
+  const resetButton = document.getElementById('staffMapResetFilters');
+  if (!statusSelect) return;
 
-  const newStateSelect = stateSelect.cloneNode(true);
-  const newCitySelect = citySelect.cloneNode(true);
-  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
-  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+  populateMapSelect(statusSelect, "All Statuses", ["Pending", "In Progress", "Resolved", "Rejected"]);
+  statusSelect.value = staffMapStatusFilter;
 
-  newStateSelect.addEventListener('change', (e) => {
-    staffMapStateFilter = e.target.value;
-    renderStaffIssues(); 
-  });
-  
-  newCitySelect.addEventListener('change', (e) => {
-    staffMapCityFilter = e.target.value;
-    renderStaffIssues(); 
-  });
+  statusSelect.onchange = (e) => {
+    staffMapStatusFilter = e.target.value;
+    renderStaffIssues();
+  };
+
+  if (resetButton) {
+    resetButton.onclick = () => {
+      staffMapStatusFilter = "";
+      setupStaffMapFilters(issues);
+      renderStaffIssues();
+    };
+  }
 }

@@ -1,3 +1,7 @@
+function landingText(key, fallback) {
+  return fallback || key;
+}
+
 async function loadRecentIssues() {
   // Target the container - try ID first, then fallback to class
   let container = document.querySelector("#public-issues-grid");
@@ -44,7 +48,7 @@ async function loadRecentIssues() {
       if (container) {
         container.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--text-secondary);">
-            <p>Please <a href="login.html" style="color: var(--accent-primary); text-decoration: none; font-weight: 500;">log in</a> to view reported issues.</p>
+            <p>${landingText("common.loginToViewIssues", "Please")} <a href="login.html" style="color: var(--accent-primary); text-decoration: none; font-weight: 500;">${landingText("nav.login", "log in")}</a> to view reported issues.</p>
           </div>
         `;
         // If the API fails, set metrics to 0 so they don't show old data.
@@ -76,7 +80,7 @@ async function loadRecentIssues() {
     if (displayIssues.length === 0) {
       container.innerHTML = `
         <div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--text-secondary);">
-          <p>No complaints have been reported yet.</p>
+          <p>${landingText("home.noReportsYet", "No complaints have been reported yet.")}</p>
         </div>
       `;
       return;
@@ -94,6 +98,7 @@ async function loadRecentIssues() {
       let statusClass = "pending";
       if (issue.status === "In Progress") statusClass = "progress";
       if (issue.status === "Resolved") statusClass = "resolved";
+      if (issue.status === "Rejected") statusClass = "rejected";
 
       const imageHtml = issue.image
         ? `<img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="${issue.title}" class="issue-card-image">`
@@ -122,7 +127,7 @@ async function loadRecentIssues() {
           </div>
 
         </div>
-        <div class="issue-card-date">Submitted: ${created}</div>
+        <div class="issue-card-date">${landingText("common.submittedPrefix", "Submitted:")} ${created}</div>
       `;
 
       // Add click handler to open in-page details
@@ -138,7 +143,7 @@ async function loadRecentIssues() {
   } catch (err) {
     console.error("Error loading issues:", err);
     if (container) {
-      container.innerHTML = '<p style="color: var(--text-secondary);">Unable to load complaints at this time.</p>';
+    container.innerHTML = `<p style="color: var(--text-secondary);">${landingText("common.unableToLoadComplaints", "Unable to load complaints at this time.")}</p>`;
     }
     // If the API fails, set metrics to 0 so they don't show old data.
     if (elTotal) elTotal.textContent = 0;
@@ -177,12 +182,15 @@ function renderPublicIssuesMap(issues) {
   }
   
   window.publicIssuesMarkers = L.layerGroup().addTo(window.publicIssuesMapInstance);
+  const bounds = [];
   
   issues.forEach(issue => {
     if (issue.lat && issue.lng) {
+      bounds.push([issue.lat, issue.lng]);
       let markerColor = '#ef4444'; // Red default
       if (issue.status === 'In Progress') markerColor = '#eab308'; // Yellow
       else if (issue.status === 'Resolved') markerColor = '#22c55e'; // Green
+      else if (issue.status === 'Rejected') markerColor = '#b91c1c'; // Red
       
       const svgIcon = L.divIcon({
         className: 'custom-map-marker',
@@ -200,6 +208,7 @@ function renderPublicIssuesMap(issues) {
       let statusColor = '#ef4444';
       if (issue.status === 'In Progress') statusColor = '#eab308';
       else if (issue.status === 'Resolved') statusColor = '#22c55e';
+      else if (issue.status === 'Rejected') statusColor = '#b91c1c';
       marker.bindTooltip(`
         <div style="min-width:180px;">
           <strong style="font-size:0.875rem;">${issue.title || issue.category}</strong><br/>
@@ -216,15 +225,15 @@ function renderPublicIssuesMap(issues) {
       const popupContent = `
         <div style="min-width:220px; max-width:280px; font-family: inherit;">
           ${issue.image ? `<img src="${issue.image.startsWith('http') ? issue.image : issue.image}" alt="${issue.title}" style="width:100%; height:120px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
-          <h4 style="margin:0 0 0.25rem 0; font-size:0.95rem; color:#1e293b;">${issue.title || 'Untitled'}</h4>
+          <h4 style="margin:0 0 0.25rem 0; font-size:0.95rem; color:#1e293b;">${issue.title || landingText("common.untitled", "Untitled")}</h4>
           <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.35rem;">
             <span style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.category}</span>
             <span style="background:${statusColor}20; color:${statusColor}; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">${issue.status}</span>
           </div>
           <p style="margin:0 0 0.25rem 0; font-size:0.8rem; color:#64748b;">📍 ${issue.location || '--'}</p>
-          <p style="margin:0 0 0.5rem 0; font-size:0.75rem; color:#94a3b8;">Submitted: ${created}</p>
+          <p style="margin:0 0 0.5rem 0; font-size:0.75rem; color:#94a3b8;">${landingText("common.submittedPrefix", "Submitted:")} ${created}</p>
           ${issue.description ? `<p style="margin:0 0 0.5rem 0; font-size:0.8rem; color:#475569; line-height:1.4;">${issue.description.substring(0, 100)}${issue.description.length > 100 ? '...' : ''}</p>` : ''}
-          <button onclick="openIssueDetails(window.publicIssuesList.find(i => i._id === '${issue._id}'))" style="width:100%; padding:0.4rem; background:#3b82f6; color:white; border:none; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer;">View Full Details</button>
+          <button onclick="openIssueDetails(window.publicIssuesList.find(i => i._id === '${issue._id}'))" style="width:100%; padding:0.4rem; background:#3b82f6; color:white; border:none; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer;">${landingText("common.viewFullDetails", "View Full Details")}</button>
         </div>
       `;
       marker.bindPopup(popupContent, { maxWidth: 300 });
@@ -232,6 +241,16 @@ function renderPublicIssuesMap(issues) {
       window.publicIssuesMarkers.addLayer(marker);
     }
   });
+
+  if (bounds.length > 0) {
+    if (bounds.length === 1) {
+      window.publicIssuesMapInstance.setView(bounds[0], 15);
+    } else {
+      window.publicIssuesMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+  } else {
+    window.publicIssuesMapInstance.setView([19.2952, 73.0544], 13);
+  }
 
   setTimeout(() => { 
     window.publicIssuesMapInstance.invalidateSize();
@@ -259,6 +278,7 @@ function openIssueDetails(issue) {
   let statusClass = "open";
   if (issue.status === "In Progress") statusClass = "progress";
   if (issue.status === "Resolved") statusClass = "resolved";
+  if (issue.status === "Rejected") statusClass = "rejected";
 
   // Set top title
   document.getElementById("pageIssueTitle").textContent = issue.title;
@@ -298,12 +318,13 @@ function openIssueDetails(issue) {
   if (issue.status === "Pending") { statusColor = "var(--yellow-600)"; statusBg = "rgba(234, 179, 8, 0.1)"; }
   if (issue.status === "In Progress") { statusColor = "var(--blue-600)"; statusBg = "rgba(59, 130, 246, 0.1)"; }
   if (issue.status === "Resolved") { statusColor = "var(--green-600)"; statusBg = "rgba(34, 197, 94, 0.1)"; }
+  if (issue.status === "Rejected") { statusColor = "#b91c1c"; statusBg = "rgba(239, 68, 68, 0.1)"; }
   document.getElementById("pageStatus").innerHTML = `<span style="background: ${statusBg}; color: ${statusColor}; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">${issue.status || '--'}</span>`;
   // Date received
   document.getElementById("pageSubmitted").textContent = created;
 
   // Set Reporter info (anonymized properly)
-  const reporterName = issue.reporterName || (issue.citizen && issue.citizen.name) || "Anonymous Citizen";
+  const reporterName = issue.reporterName || (issue.citizen && issue.citizen.name) || landingText("common.anonymousCitizen", "Anonymous Citizen");
   document.getElementById("pageReporter").innerHTML = `
     <div style="display: flex; align-items: center; gap: 0.75rem;">
       <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-10); display: flex; align-items: center; justify-content: center; color: var(--primary-color);">
@@ -341,7 +362,7 @@ function openIssueDetails(issue) {
       fbText.textContent = `"${issue.feedback.text}"`;
       fbText.style.fontStyle = "italic";
     } else {
-      fbText.textContent = "No text feedback provided.";
+      fbText.textContent = landingText("common.noTextFeedback", "No text feedback provided.");
       fbText.style.fontStyle = "normal";
       fbText.style.color = "var(--slate-400)";
     }
@@ -350,14 +371,14 @@ function openIssueDetails(issue) {
   }
 
   // 1. Submitted
-  tlContent.innerHTML += createTimelineItemHTML("Reported", created, "Citizen submitted the issue.", "assignment", "var(--slate-500)", null);
+  tlContent.innerHTML += createTimelineItemHTML(landingText("timeline.reported", "Reported"), created, landingText("timeline.citizenSubmitted", "Citizen submitted the issue."), "assignment", "var(--slate-500)", null);
 
   // 2. In Progress
   if (issue.inProgressAt) {
     const ipDate = new Date(issue.inProgressAt).toLocaleDateString("en-IN", {
       day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
     });
-    tlContent.innerHTML += createTimelineItemHTML("In Progress", ipDate, issue.inProgressNote || "Staff has started working on it.", "engineering", "var(--blue-500)", issue.inProgressImage);
+    tlContent.innerHTML += createTimelineItemHTML(landingText("timeline.inProgress", "In Progress"), ipDate, issue.inProgressNote || landingText("timeline.staffWorking", "Staff has started working on it."), "engineering", "var(--blue-500)", issue.inProgressImage);
   }
 
   // 3. Resolved
@@ -365,7 +386,7 @@ function openIssueDetails(issue) {
     const resDate = new Date(issue.resolvedAt).toLocaleDateString("en-IN", {
       day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
     });
-    tlContent.innerHTML += createTimelineItemHTML("Resolved", resDate, issue.resolvedNote || "Issue has been resolved.", "check_circle", "var(--green-500)", issue.resolvedImage);
+    tlContent.innerHTML += createTimelineItemHTML(landingText("timeline.resolved", "Resolved"), resDate, issue.resolvedNote || landingText("timeline.issueResolved", "Issue has been resolved."), "check_circle", "var(--green-500)", issue.resolvedImage);
   }
 }
 
@@ -403,8 +424,7 @@ function closeIssueDetails() {
 document.addEventListener("DOMContentLoaded", loadRecentIssues);
 
 // --- Map Filters Logic ---
-let publicMapStateFilter = "";
-let publicMapCityFilter = "";
+let publicMapStatusFilter = "";
 
 function parseLocationForMap(locationStr) {
   if (!locationStr) return { city: '', state: '' };
@@ -423,52 +443,48 @@ function parseLocationForMap(locationStr) {
   return { city: locationStr, state: '' };
 }
 
-function getUniqueLocationsForMap(issues) {
-  const states = new Set();
-  const cities = new Set();
-  
-  issues.forEach(issue => {
-    const loc = parseLocationForMap(issue.location);
-    if(loc.state) states.add(loc.state);
-    if(loc.city) cities.add(loc.city);
+function populateMapSelect(select, label, values) {
+  if (!select) return;
+  select.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = label;
+  select.appendChild(defaultOption);
+
+  values.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
   });
-  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
 }
 
 function setupPublicMapFilters(issues) {
-  const stateSelect = document.getElementById('publicMapStateFilter');
-  const citySelect = document.getElementById('publicMapCityFilter');
-  if(!stateSelect || !citySelect) return;
-  
-  const { states, cities } = getUniqueLocationsForMap(issues);
-  
-  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
-  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+  const statusSelect = document.getElementById('publicMapStatusFilter');
+  const resetButton = document.getElementById('publicMapResetFilters');
+  if (!statusSelect) return;
 
-  // Remove old event listeners if overriding
-  const newStateSelect = stateSelect.cloneNode(true);
-  const newCitySelect = citySelect.cloneNode(true);
-  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
-  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+  populateMapSelect(statusSelect, "All Statuses", ["Pending", "In Progress", "Resolved", "Rejected"]);
+  statusSelect.value = publicMapStatusFilter;
 
-  newStateSelect.addEventListener('change', (e) => {
-    publicMapStateFilter = e.target.value;
+  statusSelect.onchange = (e) => {
+    publicMapStatusFilter = e.target.value;
     applyPublicMapFilters();
-  });
-  
-  newCitySelect.addEventListener('change', (e) => {
-    publicMapCityFilter = e.target.value;
-    applyPublicMapFilters();
-  });
+  };
+
+  if (resetButton) {
+    resetButton.onclick = () => {
+      publicMapStatusFilter = "";
+      setupPublicMapFilters(issues);
+      applyPublicMapFilters();
+    };
+  }
 }
 
 function applyPublicMapFilters() {
   if (!window.publicIssuesList) return;
   const filtered = window.publicIssuesList.filter(issue => {
-    const loc = parseLocationForMap(issue.location);
-    const matchState = !publicMapStateFilter || loc.state === publicMapStateFilter;
-    const matchCity = !publicMapCityFilter || loc.city === publicMapCityFilter;
-    return matchState && matchCity;
+    return !publicMapStatusFilter || issue.status === publicMapStatusFilter;
   });
   renderPublicIssuesMap(filtered);
 }

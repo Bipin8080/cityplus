@@ -43,7 +43,7 @@
   </style>
 </head>
 
-<body>
+<body data-i18n-page-title="page.homeTitle">
   <!-- Navbar -->
   <header class="navbar">
     <div class="container navbar-inner">
@@ -51,11 +51,10 @@
         <div class="brand-title">CityPlus</div>
       </a>
       <nav class="navbar-menu">
-        <a href="javascript:void(0);" onclick="switchView('home')" class="navbar-link active" id="nav-home">Home</a>
-        <a href="javascript:void(0);" onclick="switchView('recent-issues')" class="navbar-link" id="nav-recent">Recent
-          Issues</a>
-        <a href="javascript:void(0);" onclick="switchView('map')" class="navbar-link" id="nav-map">Map View</a>
-        <a href="javascript:void(0);" onclick="switchView('about')" class="navbar-link" id="nav-about">About</a>
+        <a href="javascript:void(0);" onclick="switchView('home')" class="navbar-link active" id="nav-home" data-i18n="nav.home">Home</a>
+        <a href="javascript:void(0);" onclick="switchView('recent-issues')" class="navbar-link" id="nav-recent" data-i18n="nav.recentIssues">Recent Issues</a>
+        <a href="javascript:void(0);" onclick="switchView('map')" class="navbar-link" id="nav-map" data-i18n="nav.mapView">Map View</a>
+        <a href="javascript:void(0);" onclick="switchView('about')" class="navbar-link" id="nav-about" data-i18n="nav.about">About</a>
       </nav>
       <div class="navbar-auth">
         <a href="login.html" class="btn btn-outline">Login</a>
@@ -72,12 +71,12 @@
         <!-- Left -->
         <div>
           <h1 class="hero-title">
-            Report local problems, track resolutions, and build a better city with CityPlus.
+            <span data-i18n="home.heroTitle">Report local problems, track resolutions, and build a better city with CityPlus.</span>
           </h1>
           <p class="hero-subtitle">
-            CityPlus allows citizens to quickly report civic issues like potholes, streetlight failures,
+            <span data-i18n="home.heroSubtitle">CityPlus allows citizens to quickly report civic issues like potholes, streetlight failures,
             water leakage and garbage dumps. Municipal staff can triage, assign and resolve complaints
-            from a single dashboard.
+            from a single dashboard.</span>
           </p>
           <div class="hero-badges">
             <span class="badge">Civic Issue Management</span>
@@ -86,27 +85,31 @@
           </div>
 
           <div class="hero-actions">
-            <a href="login.html" class="btn btn-primary">Sign in to Cityplus</a>
+            <a href="report-issue.html" class="btn btn-primary" data-i18n="home.reportIssue">Report an Issue</a>
+            <a href="login.html" class="btn btn-outline" data-i18n="home.signIn">Sign in to Cityplus</a>
           </div>
+          <p class="hero-note" style="margin-top: 12px; color: var(--text-secondary, #64748b); font-size: 0.95rem;">
+            No login required for issue submission. Enter your email on the report form to receive your issue ID.
+          </p>
 
           <div class="hero-meta">
             <div>
               <strong>Citizen</strong>
-              Raise complaints, upload photos, see live status.
+              <span data-i18n="home.citizenMeta">Raise complaints, upload photos, see live status.</span>
             </div>
             <div>
               <strong>Admin & Staff</strong>
-              Assign issues, update progress, analyze hotspots.
+              <span data-i18n="home.adminMeta">Assign issues, update progress, analyze hotspots.</span>
             </div>
           </div>
         </div>
 
         <!-- Right: Overview card with key service metrics -->
         <aside class="hero-card">
-          <div class="hero-card-title">Service Metrics</div>
+          <div class="hero-card-title" data-i18n="home.serviceMetrics">Service Metrics</div>
           <p class="card-text">
-            Cityplus consolidates civic complaints, resolution activity and ward coverage into a single
-            view for municipal administrators.
+            <span data-i18n="home.serviceMetricsDesc">Cityplus consolidates civic complaints, resolution activity and ward coverage into a single
+            view for municipal administrators.</span>
           </p>
 
           <div class="hero-card-grid">
@@ -114,28 +117,28 @@
               <div class="hero-card-icon">
                 <span class="material-icons-round">assignment</span>
               </div>
-              <div class="hero-card-label">Total Complaints</div>
+              <div class="hero-card-label" data-i18n="home.totalComplaints">Total Complaints</div>
               <div class="hero-card-value" id="landing-total">--</div>
             </div>
             <div class="hero-card-item">
               <div class="hero-card-icon">
                 <span class="material-icons-round">check_circle</span>
               </div>
-              <div class="hero-card-label">Resolved Issues</div>
+              <div class="hero-card-label" data-i18n="home.resolvedIssues">Resolved Issues</div>
               <div class="hero-card-value" id="landing-resolved">--</div>
             </div>
             <div class="hero-card-item">
               <div class="hero-card-icon">
                 <span class="material-icons-round">sync</span>
               </div>
-              <div class="hero-card-label">In Progress</div>
+              <div class="hero-card-label" data-i18n="home.inProgress">In Progress</div>
               <div class="hero-card-value" id="landing-progress">--</div>
             </div>
             <div class="hero-card-item">
               <div class="hero-card-icon">
                 <span class="material-icons-round">pending_actions</span>
               </div>
-              <div class="hero-card-label">Pending</div>
+              <div class="hero-card-label" data-i18n="home.pending">Pending</div>
               <div class="hero-card-value" id="landing-pending">--</div>
             </div>
           </div>
@@ -145,7 +148,7 @@
       <!-- How It Works -->
       <section class="how-it-works" id="how-it-works">
         <div class="section-header">
-          <h2 class="section-title">How It Works</h2>
+          <h2 class="section-title" data-i18n="home.howItWorks">How It Works</h2>
           <p class="section-subtitle">A four-step process involving three roles — Citizen, Admin, and Staff — to report,
             manage, and resolve civic issues.</p>
         </div>
@@ -251,11 +254,11 @@
         <div class="container">
           <div class="section-header-row">
             <div>
-              <h2 class="section-title">Common Categories</h2>
-              <p class="section-subtitle">Select a category to view active reports or start a new one.</p>
+              <h2 class="section-title" data-i18n="home.commonCategories">Common Categories</h2>
+              <p class="section-subtitle" data-i18n="home.commonCategoriesSub">Select a category to view active reports or start a new one.</p>
             </div>
             <a href="#" class="view-all-link">
-              View All Categories <span class="material-icons-round">arrow_forward</span>
+              <span data-i18n="home.viewAllCategories">View All Categories</span> <span class="material-icons-round">arrow_forward</span>
             </a>
           </div>
           <div class="category-grid">
@@ -450,19 +453,14 @@
           Explore civic issues geographically across the city.
         </p>
         <!-- ADD FILTERS HERE -->
-        <div id="publicMapFilters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <div id="publicMapFilters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
           <div class="filter-item">
-            <label class="filter-label">State</label>
-            <select id="publicMapStateFilter" class="filter-select">
-              <option value="">All States</option>
+            <label class="filter-label">Status</label>
+            <select id="publicMapStatusFilter" class="filter-select">
+              <option value="">All Statuses</option>
             </select>
           </div>
-          <div class="filter-item">
-            <label class="filter-label">City</label>
-            <select id="publicMapCityFilter" class="filter-select">
-              <option value="">All Cities</option>
-            </select>
-          </div>
+          <button type="button" class="btn btn-outline" id="publicMapResetFilters" style="height: 42px; align-self: flex-end;">Reset Filters</button>
         </div>
 
         <div id="publicIssuesMapContainer" style="width: 100%; height: 500px; border-radius: 1rem; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); z-index: 1;">
@@ -629,7 +627,7 @@
   <div id="privacyPolicyModal" class="policy-modal-backdrop">
     <div class="policy-modal">
       <div class="policy-modal-header">
-        <h2 class="policy-modal-title">Privacy Policy</h2>
+        <h2 class="policy-modal-title" data-i18n="footer.privacyPolicy">Privacy Policy</h2>
         <button class="policy-modal-close" onclick="closePrivacyPolicyModal()">&times;</button>
       </div>
       <div class="policy-modal-content">
@@ -686,7 +684,7 @@
   <div id="termsOfUseModal" class="policy-modal-backdrop">
     <div class="policy-modal">
       <div class="policy-modal-header">
-        <h2 class="policy-modal-title">Terms of Use</h2>
+        <h2 class="policy-modal-title" data-i18n="footer.termsOfUse">Terms of Use</h2>
         <button class="policy-modal-close" onclick="closeTermsOfUseModal()">&times;</button>
       </div>
       <div class="policy-modal-content">
@@ -759,7 +757,7 @@
         <!-- 1) Brand & Description -->
         <div class="footer-col">
           <div class="brand-title">CityPlus</div>
-          <div class="brand-tagline">Smart Civic Issue Reporting Platform</div>
+          <div class="brand-tagline" data-i18n="footer.brandTagline">Smart Civic Issue Reporting Platform</div>
           <p class="brand-description">
             A prototype platform designed to help citizens report and track common urban issues such as potholes,
             garbage, streetlight failures, and water problems.
@@ -774,19 +772,19 @@
 
         <!-- 2) Platform -->
         <div class="footer-col">
-          <div class="footer-heading">Platform</div>
+          <div class="footer-heading" data-i18n="footer.platform">Platform</div>
           <ul class="footer-links">
-            <li><a href="#top">Home</a></li>
-            <li><a href="report-issue.html">Report Issue</a></li>
-            <li><a href="dashboard-citizen.html">Track Issue</a></li>
-            <li><a href="dashboard-citizen.html">Citizen Dashboard</a></li>
-            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#top" data-i18n="nav.home">Home</a></li>
+            <li><a href="report-issue.html" data-i18n="footer.reportIssue">Report Issue</a></li>
+            <li><a href="dashboard-citizen.html" data-i18n="footer.trackIssue">Track Issue</a></li>
+            <li><a href="dashboard-citizen.html" data-i18n="footer.citizenDashboard">Citizen Dashboard</a></li>
+            <li><a href="#how-it-works" data-i18n="home.howItWorks">How It Works</a></li>
           </ul>
         </div>
 
         <!-- 3) Issue Categories -->
         <div class="footer-col">
-          <div class="footer-heading">Issue Categories</div>
+          <div class="footer-heading" data-i18n="footer.issueCategories">Issue Categories</div>
           <ul class="footer-links">
             <li><a href="report-issue.html?category=Road%20%26%20Potholes">Pothole</a></li>
             <li><a href="report-issue.html?category=Garbage%20%26%20Waste">Garbage</a></li>
@@ -798,10 +796,10 @@
 
         <!-- 4) Contact / Project Info -->
         <div class="footer-col">
-          <div class="footer-heading">Project information</div>
+          <div class="footer-heading" data-i18n="footer.projectInformation">Project information</div>
           <div class="contact-info">
-            <p><i class="fas fa-code-branch"></i> Developed as a Final Year Project</p>
-            <p><i class="fas fa-book-open"></i> Course: BSc IT</p>
+            <p><i class="fas fa-code-branch"></i> <span data-i18n="footer.developedFinalYear">Developed as a Final Year Project</span></p>
+            <p><i class="fas fa-book-open"></i> <span data-i18n="footer.course">Course: BSc IT</span></p>
             <p><i class="far fa-envelope"></i> <a
                 href="mailto:cityplus.project@gmail.com">cityplus.project@gmail.com</a></p>
             <div class="location-tag">
@@ -814,7 +812,7 @@
       <!-- BOTTOM BAR (divider, important lines) -->
       <div class="footer-bottom">
         <div class="bottom-left">
-          © 2026 CityPlus. All rights reserved.
+          © 2026 CityPlus. <span data-i18n="footer.allRightsReserved">All rights reserved.</span>
         </div>
         <div class="bottom-center">
           ⚡ This platform is a student-developed academic prototype and is not connected to any government or municipal
@@ -830,7 +828,7 @@
       <!-- extra micro line to reinforce independent message (optional but keeping style) -->
       <div
         style="margin-top: 1rem; font-size:0.7rem; color:#475569; text-align: right; border-top: 0; padding-top: 0.2rem;">
-        <span style="background:#1e293b; padding:0.1rem 0.6rem; border-radius: 20px;">🔬 academic demonstration</span>
+          <span style="background:#1e293b; padding:0.1rem 0.6rem; border-radius: 20px;">🔬 <span data-i18n="footer.academicDemo">academic demonstration</span></span>
       </div>
     </div>
   </footer>

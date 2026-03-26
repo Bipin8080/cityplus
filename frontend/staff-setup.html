@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CityPlus - Staff Setup</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <meta name="theme-color" content="#1e40af" />
+  <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
+</head>
+
+<body>
+  <header class="navbar navbar-login">
+    <div class="container navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-title">CityPlus</div>
+      </a>
+      <div class="navbar-auth">
+        <a href="login.html" class="btn btn-outline">Back to Login</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-container">
+    <div class="auth-card" style="max-width: 560px;">
+      <div class="auth-content">
+        <div class="auth-header">
+          <div class="auth-title">
+            <span class="material-icons-round">verified_user</span>
+            Set Up Staff Account
+          </div>
+          <p class="auth-subtitle">Choose a password to activate your staff account and continue to the dashboard.</p>
+        </div>
+
+        <div id="setupStatus" class="form-helper" style="margin-bottom: 1rem; display: none;"></div>
+
+        <form id="staffSetupForm">
+          <div class="form-group">
+            <label class="form-label" for="setupEmail">Email Address</label>
+            <input id="setupEmail" type="email" class="form-input" readonly>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="setupPassword">New Password</label>
+            <input id="setupPassword" type="password" class="form-input" placeholder="Choose a secure password" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="setupConfirmPassword">Confirm Password</label>
+            <input id="setupConfirmPassword" type="password" class="form-input" placeholder="Repeat your password" required />
+          </div>
+
+          <button type="submit" class="btn-full btn-primary-large" id="setupSubmitBtn">
+            Activate Account
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/staff-setup.js"></script>
+</body>
+
+</html>

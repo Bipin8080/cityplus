@@ -1,3 +1,7 @@
+function citizenText(key, fallback) {
+  return fallback || key;
+}
+
 // Global state
 let allIssues = [];
 let filteredIssues = [];
@@ -130,7 +134,7 @@ function updateSidebarActive(tab) {
 
 // Check if user is authenticated
 function checkAuth() {
-  const token = localStorage.getItem('citizen_token');
+  const token = window.CityPlusApi.getToken('citizen');
 
   if (!token) {
     window.location.href = 'login.html';
@@ -170,7 +174,7 @@ function loadCitizenProfile() {
 
 // Load citizen issues from API
 async function loadCitizenIssues() {
-  const token = localStorage.getItem('citizen_token');
+  const token = window.CityPlusApi.getToken('citizen');
 
   try {
     const res = await fetch('/api/issues/my', {
@@ -193,7 +197,7 @@ async function loadCitizenIssues() {
 
 // Load all community issues from API
 async function loadAllCommunityIssues() {
-  const token = localStorage.getItem('citizen_token');
+  const token = window.CityPlusApi.getToken('citizen');
 
   try {
     const res = await fetch('/api/issues/all', {
@@ -274,7 +278,7 @@ function renderTable() {
   const paginatedIssues = filteredIssues.slice(start, end);
 
   if (paginatedIssues.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--slate-500);">No issues found</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--slate-500);">${citizenText("common.noIssuesFound", "No issues found")}</td></tr>`;
     updatePaginationControls();
     return;
   }
@@ -294,6 +298,9 @@ function renderTable() {
     } else if (issue.status === 'Resolved') {
       statusClass = 'resolved';
       statusLabel = 'Resolved';
+    } else if (issue.status === 'Rejected') {
+      statusClass = 'rejected';
+      statusLabel = 'Rejected';
     }
 
     const row = document.createElement('tr');
@@ -327,7 +334,7 @@ function renderTable() {
       </td>
       <td>
         <span class="badge badge--${statusClass}">
-          <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : 'blue'}"></span>
+          <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : statusClass === 'rejected' ? 'red' : 'blue'}"></span>
           ${statusLabel}
         </span>
       </td>
@@ -398,7 +405,7 @@ function renderAllIssuesTable() {
   const paginatedIssues = filteredCommunityIssues.slice(start, end);
 
   if (paginatedIssues.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--slate-500);">No issues found</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--slate-500);">${citizenText("common.noIssuesFound", "No issues found")}</td></tr>`;
     updateAllIssuesPaginationControls();
     return;
   }
@@ -418,6 +425,9 @@ function renderAllIssuesTable() {
     } else if (issue.status === 'Resolved') {
       statusClass = 'resolved';
       statusLabel = 'Resolved';
+    } else if (issue.status === 'Rejected') {
+      statusClass = 'rejected';
+      statusLabel = 'Rejected';
     }
 
     const reportedBy = issue.citizen ? issue.citizen.name : 'Anonymous';
@@ -456,7 +466,7 @@ function renderAllIssuesTable() {
       </td>
       <td>
         <span class="badge badge--${statusClass}">
-          <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : 'blue'}"></span>
+          <span class="badge__dot badge__dot--${statusClass === 'pending' ? 'yellow' : statusClass === 'resolved' ? 'green' : statusClass === 'rejected' ? 'red' : 'blue'}"></span>
           ${statusLabel}
         </span>
       </td>
@@ -475,12 +485,9 @@ function renderAllIssuesTable() {
   const mapTab = document.getElementById('mapViewTab');
   if (mapTab && mapTab.style.display !== 'none') {
     let mapFilteredIssues = filteredCommunityIssues;
-    if (citizenMapStateFilter || citizenMapCityFilter) {
+    if (citizenMapStatusFilter) {
       mapFilteredIssues = mapFilteredIssues.filter(issue => {
-        const loc = parseLocationForMap(issue.location);
-        const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
-        const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
-        return matchState && matchCity;
+        return !citizenMapStatusFilter || issue.status === citizenMapStatusFilter;
       });
     }
     renderCitizenAllIssuesMap(mapFilteredIssues);
@@ -523,12 +530,9 @@ window.switchToMapTab = function (fromHash = false) {
 
   function renderMapWithFilters() {
     let mapFilteredIssues = filteredCommunityIssues || allCommunityIssues || [];
-    if (citizenMapStateFilter || citizenMapCityFilter) {
+    if (citizenMapStatusFilter) {
       mapFilteredIssues = mapFilteredIssues.filter(issue => {
-        const loc = parseLocationForMap(issue.location);
-        const matchState = !citizenMapStateFilter || loc.state === citizenMapStateFilter;
-        const matchCity = !citizenMapCityFilter || loc.city === citizenMapCityFilter;
-        return matchState && matchCity;
+        return !citizenMapStatusFilter || issue.status === citizenMapStatusFilter;
       });
     }
     setTimeout(() => renderCitizenAllIssuesMap(mapFilteredIssues), 150);
@@ -561,17 +565,20 @@ function renderCitizenAllIssuesMap(issues) {
   if (window.citizenAllIssuesMarkers) {
     window.citizenAllIssuesMapInstance.removeLayer(window.citizenAllIssuesMarkers);
   }
-
+  
   window.citizenAllIssuesMarkers = L.layerGroup().addTo(window.citizenAllIssuesMapInstance);
-
+  const bounds = [];
+  
   // Store issues globally so popup button onclick can reference them
   window.citizenMapIssuesList = issues;
-
+  
   issues.forEach(issue => {
     if (issue.lat && issue.lng) {
+      bounds.push([issue.lat, issue.lng]);
       let markerColor = '#ef4444';
       if (issue.status === 'In Progress') markerColor = '#eab308';
       else if (issue.status === 'Resolved') markerColor = '#22c55e';
+      else if (issue.status === 'Rejected') markerColor = '#b91c1c';
 
       const svgIcon = L.divIcon({
         className: 'custom-map-marker',
@@ -618,6 +625,16 @@ function renderCitizenAllIssuesMap(issues) {
       window.citizenAllIssuesMarkers.addLayer(marker);
     }
   });
+
+  if (bounds.length > 0) {
+    if (bounds.length === 1) {
+      window.citizenAllIssuesMapInstance.setView(bounds[0], 15);
+    } else {
+      window.citizenAllIssuesMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+  } else {
+    window.citizenAllIssuesMapInstance.setView([19.2952, 73.0544], 13);
+  }
 
   setTimeout(() => window.citizenAllIssuesMapInstance.invalidateSize(), 100);
 }
@@ -826,7 +843,7 @@ function updateStarUI() {
 
 async function submitFeedback(issueId) {
   if (currentRating === 0) {
-    showToast('error', 'Please select a star rating.');
+    showToast('error', citizenText('common.selectStarRating', 'Please select a star rating.'));
     return;
   }
 
@@ -836,7 +853,7 @@ async function submitFeedback(issueId) {
   const originalText = btn.textContent;
 
   btn.disabled = true;
-  btn.textContent = 'Submitting...';
+  btn.textContent = citizenText('common.submitting', 'Submitting...');
 
   try {
     const res = await fetch(`/api/issues/${issueId}/feedback`, {
@@ -851,7 +868,7 @@ async function submitFeedback(issueId) {
     const data = await res.json();
 
     if (res.ok) {
-      showToast('success', 'Feedback submitted successfully!');
+      showToast('success', citizenText('common.feedbackSubmitted', 'Feedback submitted successfully!'));
 
       const issueIndex = allIssues.findIndex(i => i._id === issueId);
       if (issueIndex !== -1) {
@@ -872,11 +889,11 @@ async function submitFeedback(issueId) {
       openIssueDetails(data.issue);
 
     } else {
-      showToast('error', data.message || 'Failed to submit feedback.');
+      showToast('error', data.message || citizenText('common.feedbackSubmitFailed', 'Failed to submit feedback.'));
     }
   } catch (err) {
     console.error(err);
-    showToast('error', 'Network error. Please try again.');
+    showToast('error', citizenText('common.networkError', 'Network error. Please try again.'));
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -958,35 +975,35 @@ window.submitPasswordChange = async function () {
   const newPassword = document.querySelector('#cpNewPassword').value;
 
   if (!email || !currentPassword || !newPassword) {
-    showToast('error', 'All fields are required.');
+    showToast('error', citizenText('common.allFieldsRequired', 'All fields are required.'));
     return;
   }
 
   const btn = document.querySelector('#submitPasswordBtn');
   const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Updating...';
+  btn.textContent = citizenText('common.updating', 'Updating...');
 
   try {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword })
+      headers: window.CityPlusApi.authHeaders('citizen', { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ currentPassword, newPassword })
     });
     const data = await res.json();
 
     if (res.ok) {
-      showToast('success', 'Password changed successfully!');
+      showToast('success', citizenText('common.passwordChanged', 'Password changed successfully!'));
       document.querySelector('#changePasswordForm').style.display = 'none';
       document.querySelector('#cpCurrentPassword').value = '';
       document.querySelector('#cpNewPassword').value = '';
       toggleChangePasswordForm();
     } else {
-      showToast('error', data.message || 'Failed to change password.');
+      showToast('error', data.message || citizenText('common.passwordChangeFailed', 'Failed to change password.'));
     }
   } catch (err) {
     console.error(err);
-    showToast('error', 'Network error. Please try again.');
+    showToast('error', citizenText('common.networkError', 'Network error. Please try again.'));
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -1029,7 +1046,7 @@ function updateActivityFeed() {
           <span class="material-icons">check</span>
         </div>
         <div>
-          <p class="activity-item__title">Issue Resolved: ${issue.title}</p>
+          <p class="activity-item__title">${citizenText('activity.issueResolved', 'Issue Resolved:')} ${issue.title}</p>
           <p class="activity-item__body">Your report #${issue._id.slice(-6)} has been successfully resolved.</p>
           <p class="activity-item__time">${timeAgo}</p>
         </div>
@@ -1130,10 +1147,7 @@ function setupEventListeners() {
 
 // Logout function
 function logout() {
-  const theme = localStorage.getItem('cityplus-theme');
-  const items = ['citizen_token', 'citizen_role', 'citizen_userName', 'citizen_userEmail'];
-  items.forEach(item => localStorage.removeItem(item));
-  if (theme) localStorage.setItem('cityplus-theme', theme);
+  window.CityPlusApi.clearSession('citizen');
   window.location.href = 'login.html';
 }
 
@@ -1149,10 +1163,7 @@ function hideLogoutConfirmation() {
 }
 
 function confirmLogout() {
-  const theme = localStorage.getItem('cityplus-theme');
-  const items = ['citizen_token', 'citizen_role', 'citizen_userName', 'citizen_userEmail'];
-  items.forEach(item => localStorage.removeItem(item));
-  if (theme) localStorage.setItem('cityplus-theme', theme);
+  window.CityPlusApi.clearSession('citizen');
   window.location.href = 'login.html';
 }
 
@@ -1211,7 +1222,7 @@ async function refreshCitizenData(btn) {
 
   if (icon) icon.classList.add('spin-animation');
   btn.disabled = true;
-  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> Refreshing...`;
+  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> ${citizenText('common.refreshing', 'Refreshing...')}`;
 
   try {
     await loadCitizenIssues();
@@ -1228,7 +1239,7 @@ async function refreshAllCommunityData(btn) {
 
   if (icon) icon.classList.add('spin-animation');
   btn.disabled = true;
-  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> Refreshing...`;
+  btn.innerHTML = `<span class="material-icons-round spin-animation">refresh</span> ${citizenText('common.refreshing', 'Refreshing...')}`;
 
   try {
     await loadAllCommunityIssues();
@@ -1241,8 +1252,7 @@ async function refreshAllCommunityData(btn) {
 window.refreshCitizenData = refreshCitizenData;
 window.refreshAllCommunityData = refreshAllCommunityData;
 // Map Filters Logic
-let citizenMapStateFilter = "";
-let citizenMapCityFilter = "";
+let citizenMapStatusFilter = "";
 
 function parseLocationForMap(locationStr) {
   if (!locationStr) return { city: '', state: '' };
@@ -1261,40 +1271,40 @@ function parseLocationForMap(locationStr) {
   return { city: locationStr, state: '' };
 }
 
-function getUniqueLocationsForMap(issues) {
-  const states = new Set();
-  const cities = new Set();
+function populateMapSelect(select, label, values) {
+  if (!select) return;
+  select.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = label;
+  select.appendChild(defaultOption);
 
-  issues.forEach(issue => {
-    const loc = parseLocationForMap(issue.location);
-    if (loc.state) states.add(loc.state);
-    if (loc.city) cities.add(loc.city);
+  values.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
   });
-  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
 }
 
 function setupCitizenMapFilters(issues) {
-  const stateSelect = document.getElementById('citizenMapStateFilter');
-  const citySelect = document.getElementById('citizenMapCityFilter');
-  if (!stateSelect || !citySelect) return;
+  const statusSelect = document.getElementById('citizenMapStatusFilter');
+  const resetButton = document.getElementById('citizenMapResetFilters');
+  if (!statusSelect) return;
 
-  const { states, cities } = getUniqueLocationsForMap(issues);
+  populateMapSelect(statusSelect, "All Statuses", ["Pending", "In Progress", "Resolved", "Rejected"]);
+  statusSelect.value = citizenMapStatusFilter;
 
-  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
-  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
-
-  const newStateSelect = stateSelect.cloneNode(true);
-  const newCitySelect = citySelect.cloneNode(true);
-  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
-  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
-
-  newStateSelect.addEventListener('change', (e) => {
-    citizenMapStateFilter = e.target.value;
+  statusSelect.onchange = (e) => {
+    citizenMapStatusFilter = e.target.value;
     applyAllIssuesFiltersAndRender();
-  });
+  };
 
-  newCitySelect.addEventListener('change', (e) => {
-    citizenMapCityFilter = e.target.value;
-    applyAllIssuesFiltersAndRender();
-  });
+  if (resetButton) {
+    resetButton.onclick = () => {
+      citizenMapStatusFilter = "";
+      setupCitizenMapFilters(issues);
+      applyAllIssuesFiltersAndRender();
+    };
+  }
 }

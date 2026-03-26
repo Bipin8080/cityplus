@@ -17,8 +17,20 @@ const issuesPerPage = 10;
 let currentUserPage = 1;
 const usersPerPage = 10;
 
+function getUserStatusMeta(status) {
+  const normalized = (status || "active").toLowerCase();
+  if (normalized === "pending_setup") {
+    return { label: "Pending Setup", className: "pending_setup" };
+  }
+
+  return {
+    label: normalized.charAt(0).toUpperCase() + normalized.slice(1),
+    className: normalized
+  };
+}
+
 async function loadAdminData() {
-  const token = localStorage.getItem("admin_token");
+  const token = window.CityPlusApi.getToken("admin");
 
   if (!token) {
     window.location.href = "login.html";
@@ -107,14 +119,19 @@ function updateAnalytics(summaryData, usersData) {
   const openPercent = (i.open / total) * 100;
   const progressPercent = (i.inProgress / total) * 100;
   const resolvedPercent = (i.resolved / total) * 100;
+  const rejectedPercent = (i.rejected || 0) / total * 100;
 
   document.getElementById("chart-open").style.width = openPercent + "%";
   document.getElementById("chart-progress").style.width = progressPercent + "%";
   document.getElementById("chart-resolved").style.width = resolvedPercent + "%";
+  const rejectedChart = document.getElementById("chart-rejected");
+  if (rejectedChart) rejectedChart.style.width = rejectedPercent + "%";
 
   document.getElementById("chart-open-val").textContent = i.open;
   document.getElementById("chart-progress-val").textContent = i.inProgress;
   document.getElementById("chart-resolved-val").textContent = i.resolved;
+  const rejectedVal = document.getElementById("chart-rejected-val");
+  if (rejectedVal) rejectedVal.textContent = i.rejected || 0;
 
   // Update user distribution
   document.getElementById("stat-citizens").textContent = u.citizens;
@@ -165,6 +182,7 @@ function displayUsers(users) {
     });
     const tr = document.createElement("tr");
     const userStatus = user.status || 'active';
+    const statusMeta = getUserStatusMeta(userStatus);
 
     // Apply visual style for non-active users
     if (userStatus !== 'active') {
@@ -180,7 +198,7 @@ function displayUsers(users) {
       <td><span class="role-badge ${user.role}">${user.role}</span></td>
       <td>${joined}</td>
       <td>
-        <span class="status-pill status-${userStatus.toLowerCase()}">${userStatus}</span>
+        <span class="status-pill status-${statusMeta.className}">${statusMeta.label}</span>
       </td>
       <td class="action-buttons">
         <button class="btn btn-secondary btn-small view-btn" onclick="openAdminUserDetailsFromTableEncoded(this)" data-user-encoded='${encodeURIComponent(JSON.stringify(user))}'>View</button>
@@ -357,6 +375,7 @@ function openAdminIssueDetails(issue, staffList) {
   let statusClass = "pending";
   if (issue.status === "In Progress") statusClass = "progress";
   if (issue.status === "Resolved") statusClass = "resolved";
+  if (issue.status === "Rejected") statusClass = "rejected";
 
   // Set title
   document.getElementById("adminDetailsTitle").textContent = `Issue #${issue._id.slice(-6)}: ${issue.title || 'Untitled'}`;
@@ -422,6 +441,7 @@ function openAdminIssueDetails(issue, staffList) {
   // Set status form or show resolved message
   const statusForm = document.getElementById("adminModalStatusForm");
   const resolvedMsg = document.getElementById("adminModalStatusResolvedMsg");
+  const rejectedMsg = document.getElementById("adminModalStatusRejectedMsg");
   const statusSelect = document.getElementById("adminModalStatusSelect");
   const noteInput = document.getElementById("adminModalStatusNote");
   const imageInput = document.getElementById("adminModalStatusImage");
@@ -429,9 +449,15 @@ function openAdminIssueDetails(issue, staffList) {
   if (issue.status === "Resolved") {
     if (statusForm) statusForm.style.display = "none";
     if (resolvedMsg) resolvedMsg.style.display = "block";
+    if (rejectedMsg) rejectedMsg.style.display = "none";
+  } else if (issue.status === "Rejected") {
+    if (statusForm) statusForm.style.display = "none";
+    if (resolvedMsg) resolvedMsg.style.display = "none";
+    if (rejectedMsg) rejectedMsg.style.display = "block";
   } else {
     if (statusForm) statusForm.style.display = "block";
     if (resolvedMsg) resolvedMsg.style.display = "none";
+    if (rejectedMsg) rejectedMsg.style.display = "none";
     if (statusSelect) {
       statusSelect.value = issue.status;
       statusSelect.dataset.issueId = issue._id;
@@ -625,16 +651,10 @@ async function updateAdminIssueStatus() {
   const noteContent = document.getElementById("adminModalStatusNote").value;
   const imageInput = document.getElementById("adminModalStatusImage");
   const file = imageInput.files[0];
-
-  if ((newStatus === "In Progress" || newStatus === "Resolved") && !file) {
+  if (newStatus !== "Rejected" && (newStatus === "In Progress" || newStatus === "Resolved") && !file) {
     showToast('warning', `An image proof is required to change status to ${newStatus}.`);
     return;
   }
-
-  const formData = new FormData();
-  formData.append("status", newStatus);
-  if (noteContent) formData.append("note", noteContent);
-  if (file) formData.append("image", file);
 
   const token = localStorage.getItem("admin_token");
 
@@ -645,7 +665,27 @@ async function updateAdminIssueStatus() {
   btn.disabled = true;
 
   try {
-    await updateIssueStatus(token, issueId, formData);
+    if (newStatus === "Rejected") {
+      const res = await fetch(`/api/issues/${issueId}/reject`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ note: noteContent || "" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to reject issue.");
+      showToast('success', 'Issue rejected successfully.');
+      await loadAdminData();
+    } else {
+      const formData = new FormData();
+      formData.append("status", newStatus);
+      if (noteContent) formData.append("note", noteContent);
+      if (file) formData.append("image", file);
+
+      await updateIssueStatus(token, issueId, formData);
+    }
   } finally {
     btn.innerHTML = originalHtml;
     btn.disabled = false;
@@ -665,10 +705,7 @@ function hideLogoutConfirmation() {
 }
 
 function confirmLogout() {
-  const theme = localStorage.getItem('cityplus-theme');
-  const items = ['admin_token', 'admin_role', 'admin_userName', 'admin_userEmail'];
-  items.forEach(item => localStorage.removeItem(item));
-  if (theme) localStorage.setItem('cityplus-theme', theme);
+  window.CityPlusApi.clearSession('admin');
   window.location.href = 'login.html';
 }
 
@@ -784,7 +821,7 @@ function displayIssues(issues) {
     const citizenName = issue.citizen ? issue.citizen.name : "-";
     const departmentName = issue.department ? issue.department.name : "-";
 
-    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : issue.status === 'Rejected' ? 'rejected' : 'pending';
     const statusBadge = `<span class="issue-card-status ${statusClass}" style="padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.875rem;">${issue.status}</span>`;
     const imageCell = issue.image
       ? `<a href="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" target="_blank" title="View full image"><img src="${issue.image.startsWith('http') ? issue.image : '' + issue.image}" alt="Issue" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;"></a>`
@@ -883,12 +920,9 @@ function applyIssueSearchAndFilters() {
     if(paginationContainer && filteredIssues.length > issuesPerPage) paginationContainer.style.display = 'flex';
   } else if (mapContainer && mapContainer.classList.contains('active')) {
     let mapFilteredIssues = filteredIssues;
-    if (adminMapStateFilter || adminMapCityFilter) {
+    if (adminMapStatusFilter) {
        mapFilteredIssues = mapFilteredIssues.filter(issue => {
-         const loc = parseLocationForMap(issue.location);
-         const matchState = !adminMapStateFilter || loc.state === adminMapStateFilter;
-         const matchCity = !adminMapCityFilter || loc.city === adminMapCityFilter;
-         return matchState && matchCity;
+         return !adminMapStatusFilter || issue.status === adminMapStatusFilter;
        });
     }
     renderAdminAllIssuesMap(mapFilteredIssues);
@@ -942,6 +976,7 @@ function renderAdminAllIssuesMap(issues) {
       let markerColor = '#ef4444'; // Pending (red)
       if (issue.status === 'In Progress') markerColor = '#eab308'; // yellow
       if (issue.status === 'Resolved') markerColor = '#22c55e'; // green
+      if (issue.status === 'Rejected') markerColor = '#b91c1c'; // dark red
       
       const svgIcon = L.divIcon({
         html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="${markerColor}" stroke="#ffffff" stroke-width="1.5"/></svg>`,
@@ -984,6 +1019,16 @@ function renderAdminAllIssuesMap(issues) {
       marker.bindPopup(popupContent, { maxWidth: 300 });
     }
   });
+
+  if (bounds.length > 0) {
+    if (bounds.length === 1) {
+      window.adminAllIssuesMapInstance.setView(bounds[0], 15);
+    } else {
+      window.adminAllIssuesMapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+  } else {
+    window.adminAllIssuesMapInstance.setView([19.2952, 73.0544], 13);
+  }
   
   // Fix map sizing glitch when initially hidden
   setTimeout(() => { 
@@ -1227,9 +1272,9 @@ function openAdminUserDetails(user) {
 
   // Status Badge
   const statusStr = user.status || 'active';
-  const statusCap = statusStr.charAt(0).toUpperCase() + statusStr.slice(1);
-  document.getElementById("adminUserDetailStatusBadge").className = `status-pill status-${statusStr.toLowerCase()}`;
-  document.getElementById("adminUserDetailStatusBadge").textContent = statusCap;
+  const statusMeta = getUserStatusMeta(statusStr);
+  document.getElementById("adminUserDetailStatusBadge").className = `status-pill status-${statusMeta.className}`;
+  document.getElementById("adminUserDetailStatusBadge").textContent = statusMeta.label;
 
   // Action Form
   const actionGroup = document.getElementById("adminUserDetailActionGroup");
@@ -1299,7 +1344,7 @@ function renderUserActivity(user) {
 
   userIssues.forEach(issue => {
     const d = new Date(issue.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : 'pending';
+    const statusClass = issue.status === 'Resolved' ? 'resolved' : issue.status === 'In Progress' ? 'progress' : issue.status === 'Rejected' ? 'rejected' : 'pending';
 
     const div = document.createElement("div");
     div.style.cssText = "padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--surface); display: flex; flex-direction: column; gap: 0.25rem;";
@@ -1454,8 +1499,7 @@ window.openAdminUserDetailsFromTableEncoded = openAdminUserDetailsFromTableEncod
 window.closeAdminUserDetails = closeAdminUserDetails;
 
 // --- Map Filters Logic ---
-let adminMapStateFilter = "";
-let adminMapCityFilter = "";
+let adminMapStatusFilter = "";
 
 function parseLocationForMap(locationStr) {
   if (!locationStr) return { city: '', state: '' };
@@ -1474,42 +1518,42 @@ function parseLocationForMap(locationStr) {
   return { city: locationStr, state: '' };
 }
 
-function getUniqueLocationsForMap(issues) {
-  const states = new Set();
-  const cities = new Set();
-  
-  issues.forEach(issue => {
-    const loc = parseLocationForMap(issue.location);
-    if(loc.state) states.add(loc.state);
-    if(loc.city) cities.add(loc.city);
+function populateMapSelect(select, label, values) {
+  if (!select) return;
+  select.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = label;
+  select.appendChild(defaultOption);
+
+  values.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
   });
-  return { states: Array.from(states).filter(Boolean).sort(), cities: Array.from(cities).filter(Boolean).sort() };
 }
 
 function setupAdminMapFilters(issues) {
-  const stateSelect = document.getElementById('adminMapStateFilter');
-  const citySelect = document.getElementById('adminMapCityFilter');
-  if(!stateSelect || !citySelect) return;
-  
-  const { states, cities } = getUniqueLocationsForMap(issues);
-  
-  stateSelect.innerHTML = '<option value="">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
-  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+  const statusSelect = document.getElementById('adminMapStatusFilter');
+  const resetButton = document.getElementById('adminMapResetFilters');
+  if (!statusSelect) return;
 
-  const newStateSelect = stateSelect.cloneNode(true);
-  const newCitySelect = citySelect.cloneNode(true);
-  stateSelect.parentNode.replaceChild(newStateSelect, stateSelect);
-  citySelect.parentNode.replaceChild(newCitySelect, citySelect);
+  populateMapSelect(statusSelect, "All Statuses", ["Pending", "In Progress", "Resolved", "Rejected"]);
+  statusSelect.value = adminMapStatusFilter;
 
-  newStateSelect.addEventListener('change', (e) => {
-    adminMapStateFilter = e.target.value;
-    applyIssueSearchAndFilters(); 
-  });
-  
-  newCitySelect.addEventListener('change', (e) => {
-    adminMapCityFilter = e.target.value;
-    applyIssueSearchAndFilters(); 
-  });
+  statusSelect.onchange = (e) => {
+    adminMapStatusFilter = e.target.value;
+    applyIssueSearchAndFilters();
+  };
+
+  if (resetButton) {
+    resetButton.onclick = () => {
+      adminMapStatusFilter = "";
+      setupAdminMapFilters(issues);
+      applyIssueSearchAndFilters();
+    };
+  }
 }
 
 window.updateUserDetailsStatus = updateUserDetailsStatus;
@@ -1528,15 +1572,6 @@ window.populateDepartmentsDropdown = function(departments) {
   });
 };
 
-window.generateStaffPassword = function() {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let pwd = "";
-  for(let i=0; i<12; i++){
-    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  document.getElementById("staffPassword").value = pwd;
-};
-
 window.handleStaffRegistration = async function(e) {
   e.preventDefault();
   
@@ -1544,13 +1579,12 @@ window.handleStaffRegistration = async function(e) {
   const email = document.getElementById("staffEmail").value.trim();
   const staffId = document.getElementById("staffIdInput").value.trim();
   const department = document.getElementById("staffDepartment").value;
-  const password = document.getElementById("staffPassword").value;
   
   const msgEl = document.getElementById("registerStaffMessage");
   const btn = document.getElementById("registerStaffSubmitBtn");
   
   // Basic validation
-  if(!name || !email || !staffId || !department || !password) {
+  if(!name || !email || !staffId || !department) {
     msgEl.textContent = "All fields are required.";
     msgEl.className = "error-message";
     msgEl.style.display = "block";
@@ -1570,35 +1604,23 @@ window.handleStaffRegistration = async function(e) {
     return;
   }
 
-  // Password validation (min 6 characters)
-  if (password.length < 6) {
-    msgEl.textContent = "Password must be at least 6 characters long.";
-    msgEl.className = "error-message";
-    msgEl.style.display = "block";
-    msgEl.style.color = "#ef4444";
-    msgEl.style.backgroundColor = "#fee2e2";
-    return;
-  }
-  
   btn.disabled = true;
   btn.textContent = "Registering Staff...";
   msgEl.style.display = "none";
   
   try {
-    const token = localStorage.getItem("token");
     const res = await fetch("/api/auth/register-staff", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
-      body: JSON.stringify({ name, email, staffId, department, password })
+      headers: window.CityPlusApi.authHeaders("admin", {
+        "Content-Type": "application/json"
+      }),
+      body: JSON.stringify({ name, email, staffId, department })
     });
     
     const data = await res.json();
     
     if (res.ok) {
-      msgEl.textContent = "Staff member successfully registered! Credentials sent to email.";
+      msgEl.textContent = "Staff member successfully registered! A setup link was sent to their email.";
       msgEl.className = "success-message";
       msgEl.style.display = "block";
       msgEl.style.color = "#16a34a";
@@ -1725,8 +1747,8 @@ window.submitPasswordChange = async function () {
   try {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, currentPassword, newPassword })
+      headers: window.CityPlusApi.authHeaders('admin', { 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ currentPassword, newPassword })
     });
     const data = await res.json();
 

@@ -1133,6 +1133,11 @@ body>div:not(.app-shell) {
   color: var(--status-open-text);
 }
 
+.status-pending_setup {
+  background: var(--status-open-bg);
+  color: var(--status-open-text);
+}
+
 .status-progress {
   background: var(--status-progress-bg);
   color: var(--status-progress-text);
@@ -1281,6 +1286,11 @@ body>div:not(.app-shell) {
 .issue-card-status.resolved {
   background: var(--status-resolved-bg);
   color: var(--status-resolved-text);
+}
+
+.issue-card-status.rejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
 }
 
 .issue-card-details {
@@ -1683,6 +1693,11 @@ body>div:not(.app-shell) {
   color: var(--status-resolved-text);
 }
 
+.table-status-badge.rejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
 .admin-status-control {
   display: flex;
   align-items: center;
@@ -1945,6 +1960,11 @@ body>div:not(.app-shell) {
 .status-pill.resolved {
   background-color: #f0fdf4;
   color: #15803d;
+}
+
+.status-pill.rejected {
+  background-color: #fef2f2;
+  color: #b91c1c;
 }
 
 .status-arrow .material-icons-round {
@@ -3311,6 +3331,12 @@ tbody tr:hover .issue-title {
   border: 1px solid var(--blue-100);
 }
 
+.badge--rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
 .badge__dot {
   width: 0.375rem;
   height: 0.375rem;
@@ -3328,6 +3354,35 @@ tbody tr:hover .issue-title {
 
 .badge__dot--blue {
   background: var(--blue-500);
+}
+
+.badge__dot--red {
+  background: #ef4444;
+}
+
+.notif-item--review {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.02));
+}
+
+.notif-item--review .notif-title {
+  font-weight: 700;
+}
+
+.notif-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #9a3412;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  width: fit-content;
 }
 
 /* Action cell */

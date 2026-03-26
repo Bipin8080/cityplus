@@ -13,18 +13,11 @@
 
     // ── Helpers ─────────────────────────────────────────────────────────
     function getToken() {
-        const path = window.location.pathname;
-        if (path.includes('citizen-dashboard')) return localStorage.getItem('citizen_token');
-        if (path.includes('staff-dashboard')) return localStorage.getItem('staff_token');
-        if (path.includes('admin-dashboard')) return localStorage.getItem('admin_token');
-        return localStorage.getItem('token'); // Fallback
+        return window.CityPlusApi.getToken();
     }
 
     function authHeaders() {
-        return {
-            'Authorization': `Bearer ${getToken()}`,
-            'Content-Type': 'application/json'
-        };
+        return window.CityPlusApi.authHeaders(null, { 'Content-Type': 'application/json' });
     }
 
     function timeAgo(dateStr) {
@@ -45,6 +38,8 @@
             issue_assigned: 'assignment_ind',
             issue_reassigned: 'swap_horiz',
             status_updated: 'sync',
+            issue_reject_requested: 'gavel',
+            issue_rejected: 'block',
             feedback_received: 'star_rate',
             account_status_changed: 'admin_panel_settings'
         };
@@ -57,10 +52,72 @@
             issue_assigned: '#8b5cf6',
             issue_reassigned: '#f59e0b',
             status_updated: '#06b6d4',
+            issue_reject_requested: '#f59e0b',
+            issue_rejected: '#ef4444',
             feedback_received: '#eab308',
             account_status_changed: '#ef4444'
         };
         return colors[type] || '#64748b';
+    }
+
+    function getCurrentRole() {
+        return window.CityPlusApi.getSession()?.role || null;
+    }
+
+    function openIssueFromNotification(issueId) {
+        if (!issueId) return;
+
+        const role = getCurrentRole();
+        const openDetail = (issue) => {
+            if (!issue) return;
+
+            if (role === 'admin' && typeof window.openAdminIssueDetails === 'function') {
+                window.openAdminIssueDetails(issue, window.adminStaffList || []);
+                return;
+            }
+
+            if (role === 'staff' && typeof window.openStaffIssueDetails === 'function') {
+                window.openStaffIssueDetails(issue);
+                return;
+            }
+        };
+
+        if (role === 'admin' && Array.isArray(window.adminIssuesList)) {
+            const localIssue = window.adminIssuesList.find((item) => item._id === issueId);
+            if (localIssue) {
+                openDetail(localIssue);
+                return;
+            }
+        }
+
+        if (role === 'staff' && Array.isArray(window.staffAllIssues)) {
+            const localIssue = window.staffAllIssues.find((item) => item._id === issueId);
+            if (localIssue) {
+                openDetail(localIssue);
+                return;
+            }
+        }
+
+        window.CityPlusApi.fetchJson(`/api/issues/${issueId}`, {}, role)
+            .then(({ data }) => openDetail(data.issue))
+            .catch(() => {});
+    }
+
+    function getNotificationAction(n) {
+        const role = getCurrentRole();
+        if (role === 'admin' && n.type === 'issue_reject_requested' && n.issueId) {
+            return `
+                <div class="notif-action-chip" data-action="review-issue">
+                    Review now
+                </div>
+            `;
+        }
+
+        return '';
+    }
+
+    function isPriorityReviewNotification(n) {
+        return getCurrentRole() === 'admin' && n.type === 'issue_reject_requested' && !!n.issueId;
     }
 
     // ── Toast helper (show real-time notification toast) ────────────────
@@ -177,7 +234,7 @@
         if (empty) empty.remove();
 
         const item = document.createElement('div');
-        item.className = 'notif-item notif-unread';
+        item.className = `notif-item notif-unread${isPriorityReviewNotification(n) ? ' notif-item--review' : ''}`;
         item.dataset.id = n._id;
         item.dataset.issue = n.issueId || '';
         item.innerHTML = `
@@ -188,6 +245,7 @@
                 <p class="notif-title">${escapeHtml(n.title)}</p>
                 <p class="notif-message">${escapeHtml(n.message)}</p>
                 <span class="notif-time">Just now</span>
+                ${getNotificationAction(n)}
             </div>
             <div class="notif-dot"></div>
         `;
@@ -199,7 +257,19 @@
                 const dot = item.querySelector('.notif-dot');
                 if (dot) dot.remove();
             }
+
+            if (getCurrentRole() === 'admin' && n.type === 'issue_reject_requested' && n.issueId) {
+                openIssueFromNotification(n.issueId);
+            }
         });
+
+        const actionBtn = item.querySelector('[data-action="review-issue"]');
+        if (actionBtn) {
+            actionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openIssueFromNotification(n.issueId);
+            });
+        }
 
         list.insertBefore(item, list.firstChild);
     }
@@ -220,10 +290,8 @@
     // ── API Calls ──────────────────────────────────────────────────────
     async function fetchUnreadCount() {
         try {
-            const res = await fetch(`${API_BASE}/unread-count`, { headers: authHeaders() });
-            if (!res.ok) return;
-            const data = await res.json();
-            updateBadge(data.count);
+            const { payload } = await window.CityPlusApi.fetchJson(`${API_BASE}/unread-count`);
+            updateBadge(payload.count);
         } catch (e) {
             // silent fail — notifications should never break the page
         }
@@ -231,10 +299,8 @@
 
     async function fetchNotifications() {
         try {
-            const res = await fetch(API_BASE, { headers: authHeaders() });
-            if (!res.ok) return;
-            const data = await res.json();
-            renderNotificationList(data.notifications);
+            const { payload } = await window.CityPlusApi.fetchJson(API_BASE);
+            renderNotificationList(payload.notifications);
         } catch (e) {
             // silent fail
         }
@@ -242,14 +308,14 @@
 
     async function markAsRead(id) {
         try {
-            await fetch(`${API_BASE}/${id}/read`, { method: 'PATCH', headers: authHeaders() });
+            await window.CityPlusApi.fetchJson(`${API_BASE}/${id}/read`, { method: 'PATCH' });
             fetchUnreadCount();
         } catch (e) { /* silent */ }
     }
 
     async function markAllAsRead() {
         try {
-            await fetch(`${API_BASE}/read-all`, { method: 'PATCH', headers: authHeaders() });
+            await window.CityPlusApi.fetchJson(`${API_BASE}/read-all`, { method: 'PATCH' });
             updateBadge(0);
             // Update UI for all items
             const items = document.querySelectorAll('.notif-item.notif-unread');
@@ -284,7 +350,7 @@
         }
 
         list.innerHTML = notifications.map(n => `
-      <div class="notif-item ${n.read ? '' : 'notif-unread'}" data-id="${n._id}" data-issue="${n.issueId || ''}">
+      <div class="notif-item ${n.read ? '' : 'notif-unread'}${isPriorityReviewNotification(n) ? ' notif-item--review' : ''}" data-id="${n._id}" data-issue="${n.issueId || ''}">
         <div class="notif-icon" style="background: ${getNotificationColor(n.type)}20; color: ${getNotificationColor(n.type)};">
           <span class="material-icons-round">${getNotificationIcon(n.type)}</span>
         </div>
@@ -292,6 +358,7 @@
           <p class="notif-title">${escapeHtml(n.title)}</p>
           <p class="notif-message">${escapeHtml(n.message)}</p>
           <span class="notif-time">${timeAgo(n.createdAt)}</span>
+          ${getNotificationAction(n)}
         </div>
         ${!n.read ? '<div class="notif-dot"></div>' : ''}
       </div>
@@ -306,6 +373,22 @@
                     item.classList.remove('notif-unread');
                     const dot = item.querySelector('.notif-dot');
                     if (dot) dot.remove();
+                }
+
+                const issueId = item.dataset.issue;
+                const notificationType = notifications.find((n) => n._id === id)?.type;
+                if (getCurrentRole() === 'admin' && notificationType === 'issue_reject_requested' && issueId) {
+                    openIssueFromNotification(issueId);
+                }
+            });
+        });
+
+        list.querySelectorAll('[data-action="review-issue"]').forEach((button) => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const item = button.closest('.notif-item');
+                if (item?.dataset.issue) {
+                    openIssueFromNotification(item.dataset.issue);
                 }
             });
         });

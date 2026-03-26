@@ -4,7 +4,9 @@
   "description": "Smart Civic Issue Reporting Platform",
   "scripts": {
     "start": "cd backend && node server.js",
-    "dev": "cd backend && npx nodemon server.js"
+    "dev": "cd backend && npx nodemon server.js",
+    "lint": "npm --prefix backend run lint",
+    "test": "npm --prefix backend test"
   },
   "author": "Bipin",
   "license": "ISC"

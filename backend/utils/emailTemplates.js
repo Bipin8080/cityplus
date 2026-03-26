@@ -60,6 +60,27 @@ export function otpEmailTemplate(otp, name = "User") {
     return baseTemplate("Password Reset OTP", body);
 }
 
+// ── Registration OTP Email ─────────────────────────────────────────────
+export function registrationOtpEmailTemplate(otp, name = "User") {
+    const body = `
+        <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Verify Your Email</h2>
+        <p style="color:#64748b;margin:0 0 24px;font-size:15px;">Hi ${name}, use the code below to activate your CityPlus account.</p>
+
+        <div style="background:#f8fafc;border:2px dashed ${BRAND_COLOR};border-radius:8px;padding:24px;text-align:center;margin-bottom:24px;">
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Verification Code</p>
+            <p style="margin:0;font-size:36px;font-weight:700;letter-spacing:8px;color:${BRAND_COLOR};">${otp}</p>
+        </div>
+
+        <p style="color:#64748b;font-size:14px;margin:0 0 8px;">This code expires in <strong>5 minutes</strong>.</p>
+        <p style="color:#64748b;font-size:14px;margin:0 0 24px;">After verification, go back to the login page and sign in with your email and password.</p>
+
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:12px 16px;border-radius:4px;">
+            <p style="margin:0;color:#1e40af;font-size:13px;">If you did not create this account, you can ignore this email.</p>
+        </div>
+    `;
+    return baseTemplate("Verify Your CityPlus Account", body);
+}
+
 // ── Issue Status Update ─────────────────────────────────────────────────
 export function statusUpdateTemplate(issueTitle, newStatus, issueId) {
     const statusColors = {
@@ -142,6 +163,31 @@ export function newIssueTemplate(issueTitle, ward, citizenName) {
     return baseTemplate("New Issue Report", body);
 }
 
+export function anonymousIssueSubmissionTemplate(issueTitle, issueReference, issueId) {
+    const body = `
+        <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Issue Submitted Successfully</h2>
+        <p style="color:#64748b;margin:0 0 24px;font-size:15px;">
+            Your civic issue has been received and is now in our system.
+        </p>
+
+        <div style="background:#f8fafc;padding:20px;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0 0 12px;color:#64748b;font-size:13px;">ISSUE TITLE</p>
+            <p style="margin:0 0 16px;color:#1e293b;font-size:16px;font-weight:600;">${issueTitle}</p>
+
+            <p style="margin:0 0 12px;color:#64748b;font-size:13px;">YOUR ISSUE ID</p>
+            <p style="margin:0;color:#1e40af;font-size:22px;font-weight:700;letter-spacing:1px;">#${issueReference}</p>
+        </div>
+
+        <p style="color:#64748b;font-size:14px;margin:0 0 12px;line-height:1.5;">
+            Please keep this ID for follow-up and future reference. You can share it with support staff if you need help finding your report.
+        </p>
+        <p style="color:#94a3b8;font-size:12px;margin:0;word-break:break-all;">
+            Reference: ${issueId}
+        </p>
+    `;
+    return baseTemplate("CityPlus: Issue Submitted", body);
+}
+
 // ── Welcome Email ───────────────────────────────────────────────────────
 export function welcomeEmailTemplate(name) {
     const body = `
@@ -186,6 +232,33 @@ export function staffCredentialEmailTemplate(name, email, password) {
 }
 
 // ── Generic Notification Email ──────────────────────────────────────────
+export function staffSetupEmailTemplate(name, setupLink) {
+    const body = `
+        <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Set Up Your Staff Account</h2>
+        <p style="color:#64748b;margin:0 0 24px;font-size:15px;">Hi ${name}, an administrator has created your staff account on ${BRAND_NAME}.</p>
+
+        <p style="color:#64748b;font-size:15px;margin:0 0 24px;line-height:1.5;">
+            To activate your account, click the button below and choose your own password.
+        </p>
+
+        <div style="text-align:center;margin-bottom:24px;">
+            <a href="${setupLink}" style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;font-weight:600;padding:14px 24px;border-radius:8px;">
+                Set Up Your Password
+            </a>
+        </div>
+
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:24px;">
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Need the link manually?</p>
+            <p style="margin:0;color:#1e293b;font-size:14px;word-break:break-all;">${setupLink}</p>
+        </div>
+
+        <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:4px;">
+            <p style="margin:0;color:#92400e;font-size:13px;">This link expires after 24 hours. If it expires, ask an administrator to resend the invite.</p>
+        </div>
+    `;
+    return baseTemplate("Set Up Your Staff Account", body);
+}
+
 export function notificationTemplate(title, message) {
     const body = `
         <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">${title}</h2>

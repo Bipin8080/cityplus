@@ -31,6 +31,28 @@ function showSuccessModal(title, message, redirectUrl) {
   }, 1500);
 }
 
+let pendingRegistrationEmail = '';
+
+function setRegistrationOtpVisible(visible) {
+  const step1 = document.getElementById('regStep1');
+  const step2 = document.getElementById('regStep2');
+
+  if (step1) step1.style.display = visible ? 'none' : 'block';
+  if (step2) step2.style.display = visible ? 'block' : 'none';
+}
+
+function resetRegistrationFlow() {
+  pendingRegistrationEmail = '';
+
+  const otpInput = document.getElementById('regOTP');
+  if (otpInput) otpInput.value = '';
+
+  const emailDisplay = document.getElementById('regEmailDisplay');
+  if (emailDisplay) emailDisplay.textContent = '';
+
+  setRegistrationOtpVisible(false);
+}
+
 // Close modal when clicking outside of it
 document.addEventListener('DOMContentLoaded', () => {
   const errorModal = document.getElementById('errorModal');
@@ -63,6 +85,7 @@ function switchToRegister() {
   document.getElementById("registerForm").style.display = "block";
   document.getElementById("loginTab").classList.remove("active");
   document.getElementById("registerTab").classList.add("active");
+  resetRegistrationFlow();
 }
 
 // Login function
@@ -76,48 +99,13 @@ async function loginUser() {
   }
 
   try {
-    const res = await fetch("/api/auth/login", {
+    const { data } = await window.CityPlusApi.fetchJson("/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      // Check if it's a blocked or terminated account error
-      if (data.message && (data.message.includes("blocked") || data.message.includes("terminated"))) {
-        showErrorModal("Account Restricted", data.message);
-      } else {
-        showErrorModal("Login Failed", data.message || "Authentication failed. Please verify your credentials and try again.");
-      }
-      return;
-    }
-
-    // Save token + role + email + name + department Name if present using role prefix
-    const prefix = data.role + "_";
-    localStorage.setItem(prefix + "token", data.token);
-    localStorage.setItem(prefix + "role", data.role);
-    localStorage.setItem(prefix + "userEmail", email);
-    if (data.name) {
-      localStorage.setItem(prefix + "userName", data.name);
-    }
-    if (data.departmentName) {
-      localStorage.setItem(prefix + "departmentName", data.departmentName);
-    }
-
-    // Redirect based on role with success modal
-    let dashboardUrl = '';
-    if (data.role === "citizen") {
-      dashboardUrl = "citizen-dashboard.html";
-    } else if (data.role === "staff") {
-      dashboardUrl = "staff-dashboard.html";
-    } else if (data.role === "admin") {
-      dashboardUrl = "admin-dashboard.html";
-    } else {
-      showErrorModal("Invalid Role", "Invalid user role detected. Please contact system administrator.");
-      return;
-    }
+    window.CityPlusApi.saveSession(data, email);
+    const dashboardUrl = window.CityPlusApi.redirectForRole(data.role);
 
     showSuccessModal(
       "Login Successful!",
@@ -126,20 +114,23 @@ async function loginUser() {
     );
   } catch (err) {
     console.error(err);
-    showErrorModal("System Error", "A system error occurred. Please try again later or contact support if the issue persists.");
+    if (err.message && (err.message.includes("blocked") || err.message.includes("terminated"))) {
+      showErrorModal("Account Restricted", err.message);
+    } else {
+      showErrorModal("Login Failed", err.message || "Authentication failed. Please verify your credentials and try again.");
+    }
   }
 }
 
 // Registration function
 async function registerUser() {
   const name = document.querySelector("#regName").value.trim();
-  const role = document.querySelector("#regRole").value;
   const email = document.querySelector("#regEmail").value.trim();
   const password = document.querySelector("#regPassword").value;
   const confirmPassword = document.querySelector("#regConfirmPassword").value;
 
   // Validation
-  if (!name || !role || !email || !password || !confirmPassword) {
+  if (!name || !email || !password || !confirmPassword) {
     showToast('warning', "Please complete all required fields.");
     return;
   }
@@ -156,87 +147,107 @@ async function registerUser() {
     return;
   }
 
-  // Determine registration endpoint based on role
-  let endpoint = "";
-  if (role === "citizen") {
-    endpoint = "/api/auth/register";
-  } else if (role === "staff") {
-    endpoint = "/api/auth/register-staff";
-  } else if (role === "admin") {
-    endpoint = "/api/auth/register-admin";
-  } else {
-    showToast('error', "Please select a valid account type.");
-    return;
-  }
-
   try {
-    // Staff/Admin registration requires admin authentication
-    const headers = { "Content-Type": "application/json" };
-    if (role === "staff" || role === "admin") {
-      const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
-      if (!token) {
-        showToast('error', "You must be logged in as an admin to register staff or admin accounts.");
-        return;
-      }
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(`${endpoint}`, {
+    await window.CityPlusApi.fetchJson("/api/auth/register", {
       method: "POST",
-      headers,
       body: JSON.stringify({ name, email, password })
     });
 
-    const data = await res.json();
+    pendingRegistrationEmail = email;
+    setRegistrationOtpVisible(true);
 
-    if (!res.ok) {
-      showToast('error', data.message || "Registration failed. Please check your information and try again.");
-      return;
+    const emailDisplay = document.getElementById('regEmailDisplay');
+    if (emailDisplay) {
+      emailDisplay.textContent = email;
     }
 
-    // Registration successful - automatically log in
-    showToast('success', "Account created successfully! Logging you in...");
-
-    // Auto-login after registration
-    const loginRes = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-
-    const loginData = await loginRes.json();
-
-    if (!loginRes.ok) {
-      showToast('error', "Account created but login failed. Please log in manually.");
-      switchToLogin();
-      return;
+    const otpInput = document.getElementById('regOTP');
+    if (otpInput) {
+      otpInput.value = '';
+      otpInput.focus();
     }
 
-    // Save token + role + email + name with role prefix
-    const prefix = loginData.role + "_";
-    localStorage.setItem(prefix + "token", loginData.token);
-    localStorage.setItem(prefix + "role", loginData.role);
-    localStorage.setItem(prefix + "userName", name);
-    localStorage.setItem(prefix + "userEmail", email);
-
-    // Redirect based on role with success modal
-    let regDashboardUrl = '';
-    if (loginData.role === "citizen") {
-      regDashboardUrl = "citizen-dashboard.html";
-    } else if (loginData.role === "staff") {
-      regDashboardUrl = "staff-dashboard.html";
-    } else if (loginData.role === "admin") {
-      regDashboardUrl = "admin-dashboard.html";
-    }
-
-    showSuccessModal(
-      "Registration Successful!",
-      `Welcome to CityPlus, ${name}! Your account has been created. Redirecting to your dashboard.`,
-      regDashboardUrl
-    );
+    showToast('success', 'Account created. Enter the OTP sent to your email to verify your account.');
   } catch (err) {
     console.error(err);
-    showToast('error', "A system error occurred during registration. Please try again later.");
+    showToast('error', err.message || "A system error occurred during registration. Please try again later.");
+  }
+}
+
+async function verifyRegistrationOTP() {
+  const otp = document.getElementById('regOTP').value.trim();
+
+  if (!pendingRegistrationEmail) {
+    showToast('warning', 'Please register first before verifying the OTP.');
+    return;
+  }
+
+  if (!otp || otp.length !== 6) {
+    showToast('warning', 'Please enter the 6-digit code.');
+    return;
+  }
+
+  const btn = document.getElementById('regVerifyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+
+  try {
+    await window.CityPlusApi.fetchJson('/api/auth/register/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email: pendingRegistrationEmail, otp })
+    });
+
+    const verifiedEmail = pendingRegistrationEmail;
+    resetRegistrationFlow();
+    window.switchToLogin();
+
+    const loginEmail = document.getElementById('email');
+    if (loginEmail) {
+      loginEmail.value = verifiedEmail;
+    }
+
+    const loginPassword = document.getElementById('password');
+    if (loginPassword) {
+      loginPassword.focus();
+    }
+
+    showToast('success', 'Email verified successfully. You can now log in with your credentials.');
+  } catch (err) {
+    console.error(err);
+    showToast('error', err.message || 'Failed to verify OTP. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verify OTP';
+  }
+}
+
+async function resendRegistrationOTP() {
+  if (!pendingRegistrationEmail) {
+    showToast('warning', 'Please register first before requesting another OTP.');
+    return;
+  }
+
+  const resendBtn = document.getElementById('regResendBtn');
+  if (resendBtn) {
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Sending...';
+  }
+
+  try {
+    await window.CityPlusApi.fetchJson('/api/auth/register/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email: pendingRegistrationEmail })
+    });
+
+    showToast('success', 'A new OTP has been sent to your email.');
+  } catch (err) {
+    console.error(err);
+    showToast('error', err.message || 'Unable to resend the OTP.');
+  } finally {
+    if (resendBtn) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Resend OTP';
+    }
   }
 }
 
@@ -268,18 +279,10 @@ async function sendForgotPasswordOTP() {
   btn.textContent = 'Sending...';
 
   try {
-    const res = await fetch('/api/auth/forgot-password', {
+    const { payload: data } = await window.CityPlusApi.fetchJson('/api/auth/forgot-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast('error', data.message || 'Failed to send OTP.');
-      return;
-    }
 
     fpEmail = email;
     document.getElementById('fpEmailDisplay').textContent = email;
@@ -307,18 +310,10 @@ async function verifyForgotPasswordOTP() {
   btn.textContent = 'Verifying...';
 
   try {
-    const res = await fetch('/api/auth/verify-otp', {
+    await window.CityPlusApi.fetchJson('/api/auth/verify-otp', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: fpEmail, otp })
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast('error', data.message || 'Invalid OTP.');
-      return;
-    }
 
     document.getElementById('fpStep2').style.display = 'none';
     document.getElementById('fpStep3').style.display = 'block';
@@ -356,18 +351,10 @@ async function resetForgotPassword() {
   btn.textContent = 'Resetting...';
 
   try {
-    const res = await fetch('/api/auth/reset-password', {
+    await window.CityPlusApi.fetchJson('/api/auth/reset-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: fpEmail, newPassword })
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast('error', data.message || 'Failed to reset password.');
-      return;
-    }
 
     showToast('success', 'Password reset successfully! You can now log in.');
     closeForgotPasswordModal();

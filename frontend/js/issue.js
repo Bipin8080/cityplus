@@ -1,3 +1,14 @@
+const IMAGE_MAX_SIZE_MB = 5;
+const IMAGE_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ISSUE_DRAFT_STORAGE_KEY = "cityplus_report_issue_draft_v1";
+let issueDraftSaveTimer = null;
+let issueDraftStatusTimer = null;
+let issueMapInitialCenter = null;
+
+function issueText(key, fallback) {
+  return fallback || key;
+}
+
 async function submitIssue(event) {
   event.preventDefault();
 
@@ -6,44 +17,70 @@ async function submitIssue(event) {
 
   const form = event.target;
   const title = form.querySelector("#title").value.trim();
-  const departmentNode = form.querySelector("#department");
-  const department = departmentNode ? departmentNode.value.trim() : "";
   const category = form.querySelector("#category").value.trim();
-
   const location = form.querySelector("#location").value.trim();
+  const ward = form.querySelector("#ward").value.trim();
   const description = form.querySelector("#description").value.trim();
+  const reporterEmailInput = form.querySelector("#email");
+  const reporterEmail = reporterEmailInput ? reporterEmailInput.value.trim() : "";
+  clearIssueFieldErrors(form);
 
-  if (!title || !department || !category || !location || !description) {
-    showToast('warning', "Please complete all required fields before submitting your complaint.");
-    return;
+  let hasValidationError = false;
+
+  if (!title || !category || !location || !ward || !description) {
+    hasValidationError = true;
+    if (!title) setIssueFieldError(form, "title", issueText("common.titleRequired", "Please enter a short issue title."));
+    if (!category) setIssueFieldError(form, "category", issueText("common.categoryRequired", "Please choose the best matching category."));
+    if (!location) setIssueFieldError(form, "location", issueText("common.locationRequired", "Please add a location or use the map."));
+    if (!ward) setIssueFieldError(form, "ward", issueText("common.wardRequired", "Please enter the ward or area."));
+    if (!description) setIssueFieldError(form, "description", issueText("common.descriptionRequired", "Please describe the issue in a little more detail."));
+  }
+
+  if (!isLoggedIn) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!reporterEmail) {
+      hasValidationError = true;
+      setIssueFieldError(form, "email", "Please enter your email address so we can send your issue ID.");
+    } else if (!emailPattern.test(reporterEmail)) {
+      hasValidationError = true;
+      setIssueFieldError(form, "email", "Please enter a valid email address.");
+    }
   }
 
   const imageInput = form.querySelector("#image");
-  if (!imageInput || !imageInput.files || imageInput.files.length === 0) {
-    showToast('warning', "Please upload a photo of the issue before submitting.");
+  const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
+  if (!imageFile) {
+    hasValidationError = true;
+    setIssueFieldError(form, "image", issueText("common.imageRequired", "Please attach a photo of the issue."));
+  } else {
+    const imageError = validateIssueImage(imageInput, imageFile);
+    if (imageError) {
+      hasValidationError = true;
+      setIssueFieldError(form, "image", imageError);
+    }
+  }
+
+  if (hasValidationError) {
+    showToast('warning', issueText("common.fixHighlightedFields", "Please fix the highlighted fields and try again."));
     return;
   }
 
-  // If user is not a logged-in citizen, show a modal prompting them to log in.
-  if (!isLoggedIn) {
-    if (typeof openLoginModal === "function") {
-      openLoginModal();
-    } else {
-      // Fallback in case the modal function isn't available
-      showToast('warning', "Please log in as a citizen to report an issue. This helps prevent spam and allows you to track your report's status.");
-      setTimeout(() => { window.location.href = "login.html"; }, 2000);
-    }
-    return;
-  }
+  const submitBtn = document.getElementById("submitIssueBtn");
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
   try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> ${issueText("common.submitting", "Submitting...")}`;
+    }
+
     // Use FormData to send both text and file data
     const formData = new FormData(form);
 
-    const headers = {
-      // Token is guaranteed to be present due to the check above
-      Authorization: "Bearer " + token,
-    };
+    const headers = {};
+    if (token) {
+      headers.Authorization = "Bearer " + token;
+    }
 
     const res = await fetch("/api/issues", {
       method: "POST",
@@ -51,23 +88,270 @@ async function submitIssue(event) {
       body: formData,
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      showToast('error', data.message || "Unable to submit your report. Please check the details and try again.");
+      showToast('error', data.message || issueText("common.submitError", "Unable to submit your report. Please check the details and try again."));
       return;
     }
 
     const issueId = data.issue ? data.issue._id : '';
-    const idText = issueId ? ` Issue ID: #${issueId.slice(-6).toUpperCase()}.` : '';
+    const issueReference = data.issueReference || (issueId ? issueId.slice(-6).toUpperCase() : '');
+    const idText = issueReference ? ` Issue ID: #${issueReference}.` : '';
+    const emailText = data.emailSent === false
+      ? " We could not send the email right now, but your issue was created."
+      : " A copy has been sent to your email.";
+    const redirectText = isLoggedIn ? " Redirecting to your dashboard..." : " Redirecting to the homepage...";
 
-    showToast('success', `Issue Submitted Successfully!${idText} Redirecting to your dashboard...`);
+    showToast('success', `${issueText("common.submitSuccess", "Issue Submitted Successfully!")}${idText}${emailText}${redirectText}`);
+    clearIssueDraft();
 
-    // Since only logged-in citizens can submit, always redirect to their dashboard.
-    setTimeout(() => { window.location.href = "citizen-dashboard.html"; }, 3000);
+    setTimeout(() => {
+      window.location.href = isLoggedIn ? "citizen-dashboard.html" : "index.html";
+    }, 3000);
   } catch (err) {
     console.error(err);
-    showToast('error', "A system error occurred while submitting your report. Please try again later.");
+    showToast('error', issueText("common.systemError", "A system error occurred while submitting your report. Please try again later."));
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  }
+}
+
+function validateIssueImage(imageInput, imageFile) {
+  const uploadArea = document.getElementById("uploadArea");
+  if (uploadArea) {
+    uploadArea.classList.remove("invalid");
+  }
+
+  if (!imageFile) {
+    return issueText("common.imageMissing", "Please upload a photo of the issue before submitting.");
+  }
+
+  if (!IMAGE_ALLOWED_TYPES.includes(imageFile.type)) {
+    if (uploadArea) uploadArea.classList.add("invalid");
+    return issueText("common.imageTypeInvalid", "Please upload a JPG, PNG, GIF, or WEBP image.");
+  }
+
+  const maxBytes = IMAGE_MAX_SIZE_MB * 1024 * 1024;
+  if (imageFile.size > maxBytes) {
+    if (uploadArea) uploadArea.classList.add("invalid");
+    return issueText("common.imageTooLarge", `Please upload an image smaller than ${IMAGE_MAX_SIZE_MB} MB.`);
+  }
+
+  return "";
+}
+
+function getIssueFieldGroup(form, fieldName) {
+  const field = form.querySelector(`#${fieldName}`);
+  return field ? field.closest(".form-group") : null;
+}
+
+function getIssueFieldErrorEl(form, fieldName) {
+  return form.querySelector(`[data-error-for="${fieldName}"]`);
+}
+
+function setIssueFieldError(form, fieldName, message) {
+  const group = getIssueFieldGroup(form, fieldName);
+  const errorEl = getIssueFieldErrorEl(form, fieldName);
+
+  if (group) {
+    group.classList.add("invalid");
+  }
+
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = "block";
+  }
+}
+
+function clearIssueFieldError(form, fieldName) {
+  const group = getIssueFieldGroup(form, fieldName);
+  const errorEl = getIssueFieldErrorEl(form, fieldName);
+
+  if (group) {
+    group.classList.remove("invalid");
+  }
+
+  if (errorEl) {
+    errorEl.textContent = "";
+    errorEl.style.display = "";
+  }
+
+  if (fieldName === "image") {
+    const uploadArea = document.getElementById("uploadArea");
+    if (uploadArea) uploadArea.classList.remove("invalid");
+  }
+}
+
+function clearIssueFieldErrors(form) {
+  ["title", "category", "location", "ward", "description", "email", "image"].forEach((fieldName) => {
+    clearIssueFieldError(form, fieldName);
+  });
+}
+
+function saveIssueDraft() {
+  const form = document.getElementById("reportIssueForm");
+  if (!form) return;
+
+  const draft = {
+    title: form.querySelector("#title")?.value || "",
+    category: form.querySelector("#category")?.value || "",
+    description: form.querySelector("#description")?.value || "",
+    email: form.querySelector("#email")?.value || "",
+    priority: form.querySelector('input[name="priority"]:checked')?.value || "",
+    location: form.querySelector("#location")?.value || "",
+    ward: form.querySelector("#ward")?.value || "",
+    city: form.querySelector("#city")?.value || "",
+    state: form.querySelector("#state")?.value || "",
+    lat: form.querySelector("#lat")?.value || "",
+    lng: form.querySelector("#lng")?.value || "",
+    updatedAt: new Date().toISOString()
+  };
+
+  const hasContent = ["title", "category", "description", "email", "location", "ward", "city", "state", "lat", "lng"]
+    .some((key) => String(draft[key] || "").trim() !== "") || (draft.priority && draft.priority !== "Medium");
+
+  if (!hasContent) {
+    localStorage.removeItem(ISSUE_DRAFT_STORAGE_KEY);
+    setIssueDraftStatus(issueText("report.draftNoSaved", "No draft saved yet"), "cleared");
+    return;
+  }
+
+  localStorage.setItem(ISSUE_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  setIssueDraftStatus(issueText("report.draftSaved", "Draft saved"), "saved");
+}
+
+function clearIssueDraft() {
+  localStorage.removeItem(ISSUE_DRAFT_STORAGE_KEY);
+  setIssueDraftStatus(issueText("report.draftCleared", "Draft cleared"), "cleared");
+}
+
+function clearIssueDraftAndResetForm() {
+  const form = document.getElementById("reportIssueForm");
+  if (!form) return;
+
+  clearIssueDraft();
+  clearIssueFieldErrors(form);
+  form.reset();
+
+  const priorityMedium = form.querySelector("#priority-medium");
+  if (priorityMedium) {
+    priorityMedium.checked = true;
+  }
+
+  const fileInput = form.querySelector("#image");
+  const fileName = document.getElementById("fileName");
+  const imagePreview = document.getElementById("imagePreview");
+  const uploadArea = document.getElementById("uploadArea");
+
+  if (fileInput) fileInput.value = "";
+  if (fileName) fileName.textContent = issueText("report.photoEmpty", "No file chosen");
+  if (imagePreview) {
+    imagePreview.src = "";
+    imagePreview.style.display = "none";
+  }
+  if (uploadArea) uploadArea.classList.remove("invalid");
+
+  const latInput = form.querySelector("#lat");
+  const lngInput = form.querySelector("#lng");
+  if (latInput) latInput.value = "";
+  if (lngInput) lngInput.value = "";
+
+  if (issueDraftSaveTimer) {
+    clearTimeout(issueDraftSaveTimer);
+  }
+  if (issueDraftStatusTimer) {
+    clearTimeout(issueDraftStatusTimer);
+  }
+  setIssueDraftStatus(issueText("report.draftCleared", "Draft cleared"), "cleared");
+
+  if (map && marker && issueMapInitialCenter) {
+    map.setView([issueMapInitialCenter.lat, issueMapInitialCenter.lng], 12);
+    marker.setLatLng([issueMapInitialCenter.lat, issueMapInitialCenter.lng]);
+  }
+
+}
+
+function restoreIssueDraft() {
+  const form = document.getElementById("reportIssueForm");
+  if (!form) return false;
+
+  const rawDraft = localStorage.getItem(ISSUE_DRAFT_STORAGE_KEY);
+  if (!rawDraft) return false;
+
+  try {
+    const draft = JSON.parse(rawDraft);
+    if (!draft || typeof draft !== "object") return false;
+
+    const setValue = (selector, value) => {
+      const el = form.querySelector(selector);
+      if (el && value) el.value = value;
+    };
+
+    setValue("#title", draft.title);
+    setValue("#category", draft.category);
+    setValue("#description", draft.description);
+    setValue("#email", draft.email);
+    setValue("#location", draft.location);
+    setValue("#ward", draft.ward);
+    setValue("#city", draft.city);
+    setValue("#state", draft.state);
+    setValue("#lat", draft.lat);
+    setValue("#lng", draft.lng);
+
+    if (draft.priority) {
+      const priorityEl = form.querySelector(`input[name="priority"][value="${draft.priority}"]`);
+      if (priorityEl) priorityEl.checked = true;
+    }
+
+    const categorySelect = form.querySelector("#category");
+    if (categorySelect && draft.category) {
+      categorySelect.value = draft.category;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("Failed to restore issue draft:", err);
+    localStorage.removeItem(ISSUE_DRAFT_STORAGE_KEY);
+    return false;
+  }
+}
+
+function scheduleIssueDraftSave() {
+  if (issueDraftSaveTimer) {
+    clearTimeout(issueDraftSaveTimer);
+  }
+
+  setIssueDraftStatus(issueText("report.draftSaving", "Saving draft..."), "saving");
+
+  issueDraftSaveTimer = setTimeout(() => {
+    saveIssueDraft();
+  }, 150);
+}
+
+function setIssueDraftStatus(text, state) {
+  const statusEl = document.getElementById("draftStatus");
+  const textEl = document.getElementById("draftStatusText");
+  if (!statusEl || !textEl) return;
+
+  statusEl.classList.remove("saving", "saved", "cleared");
+  if (state) {
+    statusEl.classList.add(state);
+  }
+  textEl.textContent = text;
+
+  if (issueDraftStatusTimer) {
+    clearTimeout(issueDraftStatusTimer);
+  }
+
+  if (state === "saved" || state === "cleared") {
+    issueDraftStatusTimer = setTimeout(() => {
+      statusEl.classList.remove("saving", "saved", "cleared");
+      textEl.textContent = state === "saved" ? issueText("report.draftSaved", "Draft saved") : issueText("report.draftNoSaved", "No draft saved yet");
+    }, 2500);
   }
 }
 
@@ -87,19 +371,22 @@ async function initIssueMap() {
       await window.loadLeafletApi();
     } else {
       console.error("Global Leaflet loader not found");
-      document.getElementById("mapStatus").textContent = "Map unavailable (loader missing)";
+      const mapStatusEl = document.getElementById("mapStatus");
+      if (mapStatusEl) mapStatusEl.textContent = "Map unavailable (loader missing)";
       return;
     }
 
     if (!window.isLeafletLoaded || !window.L) {
-      document.getElementById("mapStatus").textContent = "Map unavailable (API failed to load)";
+      const mapStatusEl = document.getElementById("mapStatus");
+      if (mapStatusEl) mapStatusEl.textContent = "Map unavailable (API failed to load)";
       return;
     }
 
     mapElement.innerHTML = ""; // Clear loading status
 
-    // Default center (can be customized)
-    const defaultCenter = { lat: 28.6139, lng: 77.2090 }; // New Delhi
+    const draftCenter = getDraftCoordinates();
+    const defaultCenter = draftCenter || await getInitialCenter();
+    issueMapInitialCenter = defaultCenter;
 
     // Initialize Leaflet Map
     map = L.map('map').setView([defaultCenter.lat, defaultCenter.lng], 12);
@@ -118,7 +405,7 @@ async function initIssueMap() {
     if (L.Control && L.Control.geocoder) {
       L.Control.geocoder({
         defaultMarkGeocode: false
-      }).on('markgeocode', async function(e) {
+      }).on('markgeocode', async function (e) {
         const bbox = e.geocode.bbox;
         const center = e.geocode.center;
         map.fitBounds(bbox);
@@ -129,7 +416,11 @@ async function initIssueMap() {
     }
 
     // Set initial hidden values
-    updateHiddenCoordinates(defaultCenter.lat, defaultCenter.lng);
+    updateHiddenCoordinates(defaultCenter.lat, defaultCenter.lng, false);
+    if (draftCenter) {
+      await reverseGeocode(defaultCenter.lat, defaultCenter.lng);
+      scheduleIssueDraftSave();
+    }
 
     // Update hidden coordinates when marker is dragged
     marker.on('dragend', async function (event) {
@@ -151,8 +442,53 @@ async function initIssueMap() {
 
   } catch (err) {
     console.error("Failed to initialize map:", err);
-    document.getElementById("mapStatus").textContent = "Failed to load map";
+    const mapStatusEl = document.getElementById("mapStatus");
+    if (mapStatusEl) mapStatusEl.textContent = "Failed to load map";
   }
+}
+
+async function getInitialCenter() {
+  const fallbackCenter = { lat: 19.076, lng: 72.8777 }; // Mumbai
+
+  try {
+    if (!navigator.geolocation || !navigator.permissions || !navigator.permissions.query) {
+      return fallbackCenter;
+    }
+
+    const permission = await navigator.permissions.query({ name: "geolocation" });
+    if (permission.state !== "granted") {
+      return fallbackCenter;
+    }
+
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 600000
+      });
+    });
+
+    return {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude
+    };
+  } catch (err) {
+    return fallbackCenter;
+  }
+}
+
+function getDraftCoordinates() {
+  const draft = getSavedIssueDraft();
+  if (!draft) return null;
+
+  const lat = parseFloat(draft.lat);
+  const lng = parseFloat(draft.lng);
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng };
+  }
+
+  return null;
 }
 
 // Function to fetch address from coordinates using Nominatim API
@@ -183,6 +519,8 @@ async function reverseGeocode(lat, lng) {
           flashAutoFill(cityInput);
         }
       }
+
+      scheduleIssueDraftSave();
     }
   } catch (err) {
     console.error("Reverse geocoding failed:", err);
@@ -219,108 +557,227 @@ document.addEventListener("DOMContentLoaded", () => {
   // Only run if we are on the report-issue page (where #map exists)
   if (document.getElementById("map")) {
     initIssueMap();
-    fetchDepartments();
+    loadIssueCategories();
+    setupIssueUploadValidation();
+    setupIssueDraftAutosave();
   }
 });
 
-let allDepartments = [];
+const DEFAULT_CATEGORIES = [
+  "Potholes / Damaged Road",
+  "Broken Footpath",
+  "Road Crack / Sinkhole",
+  "Damaged Divider",
+  "Road Sign Missing",
+  "Speed Breaker Damage",
+  "Dangerous Open Construction",
+  "Damaged Public Infrastructure",
+  "Streetlight Not Working",
+  "Flickering Streetlight",
+  "Broken Streetlight Pole",
+  "Exposed Electrical Wires",
+  "Dark Area / No Streetlights",
+  "Garbage Not Collected",
+  "Overflowing Garbage Bin",
+  "Illegal Garbage Dump",
+  "Construction Waste Dump",
+  "Dead Animal on Road",
+  "Dirty Street / Public Area",
+  "Waste Burning",
+  "No Water Supply",
+  "Low Water Pressure",
+  "Water Leakage",
+  "Contaminated Water",
+  "Broken Water Pipeline",
+  "Blocked Drain",
+  "Sewage Overflow",
+  "Open Manhole",
+  "Broken Drain Cover",
+  "Waterlogging / Flooded Road",
+  "Mosquito Breeding Area",
+  "Stray Animal Issue",
+  "Food Hygiene Complaint",
+  "Unhygienic Public Toilet",
+  "Public Health Hazard",
+  "Park Maintenance Issue",
+  "Broken Park Equipment",
+  "Unclean Garden",
+  "Tree Fallen",
+  "Overgrown Trees / Branches",
+  "Illegal Street Vendor",
+  "Footpath Encroachment",
+  "Illegal Construction",
+  "Roadside Obstruction",
+  "Broken Traffic Signal",
+  "Missing Road Signs",
+  "Illegal Parking",
+  "Dangerous Intersection"
+];
 
-async function fetchDepartments() {
+async function loadIssueCategories() {
   try {
     const res = await fetch("/api/departments");
     const data = await res.json();
-    if (res.ok) {
-      const responseData = data.data || data; // Handle both wrapper styles just in case
-      allDepartments = responseData;
-      const deptSelect = document.getElementById("department");
-      if (deptSelect) {
-        deptSelect.innerHTML = '<option value="">Select a department</option>';
-        
-        const unknownOption = document.createElement("option");
-        unknownOption.value = "unknown";
-        unknownOption.textContent = "I'm Not Sure / Other";
-        deptSelect.appendChild(unknownOption);
+    const categorySet = new Set();
 
-        responseData.forEach(dept => {
-          const option = document.createElement("option");
-          option.value = dept._id;
-          option.textContent = dept.name;
-          deptSelect.appendChild(option);
-        });
+    if (res.ok) {
+      const responseData = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+      responseData.forEach((dept) => {
+        if (dept.supportedCategories && Array.isArray(dept.supportedCategories)) {
+          dept.supportedCategories.forEach((category) => categorySet.add(category));
+        }
+      });
+
+      if (categorySet.size === 0) {
+        DEFAULT_CATEGORIES.forEach((category) => categorySet.add(category));
       }
+
+      populateCategorySelect(Array.from(categorySet).sort());
     } else {
       console.error("Failed to fetch departments", data);
+      populateCategorySelect(DEFAULT_CATEGORIES);
     }
   } catch (err) {
     console.error("Error fetching departments:", err);
+    populateCategorySelect(DEFAULT_CATEGORIES);
   }
 }
 
-window.handleDepartmentChange = function() {
-  const deptSelect = document.getElementById("department");
+function populateCategorySelect(categories) {
   const catSelect = document.getElementById("category");
-  
-  if (!deptSelect || !catSelect) return;
-  
-  const selectedDeptId = deptSelect.value;
+  if (!catSelect) return;
+
+  const currentValue = catSelect.value;
+  const savedDraftCategory = getSavedIssueDraft()?.category || "";
   catSelect.innerHTML = '<option value="">Select a category</option>';
-  
-  if (!selectedDeptId) {
-    catSelect.innerHTML = '<option value="">Select a department first</option>';
+
+  categories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    catSelect.appendChild(option);
+  });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedCategory = urlParams.get("category");
+  const targetValue = savedDraftCategory || selectedCategory || currentValue;
+
+  if (targetValue && Array.from(catSelect.options).some((option) => option.value === targetValue)) {
+    catSelect.value = targetValue;
+  }
+}
+
+function getSavedIssueDraft() {
+  const rawDraft = localStorage.getItem(ISSUE_DRAFT_STORAGE_KEY);
+  if (!rawDraft) return null;
+
+  try {
+    const draft = JSON.parse(rawDraft);
+    return draft && typeof draft === "object" ? draft : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function setupIssueUploadValidation() {
+  const imageInput = document.getElementById("image");
+  const uploadArea = document.getElementById("uploadArea");
+  const fileName = document.getElementById("fileName");
+  const imagePreview = document.getElementById("imagePreview");
+
+  if (!imageInput || !uploadArea || !fileName || !imagePreview) {
     return;
   }
-  
-  if (selectedDeptId === "unknown") {
-    const allValidCategories = new Set();
-    allDepartments.forEach(dept => {
-      if (dept.supportedCategories) {
-        dept.supportedCategories.forEach(cat => allValidCategories.add(cat));
-      }
-    });
 
-    if (allValidCategories.size === 0) {
-      const defaultCats = [
-        "Potholes / Damaged Road", "Broken Footpath", "Road Crack / Sinkhole", "Damaged Divider", "Road Sign Missing",
-        "Speed Breaker Damage", "Dangerous Open Construction", "Damaged Public Infrastructure",
-        "Streetlight Not Working", "Flickering Streetlight", "Broken Streetlight Pole", "Exposed Electrical Wires", "Dark Area / No Streetlights",
-        "Garbage Not Collected", "Overflowing Garbage Bin", "Illegal Garbage Dump", "Construction Waste Dump", "Dead Animal on Road",
-        "Dirty Street / Public Area", "Waste Burning",
-        "No Water Supply", "Low Water Pressure", "Water Leakage", "Contaminated Water", "Broken Water Pipeline",
-        "Blocked Drain", "Sewage Overflow", "Open Manhole", "Broken Drain Cover", "Waterlogging / Flooded Road",
-        "Mosquito Breeding Area", "Stray Animal Issue", "Food Hygiene Complaint", "Unhygienic Public Toilet", "Public Health Hazard",
-        "Park Maintenance Issue", "Broken Park Equipment", "Unclean Garden", "Tree Fallen", "Overgrown Trees / Branches",
-        "Illegal Street Vendor", "Footpath Encroachment", "Illegal Construction", "Roadside Obstruction",
-        "Broken Traffic Signal", "Missing Road Signs", "Illegal Parking", "Dangerous Intersection"
-      ];
-      defaultCats.forEach(c => allValidCategories.add(c));
+  const handleFileChange = () => {
+    const file = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+    uploadArea.classList.remove("invalid");
+    clearIssueFieldError(document.getElementById("reportIssueForm"), "image");
+
+    if (!file) {
+      fileName.textContent = issueText("report.photoEmpty", "No file chosen");
+      imagePreview.src = "";
+      imagePreview.style.display = "none";
+      return;
     }
-    
-    Array.from(allValidCategories).sort().forEach(cat => {
-      const option = document.createElement("option");
-      option.value = cat;
-      option.textContent = cat;
-      catSelect.appendChild(option);
-    });
-    return;
-  }
-  
-  const selectedDept = allDepartments.find(d => d._id === selectedDeptId);
-  if (selectedDept && selectedDept.supportedCategories && selectedDept.supportedCategories.length > 0) {
-    selectedDept.supportedCategories.forEach(cat => {
-      const option = document.createElement("option");
-      option.value = cat;
-      option.textContent = cat;
-      catSelect.appendChild(option);
-    });
-  } else {
-    // Fallback if no specific categories are found
-    catSelect.innerHTML = '<option value="">No categories available for this department</option>';
-  }
-};
 
-function updateHiddenCoordinates(lat, lng) {
-  document.getElementById("lat").value = lat;
-  document.getElementById("lng").value = lng;
+    const error = validateIssueImage(imageInput, file);
+    if (error) {
+      fileName.textContent = file.name;
+      imagePreview.src = "";
+      imagePreview.style.display = "none";
+      setIssueFieldError(document.getElementById("reportIssueForm"), "image", error);
+      return;
+    }
+
+    fileName.textContent = file.name;
+    const objectUrl = URL.createObjectURL(file);
+    imagePreview.src = objectUrl;
+    imagePreview.style.display = "block";
+    imagePreview.onload = () => URL.revokeObjectURL(objectUrl);
+  };
+
+  imageInput.addEventListener("change", handleFileChange);
+
+  ["title", "category", "location", "ward", "description", "email"].forEach((fieldName) => {
+    const field = document.getElementById(fieldName);
+    if (!field) return;
+    const clearHandler = () => clearIssueFieldError(document.getElementById("reportIssueForm"), fieldName);
+    field.addEventListener("input", clearHandler);
+    field.addEventListener("change", clearHandler);
+  });
+}
+
+function setupIssueDraftAutosave() {
+  const form = document.getElementById("reportIssueForm");
+  if (!form) return;
+
+  const draftRestored = restoreIssueDraft();
+  if (draftRestored) {
+    setIssueDraftStatus(issueText("report.draftRestored", "Draft restored"), "saved");
+  }
+
+  const formFields = [
+    "#title",
+    "#category",
+    "#description",
+    "#email",
+    "#location",
+    "#ward",
+    "#city",
+    "#state"
+  ];
+
+  formFields.forEach((selector) => {
+    const field = form.querySelector(selector);
+    if (!field) return;
+    field.addEventListener("input", scheduleIssueDraftSave);
+    field.addEventListener("change", scheduleIssueDraftSave);
+  });
+
+  const priorityRadios = form.querySelectorAll('input[name="priority"]');
+  priorityRadios.forEach((radio) => {
+    radio.addEventListener("change", scheduleIssueDraftSave);
+  });
+
+  const originalFileInput = form.querySelector("#image");
+  if (originalFileInput) {
+    originalFileInput.addEventListener("change", scheduleIssueDraftSave);
+  }
+
+  window.addEventListener("beforeunload", saveIssueDraft);
+}
+
+function updateHiddenCoordinates(lat, lng, saveDraft = true) {
+  const latInput = document.getElementById("lat");
+  const lngInput = document.getElementById("lng");
+
+  if (latInput) latInput.value = lat;
+  if (lngInput) lngInput.value = lng;
+
+  if (saveDraft) {
+    scheduleIssueDraftSave();
+  }
 }
 
 // "Use My Location" functionality
@@ -354,13 +811,13 @@ window.getCurrentLocation = function () {
       },
       (error) => {
         console.error("Geolocation error:", error);
-        showToast('error', "Could not get your location. Please check your browser permissions.");
+        showToast('error', issueText("common.locationError", "Could not get your location. Please check your browser permissions."));
         btn.innerHTML = originalText;
         btn.disabled = false;
       }
     );
   } else {
-    showToast('error', "Geolocation is not supported by this browser.");
+    showToast('error', issueText("common.geolocationUnsupported", "Geolocation is not supported by this browser."));
     btn.innerHTML = originalText;
     btn.disabled = false;
   }

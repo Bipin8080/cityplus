@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css" />
   <meta name="theme-color" content="#1e40af" />
   <link rel="icon" href="assets/icon-512.svg" type="image/svg+xml" />
@@ -39,6 +40,34 @@
     .form-input:focus, .form-select:focus, textarea.form-input:focus {
       background: #ffffff; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); outline: none;
     }
+    .form-group.invalid .form-input,
+    .form-group.invalid .form-select,
+    .form-group.invalid textarea.form-input {
+      border-color: #ef4444;
+      background: #fff7f7;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+    .field-error {
+      display: none;
+      margin-top: 6px;
+      color: #dc2626;
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+    .form-group.invalid .field-error {
+      display: block;
+    }
+
+    .field-hint {
+      margin-top: 6px;
+      color: #64748b;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+    .field-hint strong {
+      color: #0f172a;
+      font-weight: 600;
+    }
 
     /* Section divider */
     .section-divider {
@@ -47,10 +76,33 @@
     .section-divider h3 { font-size: 1.2rem; color: #0f172a; margin: 0; }
 
     /* Priority Cards */
+    .priority-fieldset {
+      border: 0;
+      padding: 0;
+      margin: 0;
+      min-width: 0;
+    }
     .priority-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .priority-option input { display: none; }
+    .priority-option {
+      position: relative;
+    }
+    .priority-option input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      pointer-events: none;
+    }
     .priority-option label {
       display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 10px; border-radius: 10px; border: 2px solid #e2e8f0; background: #ffffff; cursor: pointer; transition: all 0.2s ease; text-align: center; height: 100%; box-sizing: border-box;
+    }
+    .priority-option label:hover {
+      border-color: #94a3b8;
+    }
+    .priority-option input:focus-visible + label {
+      outline: 3px solid rgba(59, 130, 246, 0.35);
+      outline-offset: 2px;
     }
     .priority-option label i { font-size: 1.6rem; margin-bottom: 8px; color: #94a3b8; transition: all 0.2s; }
     .priority-option .priority-name { font-weight: 700; font-size: 0.95rem; color: #334155; margin-bottom: 4px; }
@@ -72,10 +124,62 @@
     .file-upload i { font-size: 2rem; color: #64748b; margin-bottom: 8px; }
     .file-upload p { color: #475569; font-weight: 500; font-size: 0.9rem; margin: 0 0 6px 0; }
     .file-upload .file-name { font-size: 0.8rem; color: #3b82f6; font-weight: 600; background: #ffffff; padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .file-upload .file-preview {
+      width: 100%;
+      max-width: 220px;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-top: 12px;
+      border: 1px solid #dbe4f0;
+      display: none;
+      background: #fff;
+    }
+    .file-upload.invalid {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
     .file-upload input { display: none; }
 
     .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 24px; }
     .form-actions .btn { padding: 12px 32px; font-size: 1.05rem; font-weight: 600; border-radius: 8px; }
+    .form-actions-wrap {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 24px;
+      flex-wrap: wrap;
+    }
+    .draft-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #64748b;
+      font-size: 0.85rem;
+      font-weight: 600;
+      min-height: 24px;
+    }
+    .draft-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+      flex: 0 0 auto;
+    }
+    .draft-status.saving { color: #b45309; }
+    .draft-status.saving .draft-status-dot { background: #f59e0b; animation: pulseDot 1s ease-in-out infinite; }
+    .draft-status.saved { color: #166534; }
+    .draft-status.saved .draft-status-dot { background: #16a34a; }
+    .draft-status.cleared { color: #475569; }
+    .draft-status.cleared .draft-status-dot { background: #64748b; }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.4); opacity: 1; }
+    }
 
     @media (max-width: 768px) {
       .form-container { margin: 20px 15px; padding: 24px; width: auto; }
@@ -85,7 +189,7 @@
   </style>
 </head>
 
-<body>
+<body data-i18n-page-title="page.reportTitle">
   <!-- Navbar -->
   <header class="navbar">
     <div class="container navbar-inner">
@@ -93,125 +197,137 @@
         <div class="brand-title">CityPlus</div>
       </a>
       <div class="navbar-auth">
-        <button class="btn btn-outline" onclick="window.history.back()">Cancel</button>
+        <button class="btn btn-outline" onclick="window.history.back()" data-i18n="common.cancel">Cancel</button>
       </div>
     </div>
   </header>
 
   
   <div class="container form-container">
-    <h1 class="page-title">Report an Issue</h1>
-    <p class="page-subtitle">Please provide the details of the civic issue to help us resolve it quickly.</p>
+    <h1 class="page-title" data-i18n="report.title">Report an Issue</h1>
+    <p class="page-subtitle" data-i18n="report.subtitle">Please provide the details of the civic issue to help us resolve it quickly. You can submit without logging in by adding your email address.</p>
     
-    <form onsubmit="submitIssue(event)" enctype="multipart/form-data" id="reportIssueForm" class="report-form">
+    <form onsubmit="submitIssue(event)" enctype="multipart/form-data" id="reportIssueForm" class="report-form" novalidate>
       
-      <div class="section-divider"><h3>Basic Information</h3></div>
+      <div class="section-divider"><h3 data-i18n="report.basicInformation">Basic Information</h3></div>
       
       <div class="form-group full-width">
-        <label class="form-label" for="title"><i class="fas fa-heading"></i> Issue Title</label>
-        <input id="title" name="title" type="text" class="form-input" placeholder="e.g., Pothole on Main Street" required />
+        <label class="form-label" for="title"><i class="fas fa-heading"></i> <span data-i18n="report.issueTitle">Issue Title</span></label>
+        <input id="title" name="title" type="text" class="form-input" placeholder="e.g., Pothole on Main Street" data-i18n-placeholder="report.issueTitlePlaceholder" required />
+        <div class="field-error" data-error-for="title"></div>
       </div>
 
       <div class="form-group full-width">
-        <label class="form-label" for="category"><i class="fas fa-tag"></i> Category</label>
+        <label class="form-label" for="category"><i class="fas fa-tag"></i> <span data-i18n="report.category">Category</span></label>
         <select id="category" name="category" class="form-select" required>
           <option value="">Loading categories...</option>
         </select>
+        <div style="margin-top: 6px; color: #64748b; font-size: 0.82rem; line-height: 1.4;" data-i18n="report.categoryHelp">Choose the closest match. This helps route your report automatically.</div>
+        <div class="field-error" data-error-for="category"></div>
       </div>
 
       <div class="form-group full-width">
-        <label class="form-label" for="description"><i class="fas fa-align-left"></i> Description</label>
-        <textarea id="description" name="description" class="form-input" placeholder="Provide a detailed description of what needs fixing..." required></textarea>
+        <label class="form-label" for="description"><i class="fas fa-align-left"></i> <span data-i18n="report.description">Description</span></label>
+        <textarea id="description" name="description" class="form-input" placeholder="Provide a detailed description of what needs fixing..." data-i18n-placeholder="report.descriptionPlaceholder" required></textarea>
+        <div class="field-error" data-error-for="description"></div>
       </div>
 
-      <div class="form-group full-width">
-        <label class="form-label"><i class="fas fa-flag"></i> Priority Level</label>
+      <div class="form-group full-width" id="reporterEmailGroup">
+        <label class="form-label" for="email">
+          <i class="fas fa-envelope"></i>
+          <span>Email</span>
+          <span style="margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;">Required for guests</span>
+        </label>
+        <input id="email" name="email" type="email" class="form-input" placeholder="Enter your email address" autocomplete="email" />
+        <div class="field-hint">Enter an email so we can send your issue ID. <strong>If you are logged in, we will use your account email automatically.</strong></div>
+        <div class="field-error" data-error-for="email"></div>
+      </div>
+
+      <fieldset class="form-group full-width priority-fieldset">
+        <legend class="form-label"><i class="fas fa-flag"></i> <span data-i18n="report.priorityLevel">Priority Level</span></legend>
         <div class="priority-options">
           <div class="priority-option low">
-            <input type="radio" name="priority" id="priority-low" value="Low">
-            <label for="priority-low">
-              <i class="fas fa-thermometer-empty"></i> <div class="priority-name">Low</div> <div class="priority-desc">Minor issue</div>
+              <input type="radio" name="priority" id="priority-low" value="Low">
+              <label for="priority-low">
+              <i class="fas fa-thermometer-empty"></i> <div class="priority-name" data-i18n="report.low">Low</div> <div class="priority-desc" data-i18n="report.lowDesc">Minor issue</div>
             </label>
           </div>
           <div class="priority-option medium">
-            <input type="radio" name="priority" id="priority-medium" value="Medium" checked>
-            <label for="priority-medium">
-              <i class="fas fa-thermometer-half"></i> <div class="priority-name">Medium</div> <div class="priority-desc">Needs attention</div>
+              <input type="radio" name="priority" id="priority-medium" value="Medium" checked>
+              <label for="priority-medium">
+              <i class="fas fa-thermometer-half"></i> <div class="priority-name" data-i18n="report.medium">Medium</div> <div class="priority-desc" data-i18n="report.mediumDesc">Needs attention</div>
             </label>
           </div>
           <div class="priority-option high">
-            <input type="radio" name="priority" id="priority-high" value="High">
-            <label for="priority-high">
-              <i class="fas fa-thermometer-full"></i> <div class="priority-name">High</div> <div class="priority-desc">Urgent risk</div>
+              <input type="radio" name="priority" id="priority-high" value="High">
+              <label for="priority-high">
+              <i class="fas fa-thermometer-full"></i> <div class="priority-name" data-i18n="report.high">High</div> <div class="priority-desc" data-i18n="report.highDesc">Urgent risk</div>
             </label>
           </div>
         </div>
-      </div>
+      </fieldset>
 
-      <div class="section-divider" style="margin-top: 30px;"><h3>Location & Evidence</h3></div>
+      <div class="section-divider" style="margin-top: 30px;"><h3 data-i18n="report.locationDetails">Location & Evidence</h3></div>
 
       <div class="form-group full-width">
-        <label class="form-label" for="location"><i class="fas fa-location-dot"></i> Location Details</label>
-        <input id="location" name="location" type="text" class="form-input" placeholder="Enter specific location details" required style="margin-bottom: 8px;" />
+        <label class="form-label" for="location"><i class="fas fa-location-dot"></i> <span data-i18n="report.locationDetails">Location Details</span></label>
+        <input id="location" name="location" type="text" class="form-input" placeholder="Enter specific location details" data-i18n-placeholder="report.locationPlaceholder" required style="margin-bottom: 8px;" />
+        <div style="margin-bottom: 8px; color: #64748b; font-size: 0.82rem; line-height: 1.4;" data-i18n="report.locationHelp">You can type the address, use your current location, or place the pin on the map.</div>
         <div style="display: flex; gap: 12px; margin-bottom: 8px;">
           <button type="button" class="btn btn-outline" id="useMyLocationBtn" onclick="getCurrentLocation()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem;">
-            <i class="fas fa-crosshairs"></i> <span class="hide-mobile">Use My Location</span>
+            <i class="fas fa-crosshairs"></i> <span class="hide-mobile" data-i18n="report.useMyLocation">Use My Location</span>
           </button>
           <button type="button" class="btn btn-outline" id="toggleMapBtn" onclick="toggleMap()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.6rem;">
-            <i class="fas fa-map"></i> <span class="hide-mobile">Choose on Map</span>
+            <i class="fas fa-map"></i> <span class="hide-mobile" data-i18n="report.chooseOnMap">Choose on Map</span>
           </button>
         </div>
 
         <div id="map"><span style="color: var(--text-secondary); display:flex; align-items:center; justify-content:center; height:100%;" id="mapStatus">Loading Map...</span></div>
         <input type="hidden" id="lat" name="lat"><input type="hidden" id="lng" name="lng">
+        <div class="field-error" data-error-for="location"></div>
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="ward"><i class="fas fa-map-signs"></i> Ward / Area</label>
-        <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5" required />
+        <label class="form-label" for="ward"><i class="fas fa-map-signs"></i> <span data-i18n="report.wardArea">Ward / Area</span></label>
+        <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5" data-i18n-placeholder="report.wardPlaceholder" required />
+        <div class="field-error" data-error-for="ward"></div>
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="city"><i class="fas fa-city"></i> City</label>
-        <input id="city" name="city" type="text" class="form-input" placeholder="e.g., Mumbai" />
+        <label class="form-label" for="city"><i class="fas fa-city"></i> <span data-i18n="report.city">City</span></label>
+        <input id="city" name="city" type="text" class="form-input" placeholder="Auto-filled from map or location" data-i18n-placeholder="report.cityPlaceholder" />
       </div>
       
-      <input type="hidden" id="state" name="state" value="Maharashtra">
+      <input type="hidden" id="state" name="state" value="">
 
       <div class="form-group full-width">
-        <label class="form-label"><i class="fas fa-camera"></i> Attach Photo <span style="color: #64748b; font-weight: normal; font-size: 0.8rem; margin-top:2px;">(Required)</span></label>
+        <label class="form-label"><i class="fas fa-camera"></i> <span data-i18n="report.photo">Attach Photo</span> <span style="color: #64748b; font-weight: normal; font-size: 0.8rem; margin-top:2px;" data-i18n="report.photoRequired">(Required)</span></label>
         <div class="file-upload" id="uploadArea">
           <i class="fas fa-cloud-upload-alt"></i>
-          <p>Drag & drop or click to upload</p>
-          <div class="file-name" id="fileName">No file chosen</div>
+          <p data-i18n="report.photoUpload">Drag & drop or click to upload</p>
+          <div class="file-name" id="fileName" data-i18n="report.photoEmpty">No file chosen</div>
+          <img id="imagePreview" class="file-preview" alt="Selected issue preview" />
           <input type="file" id="image" name="image" accept="image/*" required>
         </div>
+        <div class="field-error" data-error-for="image"></div>
       </div>
 
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Submit Report</button>
+      <div class="form-actions-wrap">
+        <div class="draft-status" id="draftStatus" aria-live="polite">
+          <span class="draft-status-dot"></span>
+          <span id="draftStatusText" data-i18n="report.draftNoSaved">No draft saved yet</span>
+        </div>
+        <div class="form-actions" style="margin-top: 0; border-top: 0; padding-top: 0;">
+          <button type="button" class="btn btn-outline" id="clearDraftBtn" onclick="clearIssueDraftAndResetForm()" style="margin-right: 12px;" data-i18n="report.clearDraft">Clear Draft</button>
+          <button type="submit" class="btn btn-primary" id="submitIssueBtn"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> <span data-i18n="report.submitReport">Submit Report</span></button>
+        </div>
       </div>
 
     </form>
   </div>
 
-  <!-- Login Required Modal -->
-  <div id="loginRequiredModal" class="issue-modal-backdrop" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div class="issue-modal" style="background: white; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin: 0; font-size: 1.5rem;"><i class="fas fa-lock" style="color: #1e40af;"></i> Login Required</h2>
-        <button onclick="closeLoginModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-      </div>
-      <p style="color: #475569; margin-bottom: 20px;">To ensure accountability and allow you to track your report's status, please log in.</p>
-      <a href="login.html" class="btn btn-primary" style="display: block; text-align: center;"><i class="fas fa-sign-in-alt"></i> Login to Report Issue</a>
-    </div>
-  </div>
-
   <script src="js/theme.js"></script>
   <script>
-    function openLoginModal() { document.getElementById('loginRequiredModal').style.display = 'flex'; }
-    function closeLoginModal() { document.getElementById('loginRequiredModal').style.display = 'none'; }
-
     document.addEventListener("DOMContentLoaded", function () {
       const urlParams = new URLSearchParams(window.location.search);
       const selectedCategory = urlParams.get('category');
@@ -220,19 +336,24 @@
         if (categorySelect) categorySelect.value = selectedCategory;
       }
 
+      const reporterEmailGroup = document.getElementById("reporterEmailGroup");
+      const reporterEmailInput = document.getElementById("email");
+      const savedEmail = localStorage.getItem("citizen_userEmail") || localStorage.getItem("citizen_email") || "";
+      if (reporterEmailInput && savedEmail) {
+        reporterEmailInput.value = savedEmail;
+      }
+      if (reporterEmailGroup) reporterEmailGroup.style.display = "flex";
+
       const fileInput = document.getElementById('image');
       const fileNameSpan = document.getElementById('fileName');
       const uploadDiv = document.getElementById('uploadArea');
 
       if (fileInput && fileNameSpan && uploadDiv) {
-        fileInput.addEventListener('change', function () { fileNameSpan.textContent = fileInput.files[0] ? fileInput.files[0].name : 'No file chosen'; });
         uploadDiv.addEventListener('click', function (e) { if (e.target.tagName !== 'INPUT') fileInput.click(); });
         uploadDiv.addEventListener('dragover', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#4e73df'; uploadDiv.style.background = '#eef2ff'; });
         uploadDiv.addEventListener('dragleave', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#cbd5e1'; uploadDiv.style.background = '#f8fafc'; });
-        uploadDiv.addEventListener('drop', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#cbd5e1'; uploadDiv.style.background = '#f8fafc'; if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; fileNameSpan.textContent = e.dataTransfer.files[0].name; }});
+        uploadDiv.addEventListener('drop', function (e) { e.preventDefault(); uploadDiv.style.borderColor = '#cbd5e1'; uploadDiv.style.background = '#f8fafc'; if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }});
       }
-      const loginModal = document.getElementById('loginRequiredModal');
-      if (loginModal) loginModal.addEventListener('click', (e) => { if (e.target.id === 'loginRequiredModal') closeLoginModal(); });
     });
   </script>
   <div id="toast-container" class="toast-container"></div>

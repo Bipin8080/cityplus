@@ -5,12 +5,16 @@ import {
   registerCitizen,
   registerStaff,
   registerAdmin,
+  resendRegistrationOTP,
+  verifyRegistrationOTP,
   login,
   changePassword,
   sendChangePasswordOTP,
   forgotPassword,
   verifyOTP,
-  resetPassword
+  resetPassword,
+  completeStaffSetup,
+  updateEmailNotificationPreference
 } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -19,6 +23,8 @@ const router = express.Router();
 
 // Citizen Registration (open to everyone)
 router.post("/register", asyncHandler(registerCitizen));
+router.post("/register/verify-otp", asyncHandler(verifyRegistrationOTP));
+router.post("/register/resend-otp", asyncHandler(resendRegistrationOTP));
 
 // Login (all roles)
 router.post("/login", asyncHandler(login));
@@ -27,6 +33,8 @@ router.post("/login", asyncHandler(login));
 router.post("/forgot-password", asyncHandler(forgotPassword));
 router.post("/verify-otp", asyncHandler(verifyOTP));
 router.post("/reset-password", asyncHandler(resetPassword));
+router.post("/complete-staff-setup", asyncHandler(completeStaffSetup));
+router.patch("/email-notifications", protect, asyncHandler(updateEmailNotificationPreference));
 
 // ──── Protected Routes ──────────────────────────────────────────────────
 

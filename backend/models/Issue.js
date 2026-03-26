@@ -15,14 +15,19 @@ const IssueSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "In Progress", "Resolved"],
+      enum: ["Pending", "In Progress", "Resolved", "Rejected"],
       default: "Pending"
     },
 
     citizen: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      default: null
+    },
+
+    reporterEmail: {
+      type: String,
+      default: null
     },
 
     // D: assignment
@@ -54,6 +59,10 @@ const IssueSchema = new mongoose.Schema(
     resolvedAt: { type: Date, default: null },
     resolvedImage: { type: String, default: null },
     resolvedNote: { type: String, default: null },
+
+    // Rejection timeline
+    rejectedAt: { type: Date, default: null },
+    rejectedNote: { type: String, default: null },
 
     // J: Citizen feedback once resolved
     feedback: {
