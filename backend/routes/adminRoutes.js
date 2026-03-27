@@ -7,6 +7,7 @@ import {
   getUsers,
   getStaff,
   updateUserStatus,
+  deleteUser,
   assignStaffDepartment
 } from "../controllers/adminController.js";
 
@@ -34,6 +35,9 @@ router.get("/staff", asyncHandler(getStaff));
 
 // PATCH /api/admin/users/:userId/status  -> update a user's status (active/blocked/terminated)
 router.patch("/users/:userId/status", asyncHandler(updateUserStatus));
+
+// DELETE /api/admin/users/:userId -> delete a user entirely
+router.delete("/users/:userId", asyncHandler(deleteUser));
 
 // PATCH /api/admin/staff/:staffId/department -> update a staff's department
 router.patch("/staff/:staffId/department", asyncHandler(assignStaffDepartment));

@@ -185,6 +185,8 @@
       .form-container { margin: 20px 15px; padding: 24px; width: auto; }
       .report-form { grid-template-columns: 1fr; gap: 16px; }
       .priority-options { grid-template-columns: 1fr; }
+      .form-actions { display: flex; flex-direction: column; width: 100%; gap: 12px; }
+      .form-actions .btn { width: 100%; margin: 0 !important; }
     }
   </style>
 </head>
@@ -207,7 +209,7 @@
     <h1 class="page-title" data-i18n="report.title">Report an Issue</h1>
     <p class="page-subtitle" data-i18n="report.subtitle">Please provide the details of the civic issue to help us resolve it quickly. You can submit without logging in by adding your email address.</p>
     
-    <form onsubmit="submitIssue(event)" enctype="multipart/form-data" id="reportIssueForm" class="report-form" novalidate>
+    <form onsubmit="submitIssue(event)" enctype="multipart/form-data" id="reportIssueForm" class="report-form" novalidate autocomplete="off">
       
       <div class="section-divider"><h3 data-i18n="report.basicInformation">Basic Information</h3></div>
       
@@ -238,7 +240,7 @@
           <span>Email</span>
           <span style="margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;">Required for guests</span>
         </label>
-        <input id="email" name="email" type="email" class="form-input" placeholder="Enter your email address" autocomplete="email" />
+        <input id="email" name="email" type="email" class="form-input" placeholder="Enter your email address" autocomplete="new-password" autocapitalize="off" spellcheck="false" />
         <div class="field-hint">Enter an email so we can send your issue ID. <strong>If you are logged in, we will use your account email automatically.</strong></div>
         <div class="field-error" data-error-for="email"></div>
       </div>
@@ -288,8 +290,8 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="ward"><i class="fas fa-map-signs"></i> <span data-i18n="report.wardArea">Ward / Area</span></label>
-        <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5" data-i18n-placeholder="report.wardPlaceholder" required />
+        <label class="form-label" for="ward"><i class="fas fa-map-signs"></i> <span data-i18n="report.wardArea">Ward / Area</span> <span style="color: #64748b; font-weight: normal; font-size: 0.8rem; margin-top:2px;" data-i18n="report.optional">(Optional)</span></label>
+        <input id="ward" name="ward" type="text" class="form-input" placeholder="e.g., Ward 5" data-i18n-placeholder="report.wardPlaceholder" />
         <div class="field-error" data-error-for="ward"></div>
       </div>
 
@@ -331,14 +333,15 @@
     document.addEventListener("DOMContentLoaded", function () {
       const urlParams = new URLSearchParams(window.location.search);
       const selectedCategory = urlParams.get('category');
-      if (selectedCategory) {
+      const token = localStorage.getItem("citizen_token");
+      if (token && selectedCategory) {
         const categorySelect = document.getElementById('category');
         if (categorySelect) categorySelect.value = selectedCategory;
       }
 
       const reporterEmailGroup = document.getElementById("reporterEmailGroup");
       const reporterEmailInput = document.getElementById("email");
-      const savedEmail = localStorage.getItem("citizen_userEmail") || localStorage.getItem("citizen_email") || "";
+      const savedEmail = token ? (localStorage.getItem("citizen_userEmail") || localStorage.getItem("citizen_email") || "") : "";
       if (reporterEmailInput && savedEmail) {
         reporterEmailInput.value = savedEmail;
       }

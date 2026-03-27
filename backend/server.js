@@ -15,7 +15,6 @@ import configRoutes from "./routes/configRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { initSocket } from "./config/socket.js";
-import { verifyEmailTransport } from "./config/email.js";
 
 // Path setup for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -24,6 +23,12 @@ const __dirname = path.dirname(__filename);
 connectDB();
 
 const app = express();
+
+// Render terminates TLS before forwarding requests to the app.
+// This is required so rate limiting and secure cookies can see the real client IP.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
 // ──── Security Middleware ────────────────────────────────────────────────
 // CORS: restrict to allowed origins (set FRONTEND_URL in .env for production)
@@ -96,9 +101,5 @@ const PORT = process.env.PORT || 5000;
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
 initSocket(server);
-
-verifyEmailTransport()
-  .then(() => console.log("[Email] SMTP transporter verified"))
-  .catch((err) => console.warn("[Email] SMTP transporter verification failed:", err.message));
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

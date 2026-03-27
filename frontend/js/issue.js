@@ -1,12 +1,35 @@
 const IMAGE_MAX_SIZE_MB = 5;
 const IMAGE_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const ISSUE_DRAFT_STORAGE_KEY = "cityplus_report_issue_draft_v1";
+const ISSUE_DRAFT_STORAGE_PREFIX = "cityplus_report_issue_draft_v1_";
 let issueDraftSaveTimer = null;
 let issueDraftStatusTimer = null;
 let issueMapInitialCenter = null;
 
 function issueText(key, fallback) {
   return fallback || key;
+}
+
+function getIssueDraftStorageKey() {
+  const token = localStorage.getItem("citizen_token");
+  const email = token ? (localStorage.getItem("citizen_userEmail") || localStorage.getItem("citizen_email")) : null;
+  return email ? `${ISSUE_DRAFT_STORAGE_PREFIX}${email}` : `${ISSUE_DRAFT_STORAGE_PREFIX}guest`;
+}
+
+function getIssueDraftStorageKeys() {
+  const keys = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key && key.startsWith(ISSUE_DRAFT_STORAGE_PREFIX)) {
+      keys.push(key);
+    }
+  }
+
+  return keys;
+}
+
+function clearAllIssueDraftStorage() {
+  getIssueDraftStorageKeys().forEach((key) => localStorage.removeItem(key));
 }
 
 async function submitIssue(event) {
@@ -27,12 +50,11 @@ async function submitIssue(event) {
 
   let hasValidationError = false;
 
-  if (!title || !category || !location || !ward || !description) {
+  if (!title || !category || !location || !description) {
     hasValidationError = true;
     if (!title) setIssueFieldError(form, "title", issueText("common.titleRequired", "Please enter a short issue title."));
     if (!category) setIssueFieldError(form, "category", issueText("common.categoryRequired", "Please choose the best matching category."));
     if (!location) setIssueFieldError(form, "location", issueText("common.locationRequired", "Please add a location or use the map."));
-    if (!ward) setIssueFieldError(form, "ward", issueText("common.wardRequired", "Please enter the ward or area."));
     if (!description) setIssueFieldError(form, "description", issueText("common.descriptionRequired", "Please describe the issue in a little more detail."));
   }
 
@@ -104,7 +126,7 @@ async function submitIssue(event) {
     const redirectText = isLoggedIn ? " Redirecting to your dashboard..." : " Redirecting to the homepage...";
 
     showToast('success', `${issueText("common.submitSuccess", "Issue Submitted Successfully!")}${idText}${emailText}${redirectText}`);
-    clearIssueDraft();
+    clearIssueDraftAndResetForm();
 
     setTimeout(() => {
       window.location.href = isLoggedIn ? "citizen-dashboard.html" : "index.html";
@@ -215,32 +237,53 @@ function saveIssueDraft() {
     .some((key) => String(draft[key] || "").trim() !== "") || (draft.priority && draft.priority !== "Medium");
 
   if (!hasContent) {
-    localStorage.removeItem(ISSUE_DRAFT_STORAGE_KEY);
+    clearAllIssueDraftStorage();
     setIssueDraftStatus(issueText("report.draftNoSaved", "No draft saved yet"), "cleared");
     return;
   }
 
-  localStorage.setItem(ISSUE_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  localStorage.setItem(getIssueDraftStorageKey(), JSON.stringify(draft));
   setIssueDraftStatus(issueText("report.draftSaved", "Draft saved"), "saved");
 }
 
 function clearIssueDraft() {
-  localStorage.removeItem(ISSUE_DRAFT_STORAGE_KEY);
+  localStorage.removeItem(getIssueDraftStorageKey());
   setIssueDraftStatus(issueText("report.draftCleared", "Draft cleared"), "cleared");
 }
 
-function clearIssueDraftAndResetForm() {
-  const form = document.getElementById("reportIssueForm");
+function resetIssueFormFields(form) {
   if (!form) return;
 
-  clearIssueDraft();
-  clearIssueFieldErrors(form);
   form.reset();
 
-  const priorityMedium = form.querySelector("#priority-medium");
-  if (priorityMedium) {
-    priorityMedium.checked = true;
-  }
+  const titleInput = form.querySelector("#title");
+  if (titleInput) titleInput.value = "";
+
+  const categorySelect = form.querySelector("#category");
+  if (categorySelect) categorySelect.value = "";
+
+  const descriptionInput = form.querySelector("#description");
+  if (descriptionInput) descriptionInput.value = "";
+
+  const emailInput = form.querySelector("#email");
+  if (emailInput) emailInput.value = "";
+
+  const locationInput = form.querySelector("#location");
+  if (locationInput) locationInput.value = "";
+
+  const wardInput = form.querySelector("#ward");
+  if (wardInput) wardInput.value = "";
+
+  const cityInput = form.querySelector("#city");
+  if (cityInput) cityInput.value = "";
+
+  const stateInput = form.querySelector("#state");
+  if (stateInput) stateInput.value = "";
+
+  const priorityRadios = form.querySelectorAll('input[name="priority"]');
+  priorityRadios.forEach((radio) => {
+    radio.checked = false;
+  });
 
   const fileInput = form.querySelector("#image");
   const fileName = document.getElementById("fileName");
@@ -259,6 +302,15 @@ function clearIssueDraftAndResetForm() {
   const lngInput = form.querySelector("#lng");
   if (latInput) latInput.value = "";
   if (lngInput) lngInput.value = "";
+}
+
+function clearIssueDraftAndResetForm() {
+  const form = document.getElementById("reportIssueForm");
+  if (!form) return;
+
+  clearAllIssueDraftStorage();
+  clearIssueFieldErrors(form);
+  resetIssueFormFields(form);
 
   if (issueDraftSaveTimer) {
     clearTimeout(issueDraftSaveTimer);
@@ -279,7 +331,7 @@ function restoreIssueDraft() {
   const form = document.getElementById("reportIssueForm");
   if (!form) return false;
 
-  const rawDraft = localStorage.getItem(ISSUE_DRAFT_STORAGE_KEY);
+  const rawDraft = localStorage.getItem(getIssueDraftStorageKey());
   if (!rawDraft) return false;
 
   try {
@@ -315,7 +367,7 @@ function restoreIssueDraft() {
     return true;
   } catch (err) {
     console.error("Failed to restore issue draft:", err);
-    localStorage.removeItem(ISSUE_DRAFT_STORAGE_KEY);
+    localStorage.removeItem(getIssueDraftStorageKey());
     return false;
   }
 }
@@ -647,8 +699,9 @@ function populateCategorySelect(categories) {
   const catSelect = document.getElementById("category");
   if (!catSelect) return;
 
+  const token = localStorage.getItem("citizen_token");
   const currentValue = catSelect.value;
-  const savedDraftCategory = getSavedIssueDraft()?.category || "";
+  const savedDraftCategory = token ? (getSavedIssueDraft()?.category || "") : "";
   catSelect.innerHTML = '<option value="">Select a category</option>';
 
   categories.forEach((category) => {
@@ -657,6 +710,11 @@ function populateCategorySelect(categories) {
     option.textContent = category;
     catSelect.appendChild(option);
   });
+
+  if (!token) {
+    catSelect.value = "";
+    return;
+  }
 
   const urlParams = new URLSearchParams(window.location.search);
   const selectedCategory = urlParams.get("category");
@@ -668,7 +726,7 @@ function populateCategorySelect(categories) {
 }
 
 function getSavedIssueDraft() {
-  const rawDraft = localStorage.getItem(ISSUE_DRAFT_STORAGE_KEY);
+  const rawDraft = localStorage.getItem(getIssueDraftStorageKey());
   if (!rawDraft) return null;
 
   try {
@@ -732,9 +790,18 @@ function setupIssueDraftAutosave() {
   const form = document.getElementById("reportIssueForm");
   if (!form) return;
 
-  const draftRestored = restoreIssueDraft();
-  if (draftRestored) {
-    setIssueDraftStatus(issueText("report.draftRestored", "Draft restored"), "saved");
+  const token = localStorage.getItem("citizen_token");
+  if (!token) {
+    clearIssueDraft(); // Guests shouldn't have persistent drafts
+    resetIssueFormFields(form);
+    window.setTimeout(() => {
+      resetIssueFormFields(form);
+    }, 50);
+  } else {
+    const draftRestored = restoreIssueDraft();
+    if (draftRestored) {
+      setIssueDraftStatus(issueText("report.draftRestored", "Draft restored"), "saved");
+    }
   }
 
   const formFields = [

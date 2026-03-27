@@ -59,7 +59,7 @@ export const getUsers = async (req, res, next) => {
 
 // GET /api/admin/staff
 export const getStaff = async (req, res, next) => {
-  const staff = await User.find({ role: "staff" }, "name email department staffId status").populate("department", "name");
+  const staff = await User.find({ role: "staff" }, "name email department staffId status createdAt").populate("department", "name");
   res.json({
     success: true,
     message: "Staff fetched successfully",
@@ -101,6 +101,25 @@ export const updateUserStatus = async (req, res, next) => {
   );
 
   res.json({ success: true, message: `User status updated to ${status}.`, user });
+};
+
+// DELETE /api/admin/users/:userId
+export const deleteUser = async (req, res, next) => {
+  const { userId } = req.params;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
+
+  // Prevent deleting other admins
+  if (user.role === "admin") {
+    return res.status(403).json({ success: false, message: "Cannot delete admin accounts." });
+  }
+
+  await User.findByIdAndDelete(userId);
+
+  res.json({ success: true, message: "User deleted successfully." });
 };
 
 // PATCH /api/admin/staff/:staffId/department

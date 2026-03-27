@@ -128,6 +128,8 @@ async function registerUser() {
   const email = document.querySelector("#regEmail").value.trim();
   const password = document.querySelector("#regPassword").value;
   const confirmPassword = document.querySelector("#regConfirmPassword").value;
+  const submitBtn = document.querySelector('#registerForm button[type="submit"]');
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
   // Validation
   if (!name || !email || !password || !confirmPassword) {
@@ -147,8 +149,13 @@ async function registerUser() {
     return;
   }
 
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Creating...';
+  }
+
   try {
-    await window.CityPlusApi.fetchJson("/api/auth/register", {
+    const { data } = await window.CityPlusApi.fetchJson("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password })
     });
@@ -167,10 +174,19 @@ async function registerUser() {
       otpInput.focus();
     }
 
-    showToast('success', 'Account created. Enter the OTP sent to your email to verify your account.');
+    if (data && data.emailSent === false) {
+      showToast('warning', 'Account created, but the verification email could not be delivered right now. You can use Resend OTP after a short wait.');
+    } else {
+      showToast('success', 'Account created. Enter the OTP sent to your email to verify your account.');
+    }
   } catch (err) {
     console.error(err);
     showToast('error', err.message || "A system error occurred during registration. Please try again later.");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
   }
 }
 

@@ -91,8 +91,17 @@ const registerUser = (role, options = {}) => async (req, res, next) => {
   if (verifyEmail) {
     const sent = await sendRegistrationOtp(user);
     if (!sent) {
-      await User.findByIdAndDelete(user._id);
-      return next(createHttpError("Failed to send verification OTP. Please try again later.", 500));
+      sendSuccess(
+        res,
+        `${role.charAt(0).toUpperCase() + role.slice(1)} registered successfully, but the verification email could not be delivered right now. Use resend OTP after a short wait.`,
+        {
+          user: payload,
+          verificationRequired: true,
+          email: user.email,
+          emailSent: false
+        }
+      );
+      return;
     }
 
     sendSuccess(
@@ -173,6 +182,38 @@ export const registerStaff = async (req, res, next) => {
   };
 
   sendSuccess(res, "Staff registered successfully. Setup link sent by email.", { user: payload });
+};
+
+export const resendStaffSetupLink = async (req, res, next) => {
+  const { staffId } = req.params;
+  const user = await User.findById(staffId);
+  if (!user || user.role !== "staff") {
+    return next(createHttpError("Staff member not found", 404));
+  }
+
+  if (user.status !== "pending_setup") {
+    return next(createHttpError("This staff account has already been activated or is suspended.", 400));
+  }
+
+  const setupToken = signStaffSetupToken(user);
+  const setupLink = buildStaffSetupLink(setupToken);
+
+  try {
+    const html = staffSetupEmailTemplate(user.name, setupLink);
+    const sent = await sendEmail(user.email, "CityPlus: Set Up Your Staff Account", html);
+    if (!sent) {
+      return next(createHttpError("Failed to send account setup email. Please try again later.", 500));
+    }
+    
+    user.setupTokenIssuedAt = new Date();
+    await user.save();
+    
+  } catch (err) {
+    console.error("Failed to resend staff setup email:", err);
+    return next(createHttpError("Failed to resend account setup email. Please try again later.", 500));
+  }
+
+  sendSuccess(res, "Setup link resent successfully.");
 };
 
 export const completeStaffSetup = async (req, res, next) => {

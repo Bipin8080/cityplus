@@ -328,6 +328,13 @@
               </select>
             </div>
 
+            <div class="filter-item">
+              <label class="filter-label">Department</label>
+              <select id="issueDepartmentFilter" class="filter-select">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+
             <button class="btn btn-secondary" onclick="resetIssueFilters()">
               Reset
             </button>
@@ -496,25 +503,27 @@
       </div>
 
       <!-- Register Staff Tab Content -->
-      <div class="content-container admin-tab-content" id="register-staff-tab">
+      <div class="content-container admin-tab-content" id="register-staff-tab" style="display: none;">
         <header class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
-            <div class="tag">Staff Registration</div>
+            <div class="tag">Staff Administration</div>
             <h1 class="section-title" style="margin-top:8px;">
-              Register New Staff
+              Staff Management & Registration
             </h1>
             <p class="section-subtitle" style="margin-bottom:0;">
-              Create new staff accounts and assign them to departments. They will receive a secure setup link by email.
+              Register new staff and manage existing staff setup requests.
             </p>
           </div>
         </header>
 
-        <section class="admin-section" style="max-width: 800px;">
+        <section class="admin-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+          <!-- Left Side: Registration Form -->
           <form id="adminRegisterStaffForm"
             style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+            
+            <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--text-primary); font-weight: 600;">Register New Staff</h2>
 
-            <div
-              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="staffFullName">Full Name <span style="color: #ef4444">*</span></label>
                 <input type="text" id="staffFullName" class="form-input" required placeholder="e.g. John Doe">
@@ -526,8 +535,7 @@
               </div>
             </div>
 
-            <div
-              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="staffEmail">Email Address <span style="color: #ef4444">*</span></label>
                 <input type="email" id="staffEmail" class="form-input" required placeholder="john.doe@cityplus.com">
@@ -543,7 +551,7 @@
 
             <div class="form-group" style="margin-bottom: 1.5rem;">
               <label class="form-label">Password Setup</label>
-              <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-tertiary); color: var(--text-secondary); line-height: 1.5;">
+              <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-tertiary); color: var(--text-secondary); line-height: 1.5; font-size: 0.875rem;">
                 No password is created here. The staff member will receive a secure setup link and choose their own password before logging in.
               </div>
             </div>
@@ -555,6 +563,30 @@
               style="margin-top: 1rem; text-align: center; display: none; padding: 0.75rem; border-radius: 0.5rem; font-weight: 500;">
             </div>
           </form>
+
+          <!-- Right Side: Registration History -->
+          <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); height: 100%; display: flex; flex-direction: column;">
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 1.25rem; color: var(--text-primary); font-weight: 600; margin: 0;">Registration History</h2>
+                <button type="button" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.875rem;" onclick="loadStaffRegistrationHistory()">Refresh</button>
+              </div>
+              <div class="search-box" style="margin: 0;">
+                <span class="material-icons-round">search</span>
+                <input type="text" id="staffHistorySearchInput" placeholder="Search by name, email, or ID..." class="search-input" style="width: 100%;">
+                <button type="button" class="btn-clear-search" onclick="clearStaffHistorySearch()" style="display: none;" id="clearStaffHistorySearchBtn">
+                  <span class="material-icons-round">close</span>
+                </button>
+              </div>
+            </div>
+            
+            <div id="staffRegistrationHistoryList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; max-height: 500px;">
+              <!-- History items populated by JS -->
+              <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                Loading history...
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -665,6 +697,7 @@
                     <option value="active">Set Active</option>
                     <option value="blocked">Block Account</option>
                     <option value="terminated">Terminate Account</option>
+                    <option value="delete">Delete Account</option>
                   </select>
                 </div>
                 <button onclick="updateUserDetailsStatus()" id="adminUserDetailUpdateBtn" class="btn btn-primary"

@@ -14,7 +14,8 @@ import {
   verifyOTP,
   resetPassword,
   completeStaffSetup,
-  updateEmailNotificationPreference
+  updateEmailNotificationPreference,
+  resendStaffSetupLink
 } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -49,6 +50,14 @@ router.post("/register-staff", protect, (req, res, next) => {
   }
   next();
 }, asyncHandler(registerStaff));
+
+// Resend Staff Setup Link (admin only)
+router.post("/staff/:staffId/resend-setup", protect, (req, res, next) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+}, asyncHandler(resendStaffSetupLink));
 
 // Admin Registration (admin only)
 router.post("/register-admin", protect, (req, res, next) => {

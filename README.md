@@ -48,7 +48,7 @@ CityPlus is a full-stack civic issue reporting web application that enables citi
 | **Auth**     | JWT (JSON Web Tokens), bcryptjs                       |
 | **File Upload** | Cloudinary + Multer                                |
 | **Real-Time** | Socket.IO                                            |
-| **Email**    | Nodemailer (Gmail SMTP)                               |
+| **Email**    | Resend API                                            |
 | **Security** | express-rate-limit, express-mongo-sanitize, CORS      |
 | **Dev Tools** | Nodemon, custom lint script                          |
 
@@ -62,7 +62,7 @@ cityplus/
 │   ├── config/
 │   │   ├── cloudinary.js      # Cloudinary SDK setup
 │   │   ├── db.js              # MongoDB connection
-│   │   ├── email.js           # Nodemailer transporter
+│   │   ├── email.js           # Resend email helper
 │   │   └── socket.js          # Socket.IO initialization & events
 │   ├── controllers/
 │   │   ├── adminController.js     # Dashboard summary, user management
@@ -129,7 +129,7 @@ cityplus/
 - **Node.js** v18+ and **npm**
 - **MongoDB Atlas** account (or a local MongoDB instance)
 - **Cloudinary** account (for image uploads)
-- **Gmail** account with App Password (for email notifications)
+- **Resend** account with a verified sender domain/address
 
 ### Installation
 
@@ -157,11 +157,10 @@ cityplus/
    CLOUDINARY_API_KEY=your_api_key
    CLOUDINARY_API_SECRET=your_api_secret
 
-   EMAIL_HOST=smtp.gmail.com
-   EMAIL_PORT=587
-   EMAIL_USER=your_email@gmail.com
-   EMAIL_PASS=your_app_password
-   EMAIL_FROM="CityPlus" <your_email@gmail.com>
+   RESEND_API_KEY=your_resend_api_key
+   RESEND_FROM="CityPlus" <your_verified_sender@yourdomain.com>
+
+   # Optional legacy SMTP variables are no longer used by the app
 
    FRONTEND_URL=http://localhost:5000
    ```

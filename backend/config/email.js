@@ -1,28 +1,5 @@
 import nodemailer from "nodemailer";
 
-const emailPort = Number.parseInt(process.env.EMAIL_PORT || "587", 10);
-const emailSecure = process.env.EMAIL_SECURE
-  ? process.env.EMAIL_SECURE === "true"
-  : emailPort === 465;
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: emailPort,
-  secure: emailSecure,
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-let hasVerifiedTransport = false;
-
 function buildTextBody(html) {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -34,33 +11,41 @@ function buildTextBody(html) {
     .trim();
 }
 
-export async function verifyEmailTransport() {
-  if (hasVerifiedTransport) {
-    return;
-  }
-
-  await transporter.verify();
-  hasVerifiedTransport = true;
-}
-
+/**
+ * Sends an email using Nodemailer and Gmail SMTP (configured in .env).
+ */
 export const sendEmail = async (to, subject, html) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = process.env.EMAIL_PORT || 587;
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  const from = process.env.EMAIL_FROM || '"CityPlus" <cityplus.noreply@gmail.com>';
+
+  if (!user || !pass) {
     console.warn("[Email] Skipped - EMAIL_USER or EMAIL_PASS not configured in .env");
     return false;
   }
 
   try {
-    await verifyEmailTransport();
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || `"CityPlus" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-      text: buildTextBody(html)
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port == 465, // true for 465, false for other ports
+      auth: {
+        user,
+        pass,
+      },
     });
 
-    console.log(`[Email] Sent to ${to}: ${subject}`);
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text: buildTextBody(html),
+      html,
+    });
+
+    console.log(`[Email] Sent to ${to}: ${subject} (${info.messageId})`);
     return true;
   } catch (err) {
     console.error(`[Email] Failed to send to ${to}:`, err.message);

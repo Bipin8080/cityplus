@@ -7,6 +7,7 @@ let currentStatusFilter = '';
 
 let currentIssueSearchTerm = '';
 let currentIssueStatusFilter = '';
+let currentIssueDepartmentFilter = '';
 let currentIssueViewMode = 'list';
 window.adminIssuesList = [];
 window.adminAllIssuesMapInstance = null;
@@ -102,6 +103,20 @@ async function loadAdminData() {
     window.adminDepartmentsList = departmentsData.data || [];
     populateDepartmentsDropdown(window.adminDepartmentsList);
     displayDepartments(window.adminDepartmentsList);
+
+    // Populate Issue Department Filter
+    const issueDeptFilter = document.getElementById('issueDepartmentFilter');
+    if (issueDeptFilter) {
+      issueDeptFilter.innerHTML = '<option value="">All Departments</option>';
+      window.adminDepartmentsList.forEach(dept => {
+        issueDeptFilter.innerHTML += `<option value="${dept._id}">${dept.name}</option>`;
+      });
+    }
+
+    // ----- Populate Staff Registration History -----
+    if (typeof loadStaffRegistrationHistory === 'function') {
+      loadStaffRegistrationHistory();
+    }
 
   } catch (err) {
     console.error(err);
@@ -351,6 +366,40 @@ async function updateUserStatusAdmin(userId, status) {
     }
 
     showToast('success', `User account has been successfully set to "${status}".`);
+    loadAdminData(); // Reload to show changes
+  } catch (err) {
+    console.error(err);
+    showToast('error', err.message);
+    // Reload data to revert UI changes in case of failure
+    loadAdminData();
+  }
+}
+
+async function deleteUserAdmin(userId) {
+  const token = localStorage.getItem("admin_token");
+  try {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        Authorization: "Bearer " + token,
+      },
+    });
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error(
+        `Received an unexpected response from the server. This can happen if your session has expired. Please try logging out and logging in again. (Status: ${res.status})`
+      );
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || `Failed to delete user account.`);
+    }
+
+    showToast('success', `User account has been successfully deleted.`);
     loadAdminData(); // Reload to show changes
   } catch (err) {
     console.error(err);
@@ -910,6 +959,12 @@ function applyIssueSearchAndFilters() {
     filteredIssues = filteredIssues.filter(issue => issue.status === currentIssueStatusFilter);
   }
 
+  if (currentIssueDepartmentFilter) {
+    filteredIssues = filteredIssues.filter(issue => 
+      issue.department && (issue.department._id === currentIssueDepartmentFilter || issue.department === currentIssueDepartmentFilter)
+    );
+  }
+
   // Only display issues in the table if the list view is active
   const listContainer = document.getElementById('issues-tab');
   const mapContainer = document.getElementById('map-view-tab');
@@ -1061,10 +1116,13 @@ function clearIssueSearch() {
 function resetIssueFilters() {
   currentIssueSearchTerm = '';
   currentIssueStatusFilter = '';
+  currentIssueDepartmentFilter = '';
   currentPage = 1;
 
   document.getElementById('issueSearchInput').value = '';
   document.getElementById('issueStatusFilter').value = '';
+  const deptFilter = document.getElementById('issueDepartmentFilter');
+  if (deptFilter) deptFilter.value = '';
   document.getElementById('clearIssueSearchBtn').style.display = 'none';
   document.getElementById('issueSearchResultsInfo').style.display = 'none';
 
@@ -1189,6 +1247,7 @@ function setupSearchAndFilters() {
 function setupIssueSearchAndFilters() {
   const searchInput = document.getElementById('issueSearchInput');
   const statusFilter = document.getElementById('issueStatusFilter');
+  const deptFilter = document.getElementById('issueDepartmentFilter');
   const clearSearchBtn = document.getElementById('clearIssueSearchBtn');
 
   if (searchInput) {
@@ -1203,6 +1262,14 @@ function setupIssueSearchAndFilters() {
   if (statusFilter) {
     statusFilter.addEventListener('change', (e) => {
       currentIssueStatusFilter = e.target.value;
+      currentPage = 1;
+      applyIssueSearchAndFilters();
+    });
+  }
+
+  if (deptFilter) {
+    deptFilter.addEventListener('change', (e) => {
+      currentIssueDepartmentFilter = e.target.value;
       currentPage = 1;
       applyIssueSearchAndFilters();
     });
@@ -1384,7 +1451,7 @@ async function updateUserDetailsStatus() {
 
   showConfirmModal(
     "Confirm Action",
-    `Are you sure you want to ${newStatus} the account for "${userName}"?`,
+    `Are you sure you want to ${newStatus} the account for "${userName}"?${newStatus === 'delete' ? ' This action cannot be undone.' : ''}`,
     async () => {
       // Show loading
       const btn = document.getElementById("adminUserDetailUpdateBtn");
@@ -1392,7 +1459,11 @@ async function updateUserDetailsStatus() {
       btn.innerHTML = 'Updating...';
       btn.disabled = true;
       try {
-        await updateUserStatusAdmin(userId, newStatus);
+        if (newStatus === 'delete') {
+          await deleteUserAdmin(userId);
+        } else {
+          await updateUserStatusAdmin(userId, newStatus);
+        }
         closeAdminUserDetails();
       } finally {
         btn.innerHTML = originalText;
@@ -1974,3 +2045,199 @@ async function updateStaffDepartment(staffId, departmentId) {
     showToast('error', err.message);
   }
 }
+
+// --- Staff Registration History Logic ---
+async function loadStaffRegistrationHistory() {
+  const container = document.getElementById("staffRegistrationHistoryList");
+  if (!container) return;
+
+  container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+    <span class="material-icons-round spin-animation" style="font-size: 2rem; color: var(--primary-color);">refresh</span>
+    <p style="margin-top: 0.5rem;">Loading history...</p>
+  </div>`;
+
+  try {
+    const token = window.CityPlusApi.getToken("admin");
+    const res = await fetch("/api/admin/staff", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to load staff history");
+    
+    // Update global staff list
+    window.adminStaffList = data.staff || [];
+    renderStaffRegistrationHistory(window.adminStaffList);
+    
+  } catch (err) {
+    console.error("Failed to load staff registration history:", err);
+    container.innerHTML = `<div style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load history.</div>`;
+  }
+}
+
+let currentStaffHistorySearchTerm = '';
+
+function renderStaffRegistrationHistory(staffList) {
+  const container = document.getElementById("staffRegistrationHistoryList");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  
+  let filteredStaff = staffList;
+  if (currentStaffHistorySearchTerm) {
+    const term = currentStaffHistorySearchTerm.toLowerCase();
+    filteredStaff = staffList.filter(s => 
+      (s.name && s.name.toLowerCase().includes(term)) ||
+      (s.email && s.email.toLowerCase().includes(term)) ||
+      (s.staffId && s.staffId.toLowerCase().includes(term))
+    );
+  }
+  
+  // Sort by newest first
+  const sortedStaff = [...filteredStaff].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  
+  if (sortedStaff.length === 0) {
+    container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No staff registered yet.</div>`;
+    return;
+  }
+  
+  sortedStaff.forEach(staff => {
+    const d = new Date(staff.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    const statusObj = getUserStatusMeta(staff.status);
+    
+    const isPending = staff.status === 'pending_setup';
+    const isSuspended = staff.status === 'blocked';
+    
+    const div = document.createElement("div");
+    div.style.cssText = "padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--surface); display: flex; flex-direction: column; gap: 0.5rem;";
+    
+    div.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <strong style="color: var(--text-primary); display: block;">${staff.name}</strong>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">${staff.staffId || '--'} • ${staff.department ? staff.department.name : 'No Dept'}</span>
+        </div>
+        <span class="status-pill status-${statusObj.className}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">${statusObj.label}</span>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
+        <span>${staff.email}</span>
+        <span>${d}</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+        ${isPending ? `<button class="btn btn-outline btn-small" onclick="resendStaffSetupLink('${staff._id}')" style="flex: 1; padding: 0.25rem; font-size: 0.75rem; border-color: var(--primary-color); color: var(--primary-color);">Resend Link</button>` : ''}
+        ${isPending ? `<button class="btn btn-outline btn-small" onclick="suspendStaffRegistration('${staff._id}')" style="flex: 1; padding: 0.25rem; font-size: 0.75rem; border-color: #ef4444; color: #ef4444;">Suspend</button>` : ''}
+        ${isSuspended ? `<button class="btn btn-outline btn-small" onclick="reactivateStaffRegistration('${staff._id}')" style="flex: 1; padding: 0.25rem; font-size: 0.75rem; border-color: #f59e0b; color: #f59e0b;">Reactivate</button>` : ''}
+      </div>
+    `;
+    
+    container.appendChild(div);
+  });
+}
+
+window.resendStaffSetupLink = async function(staffId) {
+  const token = localStorage.getItem("admin_token");
+  try {
+    const res = await fetch(`/api/auth/staff/${staffId}/resend-setup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to resend link");
+    
+    showToast('success', 'Setup link has been resent successfully.');
+  } catch(err) {
+    console.error(err);
+    showToast('error', err.message);
+  }
+};
+
+window.suspendStaffRegistration = async function(staffId) {
+  if (!confirm("Are you sure you want to suspend this staff registration?")) return;
+  
+  const token = localStorage.getItem("admin_token");
+  try {
+    const res = await fetch(`/api/admin/users/${staffId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ status: "blocked" })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to suspend registration");
+    
+    showToast('success', 'Staff registration suspended.');
+    loadStaffRegistrationHistory();
+    loadAdminData(); // Refresh overall user counts and lists
+  } catch(err) {
+    console.error(err);
+    showToast('error', err.message);
+  }
+};
+
+window.reactivateStaffRegistration = async function(staffId) {
+  if (!confirm("Are you sure you want to reactivate this staff member and allow setup?")) return;
+  
+  const token = localStorage.getItem("admin_token");
+  try {
+    const res = await fetch(`/api/admin/users/${staffId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ status: "pending_setup" })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to reactivate");
+    
+    showToast('success', 'Staff registration reactivated (pending setup).');
+    loadStaffRegistrationHistory();
+    loadAdminData();
+  } catch(err) {
+    console.error(err);
+    showToast('error', err.message);
+  }
+};
+
+window.applyStaffHistorySearch = function() {
+  if (window.adminStaffList) {
+    renderStaffRegistrationHistory(window.adminStaffList);
+  }
+};
+
+window.clearStaffHistorySearch = function() {
+  document.getElementById('staffHistorySearchInput').value = '';
+  currentStaffHistorySearchTerm = '';
+  document.getElementById('clearStaffHistorySearchBtn').style.display = 'none';
+  window.applyStaffHistorySearch();
+};
+
+function setupStaffHistorySearch() {
+  const searchInput = document.getElementById('staffHistorySearchInput');
+  const clearBtn = document.getElementById('clearStaffHistorySearchBtn');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentStaffHistorySearchTerm = e.target.value;
+      if (clearBtn) {
+        clearBtn.style.display = currentStaffHistorySearchTerm ? 'flex' : 'none';
+      }
+      window.applyStaffHistorySearch();
+    });
+  }
+}
+
+// Call setup on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+  // Existing DOM nodes might not be present if the HTML is loaded dynamically,
+  // but since it's in the main HTML, it should be fine.
+  setupStaffHistorySearch();
+});
+
